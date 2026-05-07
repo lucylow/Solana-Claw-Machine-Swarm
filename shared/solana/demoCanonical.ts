@@ -1,4 +1,9 @@
-import type { AgentOrchestrationPlanReceipt, ReflectionRecord, SkillAsset, SolanaTxRecord } from "./types";
+import type {
+  AgentOrchestrationPlanReceipt,
+  ReflectionRecord,
+  SolanaRegistrySkillAsset,
+  SolanaTxRecord,
+} from "./types";
 
 export const DEMO_WALLET_SNAPSHOT = {
   publicKey: "9q2x8sFz3wJmYcP4VnK7aL1tR6eU2bQ8hJ5mX9pZ",
@@ -8,7 +13,7 @@ export const DEMO_WALLET_SNAPSHOT = {
   balanceSol: "2.5849382",
 };
 
-export const DEMO_SKILLS: SkillAsset[] = [
+export const DEMO_SKILLS: SolanaRegistrySkillAsset[] = [
   {
     id: "skill-support-triage",
     name: "Support Triage",

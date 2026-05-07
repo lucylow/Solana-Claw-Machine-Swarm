@@ -10,6 +10,8 @@ import { getZeroGHealth } from "./health";
 import { createZeroGReplayService } from "./replay";
 import { ZeroGStorageService } from "./storage";
 import type { ZeroGStorageArtifact } from "./types";
+import { buildZeroGIntegrationStatus } from "./integrationSummary";
+import { createSidecarOrchestrator } from "./sidecarOrchestrator";
 
 function ok(res: Response, data: unknown) {
   res.json({ ok: true, data });
@@ -192,6 +194,14 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
 
+  app.get("/api/zerog/integration", async (_req, res) => {
+    try {
+      ok(res, await buildZeroGIntegrationStatus(module));
+    } catch (error) {
+      fail(res, error, 500);
+    }
+  });
+
   app.get("/api/zerog/storage/health", async (_req, res) => ok(res, await module.storage.getHealth()));
   app.get("/api/zerog/compute/health", async (_req, res) => ok(res, await module.compute.getHealth()));
   app.get("/api/zerog/da/health", async (_req, res) => ok(res, await module.da.getHealth()));
@@ -338,6 +348,49 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
         .optional()
         .parse(req.body);
       ok(res, await module.runDemoFlow(body));
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+
+  const persistSchema = z.object({
+    wallet: z.string().min(32),
+    cluster: z.enum(["devnet", "testnet", "mainnet-beta", "localnet"]).default("devnet"),
+    namespace: z.string().min(1).default("claw_sidecar"),
+    receiptType: z.enum([
+      "skill",
+      "plan",
+      "execution",
+      "reflection",
+      "memory",
+      "proof",
+      "zerog_upload",
+      "zerog_da_batch",
+    ]),
+    subjectId: z.string().min(1),
+    contentType: z.string().default("application/json"),
+    payloadB64: z.string().min(1),
+    explorerBaseUrl: z.string().optional(),
+  });
+
+  app.post("/api/zerog/orchestrate/persist", async (req, res) => {
+    try {
+      const input = persistSchema.parse(req.body ?? {});
+      const orchestrator = createSidecarOrchestrator(module);
+      const payload = new Uint8Array(Buffer.from(input.payloadB64, "base64"));
+      ok(
+        res,
+        await orchestrator.persistArtifact({
+          wallet: input.wallet,
+          cluster: input.cluster,
+          namespace: input.namespace,
+          receiptType: input.receiptType,
+          subjectId: input.subjectId,
+          contentType: input.contentType,
+          payload,
+          explorerBaseUrl: input.explorerBaseUrl,
+        })
+      );
     } catch (error) {
       fail(res, error);
     }

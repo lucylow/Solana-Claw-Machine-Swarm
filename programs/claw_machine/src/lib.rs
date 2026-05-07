@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("11111111111111111111111111111111");
+declare_id!("CLAWM7dNyS1k1M7vP2kNQG6vcm2g4k84s8nTRWJ8NAT");
 
 const REGISTRY_SEED: &[u8] = b"registry";
 const SKILL_SEED: &[u8] = b"skill";

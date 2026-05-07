@@ -1,148 +1,168 @@
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
-import { addressExplorerUrl } from "@/lib/solana/explorer";
-import { formatSolBalance, shortenAddress } from "@/lib/solana/format";
-import { WalletModalButton } from "@solana/wallet-adapter-react-ui";
-import { Loader2, RefreshCw, ShieldCheck } from "lucide-react";
-import { SolanaCopyButton } from "./SolanaCopyButton";
-import { SolanaExplorerLink } from "./SolanaExplorerLink";
-import { SolanaNetworkBadge } from "./SolanaNetworkBadge";
-import { SolanaSessionBanner } from "./SolanaSessionBanner";
+import { addressExplorerUrl, txExplorerUrl } from "@/lib/solana/explorer";
+import { shortenAddress } from "@/lib/solana/format";
+import { SOLANA_COPY } from "@shared/copy";
+import { ChevronDown, ChevronUp, Copy, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-export function SolanaWalletPanel({ showDebug = false }: { showDebug?: boolean }) {
-  const w = useSolanaWallet();
+export default function SolanaWalletPanel({ compact = false }: { compact?: boolean }) {
+  const wallet = useSolanaWallet();
+  const snap = wallet.walletState;
+
+  const [debugOpen, setDebugOpen] = useState(false);
+
+  async function copyAddress() {
+    if (!snap.publicKey) return;
+    await navigator.clipboard.writeText(snap.publicKey);
+    toast.success(SOLANA_COPY.wallet.toastAddressCopied);
+  }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-gradient-to-br from-[#050a10]/95 to-[#070f18]/95 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.55)]">
+    <section
+      className={`rounded-2xl border border-[#3bff96]/25 bg-[#070b11]/95 text-slate-100 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ${
+        compact ? "p-3" : "p-5"
+      }`}
+      aria-label="Solana wallet panel"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Solana wallet · command surface</p>
-          <h2 className="mt-1 text-xl font-semibold text-white">Identity & session</h2>
-          <p className="mt-1 max-w-xl text-sm text-slate-400">
-            Connect a Solana wallet, verify a signed session, then publish skills, run agents, and anchor receipts with explorer
-            proofs.
-          </p>
-        </div>
-        <SolanaNetworkBadge cluster={w.cluster} wrong={w.walletState.connectionStatus === "wrong_cluster"} />
-      </div>
-
-      <SolanaSessionBanner
-        verified={w.walletState.isSessionVerified}
-        wrongCluster={w.walletState.connectionStatus === "wrong_cluster"}
-      />
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Wallet</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <WalletModalButton className="wallet-adapter-button-trigger rounded-lg bg-[#3bff96] px-4 py-2 text-sm font-semibold text-black hover:bg-[#7dffbf]" />
-            <Button
-              type="button"
-              variant="outline"
-              className="border-white/15 bg-transparent text-slate-100"
-              onClick={() => w.disconnectWallet()}
-              disabled={!w.walletAddress}
-            >
-              Disconnect
-            </Button>
+        <div className="flex items-start gap-2">
+          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl border border-[#3bff96]/35 bg-[#3bff96]/10">
+            <Wallet className="h-4 w-4 text-[#8cf8d4]" aria-hidden />
           </div>
-          <div className="mt-4 space-y-2 text-sm text-slate-200">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="border-white/15 bg-white/5 text-slate-200">
-                {w.walletName ?? "No adapter"}
-              </Badge>
-              {w.walletState.isSessionVerified ? (
-                <Badge className="border-[#3bff96]/45 bg-[#3bff96]/15 text-[#e7fff3]">
-                  <ShieldCheck className="mr-1 h-3.5 w-3.5" aria-hidden />
-                  Session verified
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="border-cyan-400/35 text-cyan-100">
-                  Session required
-                </Badge>
-              )}
-            </div>
-            <p className="font-mono text-base text-[#c9ffe8]">{w.walletAddress ? shortenAddress(w.walletAddress) : "—"}</p>
-            <div className="flex flex-wrap gap-2">
-              {w.walletAddress ? <SolanaCopyButton text={w.walletAddress} label="Copy address" /> : null}
-              {w.walletAddress ? (
-                <SolanaExplorerLink
-                  kind="address"
-                  value={w.walletAddress}
-                  cluster={w.cluster}
-                  label="Wallet on explorer"
-                  buildUrl={addressExplorerUrl}
-                />
-              ) : null}
-            </div>
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8ceada]">{SOLANA_COPY.wallet.panelTitle}</p>
+            <p className="mt-1 font-mono text-sm text-white">
+              {snap.publicKey ? shortenAddress(snap.publicKey, 6, 6) : SOLANA_COPY.wallet.notConnected}
+            </p>
+            <p className="text-[11px] text-slate-500">{wallet.walletName ?? "Adapter"}</p>
           </div>
         </div>
-
-        <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Balance · RPC</p>
-          <div className="mt-3 flex items-center gap-3">
-            <p className="text-3xl font-semibold text-white">{formatSolBalance(w.balanceSol)}</p>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="border-white/15"
-              onClick={() => void w.refreshBalance()}
-              disabled={!w.walletAddress || w.walletState.isBalanceLoading}
-              aria-label="Refresh balance"
-            >
-              {w.walletState.isBalanceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            RPC · <span className="font-mono text-slate-300">{w.rpcUrl}</span>
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              className="bg-cyan-500 text-black hover:bg-cyan-400"
-              disabled={
-                !w.walletAddress || w.state === "signing" || w.state === "session_verifying" || w.state === "connecting"
-              }
-              onClick={() => w.connectAndVerify().catch(() => undefined)}
-            >
-              {w.state === "signing" || w.state === "session_verifying" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing…
-                </>
-              ) : (
-                "Sign Solana session"
-              )}
-            </Button>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-cyan-500/35 bg-cyan-500/10 px-2 py-0.5 text-[11px] text-cyan-100">
+            {SOLANA_COPY.wallet.clusterBadge}: {snap.cluster}
+          </span>
+          {snap.isSessionVerified ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#3bff96]/40 bg-[#3bff96]/10 px-2 py-0.5 text-[11px] text-[#c9ffe7]">
+              <ShieldCheck className="h-3 w-3" aria-hidden />
+              {SOLANA_COPY.wallet.sessionVerifiedChip}
+            </span>
+          ) : (
+            <span className="rounded-full border border-amber-400/35 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-100">
+              Solana session: {snap.sessionStatus}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/35 p-4">
-        <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Permissions (backend attestation)</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {Object.entries(w.walletState.permissions).map(([k, v]) => (
-            <div key={k} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-              <span className="text-xs text-slate-400">{k}</span>
-              <Badge className={v ? "bg-[#3bff96]/15 text-[#d8ffe9]" : "bg-white/5 text-slate-400"}>{v ? "allowed" : "denied"}</Badge>
-            </div>
-          ))}
+      <dl className={`mt-4 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+        <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+          <dt className="text-slate-500">{SOLANA_COPY.wallet.connectionState}</dt>
+          <dd className="mt-0.5 capitalize text-slate-100">{snap.connectionStatus.replaceAll("_", " ")}</dd>
         </div>
+        <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+          <dt className="text-slate-500">{SOLANA_COPY.wallet.balanceLabel}</dt>
+          <dd className="mt-0.5 font-mono text-slate-100">
+            {snap.balanceSol !== null ? `${snap.balanceSol} SOL` : snap.isBalanceLoading ? "…" : "—"}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
+          <dt className="text-slate-500">{SOLANA_COPY.wallet.latestSignature}</dt>
+          <dd className="mt-0.5 truncate font-mono text-[11px] text-slate-300">
+            {snap.lastTxSignature ? shortenAddress(snap.lastTxSignature, 8, 6) : "—"}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <WalletMultiButton className="wallet-adapter-button-trigger !rounded-lg !bg-[#132018] !font-semibold !text-[#c9ffe7]" />
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/20 text-slate-100"
+          disabled={!snap.publicKey}
+          onClick={() => copyAddress()}
+        >
+          <Copy className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          {SOLANA_COPY.wallet.copyAddress}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-[#3bff96]/45 text-[#c9ffe7]"
+          disabled={!snap.publicKey}
+          onClick={() => window.open(addressExplorerUrl(snap.publicKey!, snap.cluster), "_blank", "noopener,noreferrer")}
+        >
+          {SOLANA_COPY.wallet.explorerAccount}
+        </Button>
+        {snap.lastTxSignature ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-cyan-500/45 text-cyan-100"
+            onClick={() =>
+              window.open(txExplorerUrl(snap.lastTxSignature!, snap.cluster), "_blank", "noopener,noreferrer")
+            }
+          >
+            {SOLANA_COPY.wallet.explorerTx}
+          </Button>
+        ) : null}
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/15 text-slate-200"
+          disabled={!snap.publicKey || snap.isBalanceLoading}
+          onClick={() => wallet.refreshBalance().catch(() => undefined)}
+        >
+          <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          {SOLANA_COPY.wallet.refreshSolBalance}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-amber-500/35 text-amber-100"
+          disabled={!snap.publicKey}
+          onClick={() => wallet.clearSession().catch(() => undefined)}
+        >
+          {SOLANA_COPY.wallet.clearCachedSession}
+        </Button>
+        <Button
+          size="sm"
+          className="bg-[#3bff96] text-black hover:bg-[#6bffbc]"
+          onClick={() => wallet.connectAndVerify().catch(() => undefined)}
+        >
+          <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+          {snap.isSessionVerified ? SOLANA_COPY.wallet.signSolanaSessionAgain : SOLANA_COPY.wallet.connectVerify}
+        </Button>
       </div>
 
-      {w.error ? (
-        <div className="rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-3 text-sm text-red-50">
-          <p className="font-semibold">Wallet or session error</p>
-          <p className="mt-1 text-red-100/90">{w.error}</p>
-          <p className="mt-2 text-xs text-red-200/80">Retry connect or signing from your Solana wallet extension.</p>
+      {!compact ? (
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{SOLANA_COPY.wallet.permissionsTitle}</p>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-[11px] text-[#7dccb8] hover:text-[#b8ffe0]"
+              onClick={() => setDebugOpen(!debugOpen)}
+            >
+              Debug state
+              {debugOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1 text-[11px] text-slate-400">
+            <li>Publish skill (Solana program): {snap.permissions.canPublishSkill ? "yes" : "needs verified session"}</li>
+            <li>Execute task: {snap.permissions.canExecuteTask ? "yes" : "needs verified session"}</li>
+            <li>Anchor Solana receipt: {snap.permissions.canAnchorReceipt ? "yes" : "needs verified session"}</li>
+          </ul>
+          {debugOpen ? (
+            <pre className="mt-3 max-h-48 overflow-auto rounded-lg bg-black/50 p-2 text-[10px] leading-relaxed text-slate-400">
+              {JSON.stringify(snap, null, 2)}
+            </pre>
+          ) : null}
         </div>
       ) : null}
-
-      {showDebug ? (
-        <pre className="max-h-44 overflow-auto rounded-lg bg-black/60 p-3 text-[11px] text-slate-300">{JSON.stringify(w.walletState.diagnostics, null, 2)}</pre>
-      ) : null}
-    </div>
+    </section>
   );
 }

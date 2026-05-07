@@ -1,6 +1,6 @@
 import { SolanaReceiptPanel } from "@/components/solana/SolanaReceiptPanel";
 import { SolanaTxLifecycleCard } from "@/components/solana/SolanaTxLifecycleCard";
-import { SolanaWalletPanel } from "@/components/solana/SolanaWalletPanel";
+import SolanaWalletPanel from "@/components/solana/SolanaWalletPanel";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +23,7 @@ import {
   DEMO_SKILLS,
   DEMO_WALLET_SNAPSHOT,
 } from "@shared/solana/demoCanonical";
+import { AGENT_LOOP_STEPS_DETAILED, SOLANA_COPY } from "@shared/copy";
 import {
   CLAW_AGENT_FLEET_ROLES,
   CLAW_DEMO_SCENARIOS,
@@ -59,17 +60,7 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 
-const LOOP_STEPS = [
-  "Connect Solana wallet",
-  "Discover skill in registry",
-  "Choose skill & verify autonomy band",
-  "Planner generates receipt-linked plan",
-  "Execute with policy gates",
-  "Reflect on failure",
-  "Write durable memory",
-  "Anchor compact receipt on Solana",
-  "Verify on explorer & compound reputation",
-];
+const LOOP_STEPS = [...AGENT_LOOP_STEPS_DETAILED];
 
 const SWARM_RFB_ROWS = [
   { rfb: "Agent discovery & reputation", claw: "Versioned skill PDAs with usage, success rate, and author provenance." },
@@ -79,14 +70,15 @@ const SWARM_RFB_ROWS = [
 ];
 
 const EXECUTION_LOG = [
-  "wallet.authorize → session + signer scope confirmed",
-  "planner.discover_skills → ranked by reputation (SWARM RFB #1)",
+  "solana.wallet → signed session verified against backend nonce",
+  "planner.discover_skills → ranked by reputation (SWARM discovery)",
   "policy.evaluate → review_required (confidence below threshold)",
   "operator.execute → step failed: stale context window",
   "critic.reflect → root cause + next action emitted",
-  "memory.write → durable off-chain blob + PDA pointer",
-  "solana.anchor_receipt → tx confirmed, receipt PDA updated",
-  "next_run.bootstrap → +16 confidence from memory reuse",
+  "zerog.storage.put → full reflection JSON / narrative blob",
+  "zerog.da.append → payload hash + batch root for replay",
+  "solana.record_receipt → compact summary hash + storage commitment",
+  "explorer.verify → wallet sees signature + PDAs + 0G URIs",
 ];
 
 const AUTONOMY_BANDS = [
@@ -151,7 +143,7 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
 
           <nav className="flex flex-wrap items-center justify-end gap-2" aria-label="Primary">
             <Button className="bg-[#3bff96] text-black hover:bg-[#6bffbc]" onClick={() => setLocation("/dashboard")}>
-              Command center
+              Solana command center
             </Button>
             <Button
               variant="outline"
@@ -195,14 +187,21 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
                     onSelect={() => setLocation("/receipts")}
                   >
                     <ReceiptText className="h-4 w-4 text-[#5ee4c7]" />
-                    Receipts
+                    Receipts on Solana
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/onchain")}
+                  >
+                    <Link2 className="h-4 w-4 text-[#5ee4c7]" />
+                    On-chain proof rail
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
                     onSelect={() => setLocation("/proofs")}
                   >
                     <ShieldCheck className="h-4 w-4 text-[#5ee4c7]" />
-                    Proof explorer
+                    Solana proof explorer
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
@@ -269,16 +268,16 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
               ))}
             </div>
             <div className="mt-4 rounded-xl border border-[#3bff96]/25 bg-[#08130f] p-4 text-[#d1ffe8]">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-[#87f7d0]/90">Session status</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#87f7d0]/90">{SOLANA_COPY.session.sessionStatus}</p>
               <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
                 <div>
-                  <dt className="text-slate-500">Wallet</dt>
+                  <dt className="text-slate-500">Solana wallet</dt>
                   <dd className="mt-0.5 font-mono text-[11px] text-slate-100 tabular-nums sm:text-xs">
-                    {wallet.walletAddress ? shortenAddress(wallet.walletAddress, 6, 6) : "Not connected"}
+                    {wallet.walletAddress ? shortenAddress(wallet.walletAddress, 6, 6) : SOLANA_COPY.wallet.notConnected}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Session</dt>
+                  <dt className="text-slate-500">Solana session</dt>
                   <dd className="mt-0.5 capitalize text-slate-100">{wallet.walletState.connectionStatus}</dd>
                 </div>
                 <div>
@@ -297,7 +296,7 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
                 className="border-[#3bff96]/60 text-[#c8ffe2]"
                 onClick={() => wallet.connectAndVerify().catch(() => undefined)}
               >
-                {session.isVerified ? "Refresh signed session" : "Connect wallet + sign session"}
+                {session.isVerified ? SOLANA_COPY.wallet.refreshSignedSession : SOLANA_COPY.wallet.connectVerify}
               </Button>
               <Link
                 href="/demo/hub"
@@ -308,7 +307,7 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
             </div>
             {!isAuthenticated ? (
               <p className="mt-4 text-xs text-amber-200/95">
-                Sign in to bind runs to your wallet, stream memory writes, and surface Solana-anchored receipts in the inspector.
+                Sign in to bind runs to your Solana wallet, stream memory writes, and surface explorer-verifiable receipts in the inspector.
               </p>
             ) : null}
             {wallet.walletAddress ? (
@@ -431,7 +430,7 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
 
         <section className="grid gap-5 lg:grid-cols-2">
           <Panel>
-            <h3 className="text-xl font-semibold">Typical LLM stack</h3>
+            <h3 className="text-xl font-semibold">Stateless agent stack (contrast)</h3>
             <ul className="mt-4 space-y-2 text-sm text-slate-300">
               {["Stateless turns", "Opaque reasoning", "No on-chain proof", "Memory not portable", "No audit trail", "Reputation not on-ledger"].map(item => (
                 <li key={item} className="flex items-center gap-2">

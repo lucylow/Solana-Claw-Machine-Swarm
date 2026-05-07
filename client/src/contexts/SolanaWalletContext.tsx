@@ -1,7 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import bs58 from "bs58";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import type { SolanaTxRecord, SolanaWalletState, WalletConnectionStatus } from "@shared/solana/types";
+import type {
+  SolanaTxRecord,
+  SolanaWalletState,
+  WalletConnectionStatus,
+} from "@shared/solana/types";
 import {
   DEMO_MODE,
   SOLANA_CLUSTER,
@@ -9,8 +13,7 @@ import {
   SOLANA_RPC_URL,
   SOLANA_SESSION_STORAGE_KEY,
 } from "@/lib/solana/config";
-import type { SolanaCluster } from "@/lib/solana/types";
-import type { SolanaSessionProfile } from "@/lib/solana/types";
+import type { SolanaCluster, SolanaSessionProfile } from "@/lib/solana/types";
 import {
   fetchSolanaSession,
   loadStoredSessionToken,
@@ -40,9 +43,14 @@ type SolanaWalletContextValue = {
   error: string | null;
   txHistory: SolanaTxRecord[];
   connectAndVerify: () => Promise<void>;
+  /** Same as connectAndVerify when wallet already connected — signs backend nonce again */
+  signSession: () => Promise<void>;
   refreshSession: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
   refreshBalance: () => Promise<void>;
+  /** Clears Bearer session cache + server logout; keeps wallet adapter connected */
+  clearSession: () => Promise<void>;
+  verifySession: () => Promise<void>;
 };
 
 const SolanaWalletContext = createContext<SolanaWalletContextValue | null>(null);
@@ -96,16 +104,20 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
       return;
     }
     setIsBalanceLoading(true);
-    setMachineState(prev => (prev === "session_verified" || prev === "ready" ? "balance_loading" : prev));
+    setMachineState((prev: WalletConnectionStatus) =>
+      prev === "session_verified" || prev === "ready" ? "balance_loading" : prev
+    );
     try {
       const lamports = await loadWalletBalanceLamports(connection, wallet.publicKey);
       setBalanceLamports(lamports.toString());
       setBalanceSol(Number(lamports) / 1e9);
-      setMachineState(prev => (prev === "balance_loading" ? "ready" : prev === "session_verified" ? "ready" : prev));
+      setMachineState((prev: WalletConnectionStatus) =>
+        prev === "balance_loading" ? "ready" : prev === "session_verified" ? "ready" : prev
+      );
     } catch {
       setBalanceSol(null);
       setBalanceLamports(null);
-      setMachineState(prev => (prev === "balance_loading" ? "session_verified" : prev));
+      setMachineState((prev: WalletConnectionStatus) => (prev === "balance_loading" ? "session_verified" : prev));
     } finally {
       setIsBalanceLoading(false);
     }
@@ -136,7 +148,7 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
       setBalanceLamports(null);
       return;
     }
-    setMachineState(prev => (prev === "disconnected" ? "connected" : prev));
+    setMachineState((prev: WalletConnectionStatus) => (prev === "disconnected" ? "connected" : prev));
   }, [wallet.connected, walletAddress]);
 
   useEffect(() => {
@@ -160,7 +172,7 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
     if (!wallet.signMessage) throw new Error("wallet_sign_message_unsupported");
 
     setMachineState("signing");
-    const nonce = await requestSolanaSessionNonce(wallet.publicKey.toBase58());
+    const nonce = await requestSolanaSessionNonce(wallet.publicKey.toBase58(), SOLANA_CLUSTER as SolanaCluster);
 
     const signatureBytes = await wallet.signMessage(new TextEncoder().encode(nonce.message));
     const signature = bs58.encode(signatureBytes);
@@ -171,6 +183,8 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
       walletAddress: wallet.publicKey.toBase58(),
       nonceId: nonce.nonceId,
       signature,
+      cluster: SOLANA_CLUSTER as SolanaCluster,
+      message: nonce.message,
     });
     const token = verified.token;
     if (!token || !verified.profile) throw new Error("session_verify_failed");
@@ -186,7 +200,7 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
       subjectId: verified.profile.sessionId,
       wallet: wallet.publicKey.toBase58(),
       cluster: SOLANA_CLUSTER as SolanaCluster,
-      summaryHash: signature.slice(0, 16),
+      summaryHash: signature.slice(0, 32),
       status: "verified",
       createdAt: new Date().toISOString(),
       proofRef: signature,
@@ -219,6 +233,18 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
     setTxHistory([]);
     await wallet.disconnect();
   }, [sessionToken, wallet]);
+
+  const clearVerifiedSession = useCallback(async () => {
+    setError(null);
+    if (sessionToken) {
+      await logoutSolanaSession(sessionToken).catch(() => undefined);
+    }
+    storeSessionToken(null);
+    setSessionToken(null);
+    setSessionProfile(null);
+    setLatestSignature(null);
+    setMachineState(wallet.connected && walletAddress ? "connected" : "disconnected");
+  }, [sessionToken, wallet.connected, walletAddress]);
 
   const resolvedStatus = connectionStatusFromMachine(machineState, { wrongCluster });
 
@@ -261,6 +287,8 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
         walletReady: wallet.connected,
         adapter: wallet.wallet?.adapter.name,
         sessionStorageKey: SOLANA_SESSION_STORAGE_KEY,
+        sessionTokenCacheNote:
+          "Local session token is a non-authoritative cache; adapter pubkey + verified Bearer session are truth.",
       },
     };
   }, [
@@ -296,6 +324,33 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
       error,
       txHistory,
       refreshBalance,
+      signSession: async () => {
+        try {
+          await connectAndVerify();
+        } catch (err: unknown) {
+          setMachineState("error");
+          setError(err instanceof Error ? err.message : "wallet_connect_failed");
+          throw err;
+        }
+      },
+      verifySession: async () => {
+        try {
+          await connectAndVerify();
+        } catch (err: unknown) {
+          setMachineState("error");
+          setError(err instanceof Error ? err.message : "wallet_connect_failed");
+          throw err;
+        }
+      },
+      clearSession: async () => {
+        try {
+          await clearVerifiedSession();
+        } catch (err: unknown) {
+          setMachineState("error");
+          setError(err instanceof Error ? err.message : "session_clear_failed");
+          throw err;
+        }
+      },
       connectAndVerify: async () => {
         try {
           await connectAndVerify();
@@ -319,15 +374,14 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
     [
       balanceLamports,
       balanceSol,
+      clearVerifiedSession,
       connectAndVerify,
       disconnectWallet,
       error,
-      explorerBaseUrl,
       latestSignature,
       refreshBalance,
       refreshSession,
       resolvedStatus,
-      rpcUrl,
       sessionProfile,
       sessionToken,
       txHistory,

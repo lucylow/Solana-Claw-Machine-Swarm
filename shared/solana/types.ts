@@ -1,7 +1,14 @@
+/**
+ * Canonical Solana + command-center types shared across client, server, and tooling.
+ * Reflection/memory domains live in `@shared/domainModel`; this module avoids duplicating them.
+ */
+
+import type { MemoryRecord, ReflectionRecord, SkillIdentity } from "../domainModel";
+
 export type SolanaCluster = "mainnet-beta" | "devnet" | "testnet" | "localnet";
 
-/** Wallet ↔ RPC session machine states (canonical). */
-export type SolanaConnectionStatus =
+/** Wallet ↔ session lifecycle states surfaced in the command center */
+export type WalletConnectionStatus =
   | "disconnected"
   | "connecting"
   | "connected"
@@ -13,22 +20,48 @@ export type SolanaConnectionStatus =
   | "ready"
   | "error";
 
-/** @deprecated Use SolanaConnectionStatus — preserved for incremental migration */
-export type SolanaWalletMachineState = SolanaConnectionStatus;
+/** @deprecated Use WalletConnectionStatus */
+export type SolanaConnectionStatus = WalletConnectionStatus;
 
-export interface SolanaTxRecord {
-  signature: string;
-  slot?: number;
-  status: "pending" | "confirmed" | "failed";
+/** @deprecated Use WalletConnectionStatus */
+export type SolanaWalletMachineState = WalletConnectionStatus;
+
+/** Receipt row mirrored between orchestrator + explorer surfaces */
+export interface SolanaReceiptRecord {
+  id: string;
+  type:
+    | "session"
+    | "skill"
+    | "plan"
+    | "execution"
+    | "reflection"
+    | "memory"
+    | "proof"
+    | "openclaw_import"
+    | "openclaw_export"
+    | "zerog_upload"
+    | "zerog_da_batch";
+  subjectId: string;
+  wallet: string;
   cluster: SolanaCluster;
+  txSignature?: string;
+  account?: string;
+  summaryHash: string;
+  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
+  createdAt: string;
   explorerUrl?: string;
-  createdAt: number;
+  storageRef?: string;
+  proofRef?: string;
+  daRoot?: string;
 }
 
-/** Wallet-derived snapshot for UI + RPC alignment (canonical). */
+/** Alias for backwards compatibility with older imports */
+export type SolanaTxRecord = SolanaReceiptRecord;
+
+/** Aggregate wallet snapshot rendered across panels */
 export interface SolanaWalletState {
   connected: boolean;
-  connectionStatus: SolanaConnectionStatus;
+  connectionStatus: WalletConnectionStatus;
   publicKey: string | null;
   walletName: string | null;
   cluster: SolanaCluster;
@@ -57,11 +90,11 @@ export interface SolanaWalletState {
 }
 
 export interface SolanaSessionPermissions {
-  canPublishSkills: boolean;
-  canRunTasks: boolean;
-  canWriteMemory: boolean;
-  canAnchorProofs: boolean;
-  canBridgeOpenClaw: boolean;
+  canPublishSkill: boolean;
+  canExecuteTask: boolean;
+  canAnchorReceipt: boolean;
+  canSignSession: boolean;
+  canViewChainData: boolean;
 }
 
 export interface SolanaSessionProfile {
@@ -77,6 +110,8 @@ export interface SolanaSessionProfile {
 
 export interface SessionNonceResponse {
   nonceId: string;
+  /** Same id as nonceId — stable session correlation handle for clients */
+  sessionId: string;
   nonce: string;
   message: string;
   expiresAt: number;
@@ -87,6 +122,8 @@ export interface SessionVerifyRequest {
   walletAddress: string;
   nonceId: string;
   signature: string;
+  cluster: SolanaCluster;
+  message: string;
 }
 
 export interface SessionVerifyResponse {
@@ -94,32 +131,130 @@ export interface SessionVerifyResponse {
   profile: SolanaSessionProfile;
 }
 
-/** Canonical mirrored receipt row shown across explorer surfaces */
-export interface SolanaReceiptRecord {
+/** Published skill row for registry / discovery views (distinct from `SkillAsset` in `./skills`). */
+export interface SolanaRegistrySkillAsset extends SkillIdentity {
+  openClawCompatible?: boolean;
+  openClawSource?: string;
+  openClawExportTarget?: string;
+}
+
+/** Command-center orchestration plan (distinct from `@shared/planReceipts`) */
+export interface AgentOrchestrationPlanReceipt {
   id: string;
-  type:
-    | "skill"
-    | "plan"
-    | "execution"
-    | "reflection"
-    | "memory"
-    | "proof"
-    | "zerog_upload"
-    | "zerog_da_batch";
+  planId: string;
+  taskType: string;
+  goal: string;
+  summary: string;
+  stepCount: number;
+  dependencies: Array<{
+    id: string;
+    type: "skill" | "memory" | "artifact" | "tool" | "queue" | "contract";
+    ref: string;
+    label?: string;
+    required: boolean;
+  }>;
+  chosenSkills: Array<{
+    id: string;
+    name: string;
+    version?: string;
+    hash?: string;
+    active?: boolean;
+  }>;
+  summaryHash: string;
+  planHash: string;
+  status:
+    | "draft"
+    | "generated"
+    | "stored"
+    | "anchored"
+    | "executing"
+    | "completed"
+    | "failed"
+    | "degraded";
+  createdAt: string;
+  updatedAt: string;
+  agentId: string;
+  wallet: string;
+  storage?: {
+    ref?: string;
+    checksum?: string;
+    namespace?: string;
+  };
+  solana?: {
+    chainId?: number;
+    txSignature?: string;
+    account?: string;
+    programId?: string;
+    anchorHash?: string;
+    verified?: boolean;
+  };
+  reflection?: {
+    reflectionId?: string;
+    linked?: boolean;
+  };
+  memory?: {
+    memoryId?: string;
+    linked?: boolean;
+  };
+  metadata: Record<string, unknown>;
+}
+
+export type { MemoryRecord, ReflectionRecord };
+
+/** Structured receipt row used across dashboard / explorer — compact proof metadata only */
+export interface ReceiptArtifact {
+  id: string;
+  subjectType: string;
   subjectId: string;
   wallet: string;
   cluster: SolanaCluster;
   txSignature?: string;
-  account?: string;
+  accountAddress?: string;
   summaryHash: string;
+  storageRef?: string;
+  proofRef?: string;
   status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
   createdAt: string;
   explorerUrl?: string;
-  storageRef?: string;
-  proofRef?: string;
-  daRoot?: string;
 }
 
+/** Reflection narrative stays off-chain; this record carries lineage + pointers */
+export interface ReflectionArtifact {
+  id: string;
+  sourceTurnId: string;
+  rootCause: string;
+  correctiveAdvice: string;
+  nextAction: string;
+  summary: string;
+  fullText?: string;
+  offchainStorageRef?: string;
+  onchainReceiptId?: string;
+  status: "captured" | "stored" | "anchored" | "linked" | "verified" | "failed" | "degraded";
+}
+
+/** Memory record with provenance — long content via storageRef, proof via receipt id */
+export interface MemoryArtifact {
+  id: string;
+  sourceTurnId: string;
+  title: string;
+  summary: string;
+  kind:
+    | "working"
+    | "session"
+    | "episodic"
+    | "semantic"
+    | "reflection"
+    | "failure"
+    | "plan"
+    | "summary";
+  storageRef?: string;
+  proofReceiptId?: string;
+  linkedNextTurnId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Legacy mirrored receipts kept for older readers — prefer ReceiptRecord in domain swarm types */
 export interface ReceiptRecordBase {
   id: string;
   wallet: string;
@@ -133,45 +268,20 @@ export interface ReceiptRecordBase {
   verificationState: "verified" | "pending" | "failed" | "degraded";
 }
 
-export interface PlanReceipt extends ReceiptRecordBase {
+export interface LegacyMirroredPlanReceipt extends ReceiptRecordBase {
   planId: string;
   selectedSkillIds: string[];
   expectedOutcome: string;
 }
 
-export interface ExecutionReceipt extends ReceiptRecordBase {
+export interface LegacyMirroredExecutionReceipt extends ReceiptRecordBase {
   executionId: string;
   stepCount: number;
   completedSteps: number;
   failedSteps: number;
 }
 
-export interface ReflectionRecord {
-  id: string;
-  executionId: string;
-  rootCause: string;
-  correctiveAdvice: string;
-  nextAction: string;
-  confidence: number;
-  sourceTurn: string;
-  linkedMemoryId?: string;
-  linkedProofReceiptId?: string;
-}
-
-export interface MemoryRecord {
-  id: string;
-  title: string;
-  summary: string;
-  type: string;
-  source: string;
-  storageRef: string;
-  checksum: string;
-  proofRef?: string;
-  linkedNextTurn?: string;
-  verificationState: "verified" | "pending" | "failed";
-}
-
-export interface ProofReceipt extends ReceiptRecordBase {
+export interface LegacyMirroredProofReceipt extends ReceiptRecordBase {
   proofId: string;
   linkedPlanId?: string;
   linkedExecutionId?: string;

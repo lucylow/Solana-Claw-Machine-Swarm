@@ -2781,7 +2781,7 @@ async function getMemoryReceiptService(input) {
 }
 
 // server/zerog/orchestration.ts
-import crypto8 from "crypto";
+import crypto10 from "crypto";
 
 // server/zerog/artifacts.ts
 import crypto4 from "crypto";
@@ -2906,13 +2906,13 @@ var ZeroGOrchestratorStore = class {
 };
 
 // server/zerog/routes.ts
-import crypto7 from "crypto";
+import crypto9 from "crypto";
 import { z as z2 } from "zod";
 
 // server/zerog/bridge.ts
 import crypto5 from "crypto";
 
-// shared/zerog.ts
+// shared/zerog/index.ts
 var ZEROG_CHAIN_ID_DEFAULT = 16661;
 
 // server/zerog/config.ts
@@ -3306,6 +3306,264 @@ var ZeroGStorageService = class {
   }
 };
 
+// server/zerog/integrationSummary.ts
+async function buildZeroGIntegrationStatus(module) {
+  const cfg = getZeroGConfig();
+  const [storageH, daH] = await Promise.all([module.storage.getHealth(), module.da.getHealth()]);
+  const mode = cfg.mode === "live" ? "live" : cfg.mode === "degraded" ? "degraded" : "mock";
+  const lastArtifact = module.store.listArtifacts()[0];
+  const lastDa = module.store.listAvailability()[0];
+  return {
+    storage: {
+      available: cfg.enabled && storageH.ok,
+      connected: storageH.ok,
+      lastUploadAt: lastArtifact?.createdAt,
+      lastError: storageH.ok ? void 0 : storageH.reason
+    },
+    da: {
+      available: cfg.enabled && daH.ok,
+      connected: daH.ok,
+      lastBatchAt: lastDa?.createdAt,
+      lastRootHash: lastDa?.rootHash,
+      lastError: daH.ok ? void 0 : daH.reason
+    },
+    mode
+  };
+}
+
+// server/zerog/sidecarOrchestrator.ts
+import crypto8 from "crypto";
+
+// server/zerog/canonicalBlobAdapter.ts
+async function loadBlobBytes(inner, uri) {
+  const artifact = await inner.getArtifact(uri);
+  if (!artifact || typeof artifact.content !== "object" || artifact.content === null) {
+    throw new Error("blob_not_found");
+  }
+  const bytesB64 = artifact.content.bytesB64;
+  if (!bytesB64) throw new Error("blob_payload_missing");
+  return new Uint8Array(Buffer.from(bytesB64, "base64"));
+}
+function createCanonicalBlobAdapter(store) {
+  const inner = new ZeroGStorageService(store);
+  return {
+    async putBlob(input) {
+      const id = `blob_${hashValue({ ns: input.namespace, ct: input.contentType }).slice(0, 24)}`;
+      const buf = Buffer.from(input.data);
+      const checksum = hashValue(buf.toString("base64"));
+      const artifact = await inner.storeArtifact({
+        id,
+        kind: "asset",
+        title: input.namespace,
+        summary: `Canonical blob (${input.contentType})`,
+        content: {
+          namespace: input.namespace,
+          bytesB64: buf.toString("base64"),
+          metadata: input.metadata ?? {}
+        },
+        contentHash: checksum,
+        checksum,
+        contentType: input.contentType,
+        sizeBytes: buf.byteLength,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        status: "pending",
+        tags: [input.namespace, "canonical_blob"],
+        metadata: input.metadata ?? {}
+      });
+      const ref = {
+        blobId: artifact.id,
+        namespace: input.namespace,
+        checksum: artifact.checksum,
+        sizeBytes: artifact.sizeBytes,
+        contentType: input.contentType,
+        uri: artifact.storageRef || `zg://storage/artifacts/${artifact.id}`,
+        createdAt: artifact.createdAt
+      };
+      return ref;
+    },
+    async getBlob(uriOrId) {
+      return loadBlobBytes(inner, uriOrId);
+    },
+    async verifyBlob(ref) {
+      try {
+        const data = await loadBlobBytes(inner, ref.uri);
+        const checksum = hashValue(Buffer.from(data).toString("base64"));
+        return checksum === ref.checksum;
+      } catch {
+        return false;
+      }
+    },
+    async listBlobs(namespace) {
+      const kinds = await inner.listArtifactsByKind("asset");
+      return kinds.filter((a) => !namespace || a.tags.includes(namespace)).map(
+        (a) => ({
+          blobId: a.id,
+          namespace: typeof a.content === "object" && a.content && "namespace" in a.content ? String(a.content.namespace ?? a.title) : a.title || "default",
+          checksum: a.checksum,
+          sizeBytes: a.sizeBytes,
+          contentType: a.contentType,
+          uri: a.storageRef || `zg://storage/artifacts/${a.id}`,
+          createdAt: a.createdAt
+        })
+      );
+    }
+  };
+}
+
+// server/zerog/canonicalDa.ts
+import crypto7 from "crypto";
+function randomId3(prefix) {
+  return `${prefix}_${crypto7.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+function leafHash(payloadHash, subjectId, ts) {
+  return crypto7.createHash("sha256").update(`${payloadHash}|${subjectId}|${ts}`).digest("hex");
+}
+function combineRoot(hashes) {
+  return hashes.reduce((acc, h) => crypto7.createHash("sha256").update(`${acc}:${h}`).digest("hex"), "GENESIS");
+}
+var CanonicalDaService = class {
+  records = [];
+  roots = /* @__PURE__ */ new Map();
+  async appendRecord(input) {
+    const batchId = `batch_${input.subjectType}_${input.subjectId}`.slice(0, 64);
+    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+    const lh = leafHash(input.payloadHash, input.subjectId, createdAt);
+    const rootHash = combineRoot([lh]);
+    const rec = {
+      id: randomId3("da"),
+      batchId,
+      rootHash,
+      leafHash: lh,
+      payloadHash: input.payloadHash,
+      subjectType: input.subjectType,
+      subjectId: input.subjectId,
+      createdAt,
+      uri: input.blobRef ? `zg://da/leaves/${lh.slice(0, 16)}` : void 0
+    };
+    this.records.unshift(rec);
+    return rec;
+  }
+  async appendBatch(input) {
+    const batchId = randomId3(`batch_${input.batchType}`);
+    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+    const hashes = input.records.map((r) => r.leafHash);
+    const rootHash = hashes.length ? combineRoot(hashes) : crypto7.randomBytes(32).toString("hex");
+    this.roots.set(rootHash, { batchId, createdAt });
+    return {
+      batchId,
+      rootHash,
+      batchUri: `zg://da/batches/${batchId}`,
+      createdAt
+    };
+  }
+  async verifyBatch(rootHash) {
+    return this.roots.has(rootHash);
+  }
+  listRecords() {
+    return [...this.records];
+  }
+};
+
+// server/solana/receipts.ts
+function solanaProofToReceiptRecord(proof, cluster, type, explorerBase) {
+  const explorerUrl = explorerBase && proof.txSignature ? `${explorerBase.replace(/\/$/, "")}/tx/${proof.txSignature}` : void 0;
+  return {
+    id: proof.id,
+    type,
+    subjectId: proof.subjectId,
+    wallet: proof.wallet,
+    cluster,
+    txSignature: proof.txSignature,
+    account: proof.account,
+    summaryHash: proof.summaryHash,
+    status: proof.status,
+    createdAt: proof.createdAt,
+    explorerUrl,
+    storageRef: proof.zeroGStorageRef,
+    proofRef: proof.txSignature,
+    daRoot: proof.zeroGAvailabilityRef
+  };
+}
+
+// server/zerog/sidecarOrchestrator.ts
+var daLane = new CanonicalDaService();
+function createSidecarOrchestrator(module) {
+  const blobs = createCanonicalBlobAdapter(module.store);
+  return {
+    async persistArtifact(input) {
+      const errors = [];
+      let blobRef;
+      let daRecord;
+      let daBatch;
+      let receipt;
+      try {
+        blobRef = await blobs.putBlob({
+          namespace: input.namespace,
+          contentType: input.contentType,
+          data: input.payload,
+          metadata: {
+            wallet: input.wallet,
+            cluster: input.cluster,
+            subjectId: input.subjectId
+          }
+        });
+      } catch (e) {
+        errors.push({
+          code: "storage_put_failed",
+          message: e instanceof Error ? e.message : "storage_put_failed",
+          retryable: true
+        });
+      }
+      const payloadHash = crypto8.createHash("sha256").update(Buffer.from(input.payload)).digest("hex");
+      try {
+        daRecord = await daLane.appendRecord({
+          subjectType: input.receiptType,
+          subjectId: input.subjectId,
+          kind: "artifact_lineage",
+          payloadHash,
+          blobRef: blobRef?.uri,
+          wallet: input.wallet,
+          metadata: { namespace: input.namespace }
+        });
+        daBatch = await daLane.appendBatch({
+          batchType: "solana_sidecar",
+          subjectType: input.receiptType,
+          subjectId: input.subjectId,
+          records: daRecord ? [daRecord] : [],
+          metadata: { wallet: input.wallet }
+        });
+      } catch (e) {
+        errors.push({
+          code: "da_append_failed",
+          message: e instanceof Error ? e.message : "da_append_failed",
+          retryable: true
+        });
+      }
+      try {
+        const subjectType = input.receiptType === "zerog_upload" ? "zerog_upload" : input.receiptType === "zerog_da_batch" ? "zerog_da_batch" : input.receiptType === "proof" ? "proof" : input.receiptType === "reflection" ? "reflection" : input.receiptType === "memory" ? "memory" : input.receiptType === "plan" ? "plan" : input.receiptType === "execution" ? "execution" : input.receiptType === "skill" ? "skill" : "bridge";
+        const proof = module.store.createSolanaReceipt({
+          subjectType,
+          subjectId: input.subjectId,
+          wallet: input.wallet,
+          summaryHash: blobRef?.checksum || hashValue(payloadHash),
+          zeroGStorageRef: blobRef?.uri,
+          zeroGAvailabilityRef: daBatch?.batchUri
+        });
+        receipt = solanaProofToReceiptRecord(proof, input.cluster, input.receiptType, input.explorerBaseUrl);
+        receipt.daRoot = daBatch?.rootHash;
+      } catch (e) {
+        errors.push({
+          code: "receipt_mirror_failed",
+          message: e instanceof Error ? e.message : "receipt_mirror_failed",
+          retryable: false
+        });
+      }
+      const status = blobRef && daRecord && receipt ? "success" : blobRef || daRecord || receipt ? "partial" : errors.length ? "failed" : "degraded";
+      return { blobRef, daRecord, daBatch, receipt, status, errors: errors.length ? errors : void 0 };
+    }
+  };
+}
+
 // server/zerog/routes.ts
 function ok(res, data) {
   res.json({ ok: true, data });
@@ -3314,11 +3572,11 @@ function fail(res, error, status = 400) {
   const message = error instanceof Error ? error.message : "zerog_route_failed";
   res.status(status).json({ ok: false, error: message });
 }
-function randomId3(prefix) {
-  return `${prefix}_${crypto7.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+function randomId4(prefix) {
+  return `${prefix}_${crypto9.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 function mockWallet() {
-  return `demo_${crypto7.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  return `demo_${crypto9.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 function createZeroGModule() {
   const store = new ZeroGOrchestratorStore();
@@ -3330,7 +3588,7 @@ function createZeroGModule() {
   const services = { store, storage, compute, da, bridge, replay };
   async function runDemoFlow(input) {
     const now5 = (/* @__PURE__ */ new Date()).toISOString();
-    const reflectionId = randomId3("reflection");
+    const reflectionId = randomId4("reflection");
     const fullReflection = `Root cause: schema mismatch
 Correction: enforce schema-first tool calls
 Next action: replay using normalized receipt path`;
@@ -3356,7 +3614,7 @@ Next action: replay using normalized receipt path`;
       metadata: { source: "zerog-demo" }
     });
     const computeJob = await compute.submitJob({
-      id: randomId3("job"),
+      id: randomId4("job"),
       taskType: "summarize_reflection",
       inputRef: artifact.storageRef,
       input: artifact.content,
@@ -3469,6 +3727,13 @@ function registerZeroGRoutes(app, moduleParam) {
       fail(res, error, 500);
     }
   });
+  app.get("/api/zerog/integration", async (_req, res) => {
+    try {
+      ok(res, await buildZeroGIntegrationStatus(module));
+    } catch (error) {
+      fail(res, error, 500);
+    }
+  });
   app.get("/api/zerog/storage/health", async (_req, res) => ok(res, await module.storage.getHealth()));
   app.get("/api/zerog/compute/health", async (_req, res) => ok(res, await module.compute.getHealth()));
   app.get("/api/zerog/da/health", async (_req, res) => ok(res, await module.da.getHealth()));
@@ -3486,7 +3751,7 @@ function registerZeroGRoutes(app, moduleParam) {
   app.post("/api/zerog/artifacts", async (req, res) => {
     try {
       const input = createArtifactSchema.parse(req.body);
-      const id = input.id || randomId3("artifact");
+      const id = input.id || randomId4("artifact");
       const contentHash2 = hashValue(input.content);
       const artifact = await module.storage.storeArtifact({
         id,
@@ -3542,7 +3807,7 @@ function registerZeroGRoutes(app, moduleParam) {
       const input = createComputeSchema.parse(req.body);
       const now5 = (/* @__PURE__ */ new Date()).toISOString();
       const job = await module.compute.submitJob({
-        id: input.id || randomId3("job"),
+        id: input.id || randomId4("job"),
         taskType: input.taskType,
         inputRef: input.inputRef,
         input: input.input,
@@ -3602,6 +3867,47 @@ function registerZeroGRoutes(app, moduleParam) {
       fail(res, error);
     }
   });
+  const persistSchema = z2.object({
+    wallet: z2.string().min(32),
+    cluster: z2.enum(["devnet", "testnet", "mainnet-beta", "localnet"]).default("devnet"),
+    namespace: z2.string().min(1).default("claw_sidecar"),
+    receiptType: z2.enum([
+      "skill",
+      "plan",
+      "execution",
+      "reflection",
+      "memory",
+      "proof",
+      "zerog_upload",
+      "zerog_da_batch"
+    ]),
+    subjectId: z2.string().min(1),
+    contentType: z2.string().default("application/json"),
+    payloadB64: z2.string().min(1),
+    explorerBaseUrl: z2.string().optional()
+  });
+  app.post("/api/zerog/orchestrate/persist", async (req, res) => {
+    try {
+      const input = persistSchema.parse(req.body ?? {});
+      const orchestrator = createSidecarOrchestrator(module);
+      const payload = new Uint8Array(Buffer.from(input.payloadB64, "base64"));
+      ok(
+        res,
+        await orchestrator.persistArtifact({
+          wallet: input.wallet,
+          cluster: input.cluster,
+          namespace: input.namespace,
+          receiptType: input.receiptType,
+          subjectId: input.subjectId,
+          contentType: input.contentType,
+          payload,
+          explorerBaseUrl: input.explorerBaseUrl
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
 }
 var zeroGSingleton = null;
 function getZeroGModule() {
@@ -3641,7 +3947,7 @@ async function orchestrateReflectionSidecar(input) {
     metadata: { source: "autonomy.reflection", runId: input.runId }
   });
   const computeJob = await module.compute.submitJob({
-    id: `job_${crypto8.randomUUID().replace(/-/g, "").slice(0, 20)}`,
+    id: `job_${crypto10.randomUUID().replace(/-/g, "").slice(0, 20)}`,
     taskType: "summarize_reflection",
     inputRef: artifact.storageRef,
     input: { summary: input.correctiveAction, fullTextLen: fullText.length, kind: input.kind },
@@ -4783,9 +5089,9 @@ var IdentityStore = class {
 };
 
 // server/solana/challengeService.ts
-import crypto9 from "crypto";
+import crypto11 from "crypto";
 function buildNonce() {
-  return `claw_${crypto9.randomUUID().replace(/-/g, "").slice(0, 22)}`;
+  return `claw_${crypto11.randomUUID().replace(/-/g, "").slice(0, 22)}`;
 }
 function buildChallengeMessage(input) {
   return [
@@ -4809,7 +5115,7 @@ function createChallengeRecord(input) {
   const issuedAt = new Date(now5).toISOString();
   const expirationTime = new Date(now5 + ttl).toISOString();
   const record = {
-    id: `chal_${crypto9.randomUUID().replace(/-/g, "")}`,
+    id: `chal_${crypto11.randomUUID().replace(/-/g, "")}`,
     walletAddress: input.walletAddress,
     domain: input.domain,
     uri: input.uri,
@@ -4919,7 +5225,7 @@ function deriveSkillVersionPda(walletAddress, slug, version, programId) {
 
 // server/solana/identityService.ts
 import bs58 from "bs58";
-import crypto10 from "crypto";
+import crypto12 from "crypto";
 import nacl from "tweetnacl";
 import { PublicKey as PublicKey2 } from "@solana/web3.js";
 var TITLE_MAX = 96;
@@ -5228,8 +5534,8 @@ var SolanaIdentityService = class {
       kind: typeof input.kind === "string" ? input.kind : "reflection",
       result: "unknown",
       sourceHash: input.sourceHash || "",
-      reflectionHash: input.reflectionHash || crypto10.createHash("sha256").update(`${input.title}:${input.summary}`).digest("hex"),
-      lessonHash: input.lessonHash || crypto10.createHash("sha256").update(input.correctiveAdvice || "").digest("hex"),
+      reflectionHash: input.reflectionHash || crypto12.createHash("sha256").update(`${input.title}:${input.summary}`).digest("hex"),
+      lessonHash: input.lessonHash || crypto12.createHash("sha256").update(input.correctiveAdvice || "").digest("hex"),
       summary: input.summary,
       rootCause: input.rootCause || "",
       correctiveAdvice: input.correctiveAdvice || "",
@@ -5255,7 +5561,7 @@ var SolanaIdentityService = class {
     const now5 = Date.now();
     const tags = input.tags.slice(0, TAGS_MAX).map((tag) => tag.trim()).filter(Boolean);
     const memory = {
-      id: `mem_${crypto10.randomUUID().slice(0, 8)}`,
+      id: `mem_${crypto12.randomUUID().slice(0, 8)}`,
       walletAddress: input.walletAddress,
       kind: input.kind,
       result: input.result,
@@ -5302,7 +5608,7 @@ var SolanaIdentityService = class {
     ensureLen(input.nextBestAction, SUMMARY_MAX, "nextBestAction");
     const now5 = Date.now();
     const run = {
-      id: `plan_${crypto10.randomUUID().slice(0, 8)}`,
+      id: `plan_${crypto12.randomUUID().slice(0, 8)}`,
       walletAddress: normalizedWallet,
       runId: input.runId,
       taskType: input.taskType,
@@ -5344,7 +5650,7 @@ var SolanaIdentityService = class {
     ensureLen(input.receiptHash, HASH_MAX, "receiptHash");
     const now5 = Date.now();
     const deployment = {
-      id: `dep_${crypto10.randomUUID().slice(0, 8)}`,
+      id: `dep_${crypto12.randomUUID().slice(0, 8)}`,
       walletAddress: normalizedWallet,
       deployId: input.deployId,
       name: input.name,
@@ -5470,7 +5776,7 @@ var SolanaIdentityService = class {
     );
     const skills = [
       {
-        id: `skill_${crypto10.randomUUID().slice(0, 8)}`,
+        id: `skill_${crypto12.randomUUID().slice(0, 8)}`,
         walletAddress: normalizedWallet,
         slug: plannerSlug,
         name: "Planner",
@@ -5498,7 +5804,7 @@ var SolanaIdentityService = class {
         },
         versions: [
           {
-            id: `ver_${crypto10.randomUUID().slice(0, 8)}`,
+            id: `ver_${crypto12.randomUUID().slice(0, 8)}`,
             walletAddress: normalizedWallet,
             slug: plannerSlug,
             version: plannerVersion,
@@ -5515,7 +5821,7 @@ var SolanaIdentityService = class {
         updatedAt: now5
       },
       {
-        id: `skill_${crypto10.randomUUID().slice(0, 8)}`,
+        id: `skill_${crypto12.randomUUID().slice(0, 8)}`,
         walletAddress: normalizedWallet,
         slug: memorySlug,
         name: "Memory Recall",
@@ -5543,7 +5849,7 @@ var SolanaIdentityService = class {
         },
         versions: [
           {
-            id: `ver_${crypto10.randomUUID().slice(0, 8)}`,
+            id: `ver_${crypto12.randomUUID().slice(0, 8)}`,
             walletAddress: normalizedWallet,
             slug: memorySlug,
             version: memoryVersion,
@@ -5562,7 +5868,7 @@ var SolanaIdentityService = class {
     ];
     const memories = [
       {
-        id: `mem_${crypto10.randomUUID().slice(0, 8)}`,
+        id: `mem_${crypto12.randomUUID().slice(0, 8)}`,
         walletAddress: normalizedWallet,
         kind: "reflection",
         title: "A timeout became a docs retrieval rule",
@@ -5571,13 +5877,13 @@ var SolanaIdentityService = class {
         importance: 0.86,
         createdAt: now5,
         pinned: true,
-        sourceTurnId: `turn_${crypto10.randomUUID().slice(0, 8)}`,
+        sourceTurnId: `turn_${crypto12.randomUUID().slice(0, 8)}`,
         rootCause: "Too broad a browser path.",
         correctiveAdvice: "Start with official docs and confirm the endpoint before summarizing.",
         confidenceBps: 8900
       },
       {
-        id: `mem_${crypto10.randomUUID().slice(0, 8)}`,
+        id: `mem_${crypto12.randomUUID().slice(0, 8)}`,
         walletAddress: normalizedWallet,
         kind: "reflection",
         title: "Structured output needs strict schema",
@@ -5586,7 +5892,7 @@ var SolanaIdentityService = class {
         importance: 0.81,
         createdAt: now5,
         pinned: true,
-        sourceTurnId: `turn_${crypto10.randomUUID().slice(0, 8)}`,
+        sourceTurnId: `turn_${crypto12.randomUUID().slice(0, 8)}`,
         rootCause: "Mixed prose with JSON.",
         correctiveAdvice: "Use strict schema-first output and validate before saving.",
         confidenceBps: 9200
@@ -5752,7 +6058,7 @@ var SolanaIdentityService = class {
         configPda: deriveConfigPda(this.opts.programId),
         profilePda: deriveProfilePda(normalizedWallet, this.opts.programId)
       },
-      profileHash: crypto10.createHash("sha256").update(
+      profileHash: crypto12.createHash("sha256").update(
         JSON.stringify({
           walletAddress: normalizedWallet,
           skillCount: skills.length,
@@ -5769,11 +6075,11 @@ var SolanaIdentityService = class {
     return next;
   }
   async createReceipt(input) {
-    const receiptId2 = `rcpt_${crypto10.randomUUID().replace(/-/g, "")}`;
+    const receiptId2 = `rcpt_${crypto12.randomUUID().replace(/-/g, "")}`;
     const profileHash = input.profile.profileHash || "";
-    const challengeHash = crypto10.createHash("sha256").update(input.challenge.message).digest("hex");
-    const signatureHash = crypto10.createHash("sha256").update(input.signatureBase58).digest("hex");
-    const receiptHash = crypto10.createHash("sha256").update(
+    const challengeHash = crypto12.createHash("sha256").update(input.challenge.message).digest("hex");
+    const signatureHash = crypto12.createHash("sha256").update(input.signatureBase58).digest("hex");
+    const receiptHash = crypto12.createHash("sha256").update(
       JSON.stringify({
         receiptId: receiptId2,
         walletAddress: input.walletAddress,
@@ -6231,23 +6537,23 @@ function registerSolanaIdentityRoutes(app, service, sessionService) {
 import path6 from "path";
 
 // server/solana/session.ts
-import crypto11 from "crypto";
+import crypto13 from "crypto";
 import bs582 from "bs58";
 import nacl2 from "tweetnacl";
 import { PublicKey as PublicKey3 } from "@solana/web3.js";
 function nowMs() {
   return Date.now();
 }
-function randomId4(prefix, size = 12) {
-  return `${prefix}_${crypto11.randomBytes(size).toString("hex")}`;
+function randomId5(prefix, size = 12) {
+  return `${prefix}_${crypto13.randomBytes(size).toString("hex")}`;
 }
 function defaultPermissions() {
   return {
-    canPublishSkills: true,
-    canRunTasks: true,
-    canWriteMemory: true,
-    canAnchorProofs: true,
-    canBridgeOpenClaw: true
+    canPublishSkill: true,
+    canExecuteTask: true,
+    canAnchorReceipt: true,
+    canSignSession: true,
+    canViewChainData: true
   };
 }
 function deriveDisplayName(walletAddress) {
@@ -6267,17 +6573,16 @@ var SolanaSessionService = class {
     const normalizedWallet = walletAddress.trim();
     const issuedAt = nowMs();
     const expiresAt = issuedAt + 5 * 60 * 1e3;
-    const nonceId = randomId4("nonce");
-    const nonce = crypto11.randomBytes(16).toString("hex");
+    const nonceId = randomId5("nonce");
+    const nonce = crypto13.randomBytes(16).toString("hex");
     const issuedAtIso = new Date(issuedAt).toISOString();
     const message = [
-      `${this.productName} Solana Session`,
+      `${this.productName.toUpperCase()} Solana session verification`,
       `Wallet: ${normalizedWallet}`,
       `Cluster: ${this.cluster}`,
-      "Purpose: Session verification for command center access",
+      "Purpose: authorize skill publishing, agent execution, and receipt anchoring",
       `Nonce: ${nonce}`,
-      `Timestamp: ${issuedAtIso}`,
-      `URI: /api/solana/session/verify`
+      `Timestamp: ${issuedAtIso}`
     ].join("\n");
     this.nonceStore.set(nonceId, {
       nonceId,
@@ -6311,8 +6616,8 @@ var SolanaSessionService = class {
     if (!valid) throw new Error("session_signature_invalid");
     nonce.used = true;
     this.nonceStore.set(nonce.nonceId, nonce);
-    const token = randomId4("solsess", 24);
-    const sessionId = randomId4("session");
+    const token = randomId5("solsess", 24);
+    const sessionId = randomId5("session");
     const verifiedAt = nowMs();
     const expiresAt = verifiedAt + 60 * 60 * 1e3;
     const profile = {
@@ -6390,6 +6695,18 @@ var SolanaSessionService = class {
   }
 };
 
+// server/solana/config.ts
+function clusterFromEnv() {
+  const c = (process.env.SOLANA_CLUSTER || process.env.CLAW_SOLANA_CLUSTER || "devnet").toLowerCase();
+  if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
+  if (c === "testnet") return "testnet";
+  if (c === "localnet" || c === "localhost") return "localnet";
+  return "devnet";
+}
+function getServerSolanaCluster() {
+  return clusterFromEnv();
+}
+
 // server/solana/mount.ts
 async function mountSolanaIdentity(app, options) {
   const store = new IdentityStore(path6.join(process.cwd(), "data", "solana-identity.json"));
@@ -6428,7 +6745,7 @@ async function mountSolanaIdentity(app, options) {
     } : void 0
   });
   const sessionService = new SolanaSessionService({
-    cluster: process.env.SOLANA_CLUSTER || "devnet",
+    cluster: getServerSolanaCluster(),
     productName: process.env.CLAW_IDENTITY_APP_NAME || "CLAW MACHINE"
   });
   registerSolanaIdentityRoutes(app, service, sessionService);
@@ -6495,7 +6812,7 @@ var SolanaIndexerStore = class {
 };
 
 // server/solana/bridgeService.ts
-import crypto12 from "crypto";
+import crypto14 from "crypto";
 import { nanoid as nanoid7 } from "nanoid";
 import bs583 from "bs58";
 import {
@@ -6528,7 +6845,7 @@ function isValidHash(hash2) {
   return /^[0-9a-f]{32,128}$/i.test(hash2);
 }
 function shortHash2(value) {
-  return crypto12.createHash("sha256").update(value).digest("hex").slice(0, 32);
+  return crypto14.createHash("sha256").update(value).digest("hex").slice(0, 32);
 }
 function seedFromSubject(subjectId) {
   return Buffer.from(shortHash2(subjectId), "hex");
@@ -6815,10 +7132,10 @@ var SolanaBridgeService = class {
 };
 
 // server/solana/bridgeRoutes.ts
-import crypto13 from "crypto";
+import crypto15 from "crypto";
 import { z as z4 } from "zod";
 function hashPayload(payload) {
-  return crypto13.createHash("sha256").update(JSON.stringify(payload ?? {})).digest("hex");
+  return crypto15.createHash("sha256").update(JSON.stringify(payload ?? {})).digest("hex");
 }
 function requestId2() {
   return `req_${Date.now()}`;
@@ -7688,9 +8005,9 @@ function canonicalResultPayload(result) {
 }
 
 // server/plans/hash.ts
-import crypto14 from "crypto";
+import crypto16 from "crypto";
 function sha256Hex2(input) {
-  return crypto14.createHash("sha256").update(input).digest("hex");
+  return crypto16.createHash("sha256").update(input).digest("hex");
 }
 function hashCanonical2(input) {
   return sha256Hex2(canonicalize2(input));
@@ -8807,7 +9124,7 @@ function registerPlanRoutes(app, services) {
 
 // server/plans/mount.ts
 import path10 from "path";
-import crypto15 from "crypto";
+import crypto17 from "crypto";
 import { nanoid as nanoid11 } from "nanoid";
 async function mountPlanReceipts(app, options) {
   const store = new PlanStore(path10.join(process.cwd(), "data", "plan-receipts.json"));
@@ -8818,7 +9135,7 @@ async function mountPlanReceipts(app, options) {
     programId: process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID,
     anchorClient: options?.solanaIdentityService ? {
       anchorPlan: async (input) => {
-        const payloadHash = crypto15.createHash("sha256").update(
+        const payloadHash = crypto17.createHash("sha256").update(
           JSON.stringify({
             planId: input.planId,
             taskType: input.taskType,
@@ -8890,16 +9207,18 @@ async function mountPlanReceipts(app, options) {
 }
 
 // server/openclaw/bridge.ts
-import crypto16 from "crypto";
+import crypto18 from "crypto";
 function hashJson(value) {
-  return crypto16.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return crypto18.createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 function receiptId() {
-  return `bridge_${crypto16.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  return `bridge_${crypto18.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 var OpenClawBridgeService = class {
   state = {
-    status: "verified",
+    tier: "verified",
+    mode: "idle",
+    connected: true,
     manifests: [],
     receipts: []
   };
@@ -8909,14 +9228,34 @@ var OpenClawBridgeService = class {
   listReceipts() {
     return [...this.state.receipts].sort((a, b) => b.timestamp - a.timestamp);
   }
+  /** Compact counters for health checks */
   getStatus() {
     return {
-      status: this.state.status,
+      tier: this.state.tier,
+      mode: this.state.mode,
+      connected: this.state.connected,
       manifestCount: this.state.manifests.length,
-      receiptCount: this.state.receipts.length
+      receiptCount: this.state.receipts.length,
+      lastSyncAt: this.state.lastSyncAt,
+      lastError: this.state.lastError
+    };
+  }
+  /** Command-center bridge panel */
+  getBridgeSession() {
+    const imported = this.state.receipts.filter((r) => r.direction === "import").length;
+    const exported = this.state.receipts.filter((r) => r.direction === "export").length;
+    return {
+      connected: this.state.connected && this.state.tier !== "unavailable",
+      mode: this.state.mode,
+      lastSyncAt: this.state.lastSyncAt ? new Date(this.state.lastSyncAt).toISOString() : void 0,
+      lastError: this.state.lastError,
+      importedCount: imported,
+      exportedCount: exported
     };
   }
   importManifest(manifest, wallet) {
+    this.state.mode = "import";
+    this.state.lastError = void 0;
     const manifestHash = hashJson(manifest);
     const next = {
       ...manifest,
@@ -8929,7 +9268,7 @@ var OpenClawBridgeService = class {
     const receipt = {
       id: receiptId(),
       direction: "import",
-      bridgeStatus: this.state.status,
+      bridgeStatus: this.state.tier,
       sourceFormat: "openclaw",
       targetFormat: "claw",
       skillId: next.skillId,
@@ -8938,9 +9277,13 @@ var OpenClawBridgeService = class {
       timestamp: Date.now()
     };
     this.state.receipts.unshift(receipt);
+    this.state.lastSyncAt = Date.now();
+    this.state.mode = "idle";
     return { manifest: next, receipt };
   }
   exportSkill(skill) {
+    this.state.mode = "export";
+    this.state.lastError = void 0;
     const manifest = {
       manifestVersion: "1.0",
       skillId: skill.skillId,
@@ -8959,7 +9302,7 @@ var OpenClawBridgeService = class {
     const receipt = {
       id: receiptId(),
       direction: "export",
-      bridgeStatus: this.state.status,
+      bridgeStatus: this.state.tier,
       sourceFormat: "claw",
       targetFormat: "openclaw",
       skillId: skill.skillId,
@@ -8968,12 +9311,24 @@ var OpenClawBridgeService = class {
       timestamp: Date.now()
     };
     this.state.receipts.unshift(receipt);
+    this.state.lastSyncAt = Date.now();
+    this.state.mode = "idle";
     return { manifest, receipt };
+  }
+  /** Demo / degraded simulation */
+  setBridgeHealth(input) {
+    if (input.tier !== void 0) this.state.tier = input.tier;
+    if (input.connected !== void 0) this.state.connected = input.connected;
+    if (input.mode !== void 0) this.state.mode = input.mode;
+    if (input.lastError !== void 0) this.state.lastError = input.lastError;
   }
 };
 function registerOpenClawBridgeRoutes(app, service) {
   app.get("/api/openclaw/status", (_req, res) => {
     res.json({ ok: true, data: service.getStatus() });
+  });
+  app.get("/api/openclaw/bridge", (_req, res) => {
+    res.json({ ok: true, data: service.getBridgeSession() });
   });
   app.get("/api/openclaw/manifests", (_req, res) => {
     res.json({ ok: true, data: service.listManifests() });
@@ -9257,7 +9612,7 @@ var DaoStore = class {
 };
 
 // server/dao/daoService.ts
-import crypto17 from "crypto";
+import crypto19 from "crypto";
 function rankScore(proposal) {
   const total = proposal.yesVotes + proposal.noVotes + proposal.abstainVotes;
   const participation = total > 0 ? Math.floor(proposal.totalVotes / (total + 1) * 1e4) : 0;
@@ -9438,7 +9793,7 @@ var DaoService = class {
       status: "executed",
       executedAt: Date.now(),
       updatedAt: Date.now(),
-      resultHash: crypto17.createHash("sha256").update(`${proposal.kind}:${proposal.proposalId}:${proposal.title}`).digest("hex")
+      resultHash: crypto19.createHash("sha256").update(`${proposal.kind}:${proposal.proposalId}:${proposal.title}`).digest("hex")
     };
     await this.store.upsertProposal(next);
     const cfg = this.store.getConfig();
@@ -9575,10 +9930,10 @@ async function mountDao(app) {
 import { z as z7 } from "zod";
 
 // server/orchestration/ExecutionOrchestratorService.ts
-import crypto18 from "crypto";
+import crypto20 from "crypto";
 import { nanoid as nanoid12 } from "nanoid";
 function sha256Hex3(value) {
-  return crypto18.createHash("sha256").update(value).digest("hex");
+  return crypto20.createHash("sha256").update(value).digest("hex");
 }
 function nowIso3() {
   return (/* @__PURE__ */ new Date()).toISOString();

@@ -2,12 +2,15 @@
  * Client-side re-exports of canonical Solana types + narrow UI aliases.
  */
 export type {
-  AgentOrchestrationPlanReceipt,
   SessionNonceResponse,
   SessionVerifyRequest,
   SessionVerifyResponse,
-  SkillAsset,
+  ReceiptArtifact,
+  MemoryArtifact,
+  ReflectionArtifact,
   SolanaCluster,
+  SolanaConnectionStatus,
+  SolanaReceiptRecord,
   SolanaSessionPermissions,
   SolanaSessionProfile,
   SolanaTxRecord,
@@ -17,11 +20,12 @@ export type {
 
 export type { MemoryRecord, ReflectionRecord } from "@shared/domainModel";
 
-/** Same as WalletConnectionStatus — legacy name used by wallet context */
-export type SolanaWalletMachineState = import("@shared/solana/types").WalletConnectionStatus;
+/** Legacy alias — matches WalletConnectionStatus */
+export type SolanaWalletMachineState = import("@shared/solana/types").SolanaConnectionStatus;
 
 export interface SolanaSessionNonce {
   nonceId: string;
+  sessionId: string;
   nonce: string;
   message: string;
   expiresAt: number;

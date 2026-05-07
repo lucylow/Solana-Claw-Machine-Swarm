@@ -5,6 +5,7 @@ import { SolanaIdentityService } from "./identityService";
 import { registerSolanaIdentityRoutes } from "./routes";
 import { SolanaSessionService } from "./session";
 import type { SolanaBridgeService } from "./bridgeService";
+import { getServerSolanaCluster } from "./config";
 
 export async function mountSolanaIdentity(
   app: express.Express,
@@ -54,7 +55,7 @@ export async function mountSolanaIdentity(
   });
 
   const sessionService = new SolanaSessionService({
-    cluster: (process.env.SOLANA_CLUSTER as "mainnet-beta" | "devnet" | "testnet" | "localnet") || "devnet",
+    cluster: getServerSolanaCluster(),
     productName: process.env.CLAW_IDENTITY_APP_NAME || "CLAW MACHINE",
   });
 

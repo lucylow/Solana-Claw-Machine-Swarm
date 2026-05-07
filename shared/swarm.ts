@@ -2,22 +2,21 @@ import type { AutonomyLevel, PolicyGateStatus, RiskLevel } from "./autonomy";
 import type { ClawMachineEcosystemStats } from "./clawMachineMock";
 import type { SolanaZeroGLink, ZeroGBridgeState } from "./zerog";
 
+/** Command-center modes (left rail). */
 export type SwarmSectionId =
-  | "product-loop"
   | "overview"
-  | "live-runs"
+  | "live-run"
   | "skills"
   | "memory"
   | "reflections"
-  | "zerog"
-  | "proof-graph"
-  | "bridge"
+  | "receipts"
   | "proof-explorer"
   | "agents"
-  | "policies"
-  | "receipts"
-  | "governance"
-  | "settings";
+  | "reputation"
+  | "openclaw-bridge"
+  | "settings"
+  | "zerog-sidecar"
+  | "proof-graph";
 
 export type SwarmExecutionPhase =
   | "wallet"
