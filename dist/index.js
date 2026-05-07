@@ -1,3 +1,1444 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// server/zerog/artifacts.ts
+import crypto4 from "crypto";
+function now() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+function hashValue(value) {
+  return crypto4.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+function mockTxSignature(seed) {
+  const base = crypto4.createHash("sha256").update(seed).digest("hex");
+  return `SIM_${base.slice(0, 64)}`;
+}
+function randomId(prefix) {
+  return `${prefix}_${crypto4.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+var ZeroGOrchestratorStore;
+var init_artifacts = __esm({
+  "server/zerog/artifacts.ts"() {
+    "use strict";
+    ZeroGOrchestratorStore = class {
+      state = {
+        artifacts: [],
+        computeJobs: [],
+        availability: [],
+        links: [],
+        receipts: [],
+        bridgeHistory: []
+      };
+      listArtifacts() {
+        return [...this.state.artifacts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+      listComputeJobs() {
+        return [...this.state.computeJobs].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+      listAvailability() {
+        return [...this.state.availability].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+      listLinks() {
+        return [...this.state.links].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+      listReceipts() {
+        return [...this.state.receipts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+      listBridgeHistory() {
+        return [...this.state.bridgeHistory].sort(
+          (a, b) => (b.lastUpdatedAt || "").localeCompare(a.lastUpdatedAt || "")
+        );
+      }
+      putArtifact(artifact) {
+        this.state.artifacts = this.state.artifacts.filter((item) => item.id !== artifact.id);
+        this.state.artifacts.unshift(artifact);
+        return artifact;
+      }
+      putComputeJob(job) {
+        this.state.computeJobs = this.state.computeJobs.filter((item) => item.id !== job.id);
+        this.state.computeJobs.unshift(job);
+        return job;
+      }
+      putAvailability(record) {
+        this.state.availability = this.state.availability.filter((item) => item.id !== record.id);
+        this.state.availability.unshift(record);
+        return record;
+      }
+      putLink(link) {
+        this.state.links = this.state.links.filter((item) => item.id !== link.id);
+        this.state.links.unshift(link);
+        return link;
+      }
+      putReceipt(receipt) {
+        this.state.receipts = this.state.receipts.filter((item) => item.id !== receipt.id);
+        this.state.receipts.unshift(receipt);
+        return receipt;
+      }
+      pushBridgeState(bridge) {
+        this.state.bridgeHistory.unshift(bridge);
+        this.state.bridgeHistory = this.state.bridgeHistory.slice(0, 200);
+        return bridge;
+      }
+      getArtifactByRef(storageRef) {
+        return this.state.artifacts.find((item) => item.storageRef === storageRef) || null;
+      }
+      getJobById(jobId) {
+        return this.state.computeJobs.find((item) => item.id === jobId) || null;
+      }
+      getAvailabilityByRef(ref) {
+        return this.state.availability.find((item) => item.availabilityRef === ref) || null;
+      }
+      createSolanaReceipt(input) {
+        const id = randomId("solproof");
+        const receipt = {
+          id,
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          wallet: input.wallet,
+          txSignature: mockTxSignature(id),
+          account: `pda_${hashValue(id).slice(0, 32)}`,
+          summaryHash: input.summaryHash,
+          zeroGStorageRef: input.zeroGStorageRef,
+          zeroGComputeRef: input.zeroGComputeRef,
+          zeroGAvailabilityRef: input.zeroGAvailabilityRef,
+          createdAt: now(),
+          status: "confirmed"
+        };
+        return this.putReceipt(receipt);
+      }
+      createLink(input) {
+        const link = {
+          id: randomId("link"),
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          solanaReceiptId: input.receipt?.id,
+          solanaTxSignature: input.receipt?.txSignature,
+          solanaAccount: input.receipt?.account,
+          zeroGStorageRef: input.artifact?.storageRef,
+          zeroGComputeRef: input.computeJob?.computeRef,
+          zeroGAvailabilityRef: input.availability?.availabilityRef,
+          bridgeState: input.bridgeState,
+          contentHash: input.contentHash,
+          summaryHash: input.summaryHash,
+          createdAt: now(),
+          status: input.receipt ? "verified" : "linked"
+        };
+        return this.putLink(link);
+      }
+    };
+  }
+});
+
+// shared/zerog/index.ts
+var ZEROG_CHAIN_ID_DEFAULT;
+var init_zerog = __esm({
+  "shared/zerog/index.ts"() {
+    "use strict";
+    ZEROG_CHAIN_ID_DEFAULT = 16661;
+  }
+});
+
+// server/zerog/config.ts
+function parseEnvironment(input) {
+  if (input === "local" || input === "testnet" || input === "mainnet" || input === "demo") {
+    return input;
+  }
+  if (process.env.NODE_ENV === "production") return "mainnet";
+  return "demo";
+}
+function parseBoolean(input, fallback) {
+  if (input === void 0) return fallback;
+  return input === "true";
+}
+function getZeroGConfig() {
+  const environment = parseEnvironment(process.env.ZEROG_ENV);
+  const demoMode = parseBoolean(process.env.ZEROG_DEMO_MODE, environment === "demo");
+  const enabled = parseBoolean(process.env.ZEROG_ENABLED, true);
+  const readOnly = parseBoolean(process.env.ZEROG_READ_ONLY, demoMode);
+  const ogChainId = Number(process.env.ZEROG_OG_CHAIN_ID || ZEROG_CHAIN_ID_DEFAULT);
+  return {
+    environment,
+    storageUrl: process.env.ZEROG_STORAGE_URL || "https://storage.demo.0g.ai/v1",
+    computeUrl: process.env.ZEROG_COMPUTE_URL || "https://compute.demo.0g.ai/v1",
+    dataAvailabilityUrl: process.env.ZEROG_DA_URL || "https://da.demo.0g.ai/v1",
+    explorerUrl: process.env.ZEROG_EXPLORER_URL || "https://explorer.demo.0g.ai",
+    bridgeUrl: process.env.ZEROG_BRIDGE_URL || "https://bridge.demo.0g.ai",
+    ogChainId: Number.isFinite(ogChainId) ? ogChainId : ZEROG_CHAIN_ID_DEFAULT,
+    bridgeProvider: process.env.ZEROG_BRIDGE_PROVIDER || "XSwap (per official 0G docs)",
+    tokenMetadataDisclaimer: process.env.ZEROG_TOKEN_DISCLAIMER || "Third-party exchange or tracker labels (e.g. \u201CSolana-based token\u201D) are untrusted metadata unless verified against your configured official 0G sources.",
+    apiKey: process.env.ZEROG_API_KEY,
+    timeoutMs: Number(process.env.ZEROG_TIMEOUT_MS || 12e3),
+    enabled,
+    readOnly,
+    mode: !enabled ? "degraded" : demoMode ? "demo" : "live",
+    version: process.env.ZEROG_VERSION || "0g-sidecar-v1"
+  };
+}
+var init_config = __esm({
+  "server/zerog/config.ts"() {
+    "use strict";
+    init_zerog();
+  }
+});
+
+// server/zerog/bridge.ts
+import crypto5 from "crypto";
+function now2() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+function hash(seed) {
+  return crypto5.createHash("sha256").update(seed).digest("hex");
+}
+var ZeroGBridgeService;
+var init_bridge = __esm({
+  "server/zerog/bridge.ts"() {
+    "use strict";
+    init_config();
+    ZeroGBridgeService = class {
+      constructor(store) {
+        this.store = store;
+        const config = getZeroGConfig();
+        this.latest = {
+          enabled: true,
+          sourceChain: "Solana",
+          destinationChain: "0G",
+          tokenSymbol: "0G",
+          status: "idle",
+          provider: config.bridgeProvider,
+          notes: "Bridge-aware stub: official flows use XSwap toward 0G Chain. No live bridge API is implied unless mode is live. Treat exchange token labels as untrusted metadata.",
+          mode: "mock",
+          version: "bridge-v1",
+          lastUpdatedAt: now2()
+        };
+      }
+      latest;
+      async getStatus() {
+        return this.latest;
+      }
+      async simulate(input) {
+        const config = getZeroGConfig();
+        const txHash = `0x${hash(`${input.sourceChain}:${input.destinationChain}:${Date.now()}`).slice(0, 64)}`;
+        const status = {
+          enabled: config.enabled,
+          sourceChain: input.sourceChain,
+          destinationChain: input.destinationChain,
+          tokenSymbol: input.tokenSymbol,
+          status: config.enabled ? "confirmed" : "degraded",
+          txHash,
+          explorerUrl: `${config.explorerUrl}/bridge/${txHash}`,
+          provider: config.bridgeProvider,
+          notes: config.enabled ? `Simulated transfer toward 0G Chain (chainId ${config.ogChainId})${input.amount ? `; amount=${input.amount}` : ""}. Not a claim about real token custody.` : "Bridge simulated while sidecar is degraded.",
+          mode: config.mode === "live" ? "live" : "mock",
+          version: "bridge-v1",
+          lastUpdatedAt: now2()
+        };
+        this.latest = status;
+        this.store.pushBridgeState(status);
+        return status;
+      }
+      async listHistory() {
+        return this.store.listBridgeHistory();
+      }
+      async getHealth() {
+        const config = getZeroGConfig();
+        return {
+          ok: config.enabled,
+          reason: config.enabled ? void 0 : "zerog_bridge_disabled",
+          latencyMs: 8,
+          mode: config.mode
+        };
+      }
+    };
+  }
+});
+
+// server/zerog/compute.ts
+function now3() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+function toComputeRef(id) {
+  return `zg://compute/jobs/${id}`;
+}
+function computeOutput(job) {
+  if (job.taskType === "summarize_reflection") {
+    const text2 = typeof job.input === "string" ? job.input : JSON.stringify(job.input);
+    return {
+      summary: text2.slice(0, 220),
+      bullets: ["Root cause captured", "Corrective advice extracted", "Anchoring-ready summary generated"]
+    };
+  }
+  if (job.taskType === "normalize_receipt") {
+    return {
+      normalized: true,
+      digest: hashValue(job.input).slice(0, 32),
+      schema: "solana-zerog-receipt-v1"
+    };
+  }
+  return {
+    status: "processed",
+    digest: hashValue(job.input),
+    taskType: job.taskType
+  };
+}
+var ZeroGComputeService;
+var init_compute = __esm({
+  "server/zerog/compute.ts"() {
+    "use strict";
+    init_artifacts();
+    init_config();
+    ZeroGComputeService = class {
+      constructor(store) {
+        this.store = store;
+      }
+      async submitJob(input) {
+        const config = getZeroGConfig();
+        const queued = {
+          ...input,
+          status: config.enabled ? "running" : "degraded",
+          createdAt: input.createdAt || now3(),
+          updatedAt: now3(),
+          metadata: {
+            mode: config.mode,
+            environment: config.environment,
+            ...input.metadata
+          },
+          computeRef: input.computeRef || toComputeRef(input.id)
+        };
+        this.store.putComputeJob(queued);
+        if (!config.enabled) {
+          const degraded = {
+            ...queued,
+            status: "degraded",
+            finishedAt: now3()
+          };
+          return this.store.putComputeJob(degraded);
+        }
+        const output = computeOutput(input);
+        const completed = {
+          ...queued,
+          output,
+          outputHash: hashValue(output),
+          status: config.mode === "degraded" ? "degraded" : "completed",
+          updatedAt: now3(),
+          finishedAt: now3()
+        };
+        return this.store.putComputeJob(completed);
+      }
+      async getJob(jobId) {
+        return this.store.getJobById(jobId);
+      }
+      async waitForJob(jobId) {
+        const job = this.store.getJobById(jobId);
+        if (!job) throw new Error("compute_job_not_found");
+        if (job.status === "completed" || job.status === "failed" || job.status === "degraded") return job;
+        return {
+          ...job,
+          status: "completed",
+          output: job.output || computeOutput(job),
+          outputHash: job.outputHash || hashValue(job.output || computeOutput(job)),
+          updatedAt: now3(),
+          finishedAt: now3()
+        };
+      }
+      async getHealth() {
+        const config = getZeroGConfig();
+        return {
+          ok: config.enabled,
+          reason: config.enabled ? void 0 : "zerog_compute_disabled",
+          latencyMs: 12,
+          mode: config.mode
+        };
+      }
+    };
+  }
+});
+
+// server/zerog/da.ts
+import crypto6 from "crypto";
+function randomId2(prefix) {
+  return `${prefix}_${crypto6.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+function now4() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+var ZeroGDataAvailabilityService;
+var init_da = __esm({
+  "server/zerog/da.ts"() {
+    "use strict";
+    init_config();
+    ZeroGDataAvailabilityService = class {
+      constructor(store) {
+        this.store = store;
+      }
+      async publish(input) {
+        const config = getZeroGConfig();
+        const id = randomId2("da");
+        const record = {
+          id,
+          artifactId: input.artifactId,
+          artifactKind: input.artifactKind,
+          availabilityRef: `zg://da/records/${id}`,
+          rootHash: input.rootHash,
+          chunkCount: typeof input.sizeBytes === "number" ? Math.max(1, Math.ceil(input.sizeBytes / 4096)) : 1,
+          sizeBytes: input.sizeBytes,
+          createdAt: now4(),
+          status: config.enabled ? config.mode === "degraded" ? "degraded" : "available" : "failed",
+          metadata: {
+            mode: config.mode,
+            ...input.metadata
+          }
+        };
+        return this.store.putAvailability(record);
+      }
+      async getByRef(availabilityRef) {
+        return this.store.getAvailabilityByRef(availabilityRef);
+      }
+      async getHealth() {
+        const config = getZeroGConfig();
+        return {
+          ok: config.enabled,
+          reason: config.enabled ? void 0 : "zerog_da_disabled",
+          latencyMs: 9,
+          mode: config.mode
+        };
+      }
+    };
+  }
+});
+
+// server/zerog/health.ts
+async function probeUrl(url, timeoutMs) {
+  const started = Date.now();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, { method: "HEAD", signal: controller.signal, redirect: "follow" });
+    clearTimeout(timer);
+    return { ok: res.ok || res.status >= 200 && res.status < 500, latencyMs: Date.now() - started };
+  } catch {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(url, { method: "GET", signal: controller.signal, redirect: "follow" });
+      clearTimeout(timer);
+      return { ok: res.ok || res.status >= 200 && res.status < 500, latencyMs: Date.now() - started };
+    } catch {
+      return { ok: false, latencyMs: Date.now() - started };
+    }
+  }
+}
+function mergeProbe(base, probe) {
+  return {
+    ...base,
+    latencyMs: probe.latencyMs,
+    remoteReachable: probe.ok,
+    ok: base.ok && probe.ok,
+    reason: !base.ok ? base.reason : !probe.ok ? "zerog_remote_unreachable" : void 0
+  };
+}
+async function getZeroGHealth(input) {
+  const config = getZeroGConfig();
+  const skipRemote = process.env.ZEROG_SKIP_REMOTE_PROBE === "true" || !config.enabled || config.mode !== "live" && process.env.ZEROG_REMOTE_PROBE !== "true";
+  const [storageBase, computeBase, daBase, bridge] = await Promise.all([
+    input.storage.getHealth(),
+    input.compute.getHealth(),
+    input.da.getHealth(),
+    input.bridge.getHealth()
+  ]);
+  let storage = storageBase;
+  let compute = computeBase;
+  let da = daBase;
+  if (!skipRemote) {
+    const t2 = Math.min(config.timeoutMs, 4e3);
+    const [ps, pc, pd] = await Promise.all([
+      probeUrl(config.storageUrl, t2),
+      probeUrl(config.computeUrl, t2),
+      probeUrl(config.dataAvailabilityUrl, t2)
+    ]);
+    storage = mergeProbe(storageBase, ps);
+    compute = mergeProbe(computeBase, pc);
+    da = mergeProbe(daBase, pd);
+  }
+  const ok5 = storage.ok && compute.ok && da.ok && bridge.ok;
+  return {
+    ok: ok5,
+    config,
+    mode: config.mode,
+    storage,
+    compute,
+    da,
+    bridge,
+    remoteProbesSkipped: skipRemote,
+    statusLabel: !config.enabled ? "0G unavailable" : config.mode === "demo" ? "0G demo mode" : ok5 ? "0G live" : "0G degraded"
+  };
+}
+var init_health = __esm({
+  "server/zerog/health.ts"() {
+    "use strict";
+    init_config();
+  }
+});
+
+// server/zerog/replay.ts
+function createZeroGReplayService(store) {
+  return {
+    getArtifact(storageRef) {
+      return store.getArtifactByRef(storageRef);
+    },
+    getComputeJob(jobId) {
+      return store.getJobById(jobId);
+    },
+    getAvailability(availabilityRef) {
+      return store.getAvailabilityByRef(availabilityRef);
+    },
+    getGraph() {
+      return {
+        artifacts: store.listArtifacts(),
+        computeJobs: store.listComputeJobs(),
+        availability: store.listAvailability(),
+        links: store.listLinks(),
+        receipts: store.listReceipts()
+      };
+    }
+  };
+}
+var init_replay = __esm({
+  "server/zerog/replay.ts"() {
+    "use strict";
+  }
+});
+
+// server/zerog/storage.ts
+function storageRefFromId(id) {
+  return `zg://storage/artifacts/${id}`;
+}
+function sizeOf(value) {
+  return Buffer.byteLength(JSON.stringify(value), "utf8");
+}
+var ZeroGStorageService;
+var init_storage = __esm({
+  "server/zerog/storage.ts"() {
+    "use strict";
+    init_artifacts();
+    init_config();
+    ZeroGStorageService = class {
+      constructor(store) {
+        this.store = store;
+      }
+      async storeArtifact(input) {
+        const config = getZeroGConfig();
+        const contentHash2 = input.contentHash || hashValue(input.content);
+        const next = {
+          ...input,
+          contentHash: contentHash2,
+          checksum: input.checksum || hashValue({ id: input.id, contentHash: contentHash2, title: input.title }),
+          sizeBytes: input.sizeBytes || sizeOf(input.content),
+          storageRef: input.storageRef || storageRefFromId(input.id),
+          status: config.enabled ? config.mode === "degraded" ? "degraded" : "stored" : "failed",
+          createdAt: input.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
+          metadata: {
+            mode: config.mode,
+            environment: config.environment,
+            ...input.metadata
+          }
+        };
+        return this.store.putArtifact(next);
+      }
+      async getArtifact(storageRef) {
+        return this.store.getArtifactByRef(storageRef);
+      }
+      async verifyArtifact(storageRef, expectedHash) {
+        const artifact = this.store.getArtifactByRef(storageRef);
+        if (!artifact) return false;
+        const verified = artifact.contentHash === expectedHash;
+        if (verified) {
+          this.store.putArtifact({
+            ...artifact,
+            status: "verified"
+          });
+        }
+        return verified;
+      }
+      async listArtifactsByKind(kind) {
+        return this.store.listArtifacts().filter((item) => item.kind === kind).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }
+      async getHealth() {
+        const config = getZeroGConfig();
+        const started = Date.now();
+        const ok5 = config.enabled;
+        return {
+          ok: ok5,
+          reason: ok5 ? void 0 : "zerog_disabled",
+          latencyMs: Date.now() - started,
+          mode: config.mode
+        };
+      }
+    };
+  }
+});
+
+// server/zerog/integrationSummary.ts
+var integrationSummary_exports = {};
+__export(integrationSummary_exports, {
+  buildZeroGIntegrationStatus: () => buildZeroGIntegrationStatus
+});
+async function buildZeroGIntegrationStatus(module) {
+  const cfg = getZeroGConfig();
+  const [storageH, daH] = await Promise.all([module.storage.getHealth(), module.da.getHealth()]);
+  const mode = cfg.mode === "live" ? "live" : cfg.mode === "degraded" ? "degraded" : "mock";
+  const lastArtifact = module.store.listArtifacts()[0];
+  const lastDa = module.store.listAvailability()[0];
+  return {
+    storage: {
+      available: cfg.enabled && storageH.ok,
+      connected: storageH.ok,
+      lastUploadAt: lastArtifact?.createdAt,
+      lastError: storageH.ok ? void 0 : storageH.reason
+    },
+    da: {
+      available: cfg.enabled && daH.ok,
+      connected: daH.ok,
+      lastBatchAt: lastDa?.createdAt,
+      lastRootHash: lastDa?.rootHash,
+      lastError: daH.ok ? void 0 : daH.reason
+    },
+    mode
+  };
+}
+var init_integrationSummary = __esm({
+  "server/zerog/integrationSummary.ts"() {
+    "use strict";
+    init_config();
+  }
+});
+
+// shared/proof/integrity.ts
+function isDemoSimulatedTxSignature(txSignature) {
+  return Boolean(txSignature?.startsWith("SIM_"));
+}
+function inferProofIntegrity(input) {
+  if (input.degradedFlags) return "degraded";
+  const storeBad = input.storageStatus === "failed" || input.storageStatus === "degraded";
+  const daBad = input.daStatus === "failed" || input.daStatus === "degraded";
+  if (storeBad || daBad) return "degraded";
+  if (!input.txSignature) return input.zerogMode === "mock" ? "demo_only" : "pending";
+  if (isDemoSimulatedTxSignature(input.txSignature)) return "demo_only";
+  if (input.zerogMode !== "live") return "demo_only";
+  return "pending";
+}
+var init_integrity = __esm({
+  "shared/proof/integrity.ts"() {
+    "use strict";
+  }
+});
+
+// server/zerog/canonicalBlobAdapter.ts
+function blobStorageStatus() {
+  const cfg = getZeroGConfig();
+  if (!cfg.enabled) return "failed";
+  if (cfg.mode === "degraded") return "degraded";
+  return "stored";
+}
+async function loadBlobBytes(inner, uri) {
+  const artifact = await inner.getArtifact(uri);
+  if (!artifact || typeof artifact.content !== "object" || artifact.content === null) {
+    throw new Error("blob_not_found");
+  }
+  const bytesB64 = artifact.content.bytesB64;
+  if (!bytesB64) throw new Error("blob_payload_missing");
+  return new Uint8Array(Buffer.from(bytesB64, "base64"));
+}
+function createCanonicalBlobAdapter(store) {
+  const inner = new ZeroGStorageService(store);
+  return {
+    async putBlob(input) {
+      const id = `blob_${hashValue({ ns: input.namespace, ct: input.contentType }).slice(0, 24)}`;
+      const buf = Buffer.from(input.data);
+      const checksum = hashValue(buf.toString("base64"));
+      const artifact = await inner.storeArtifact({
+        id,
+        kind: "asset",
+        title: input.namespace,
+        summary: `Canonical blob (${input.contentType})`,
+        content: {
+          namespace: input.namespace,
+          bytesB64: buf.toString("base64"),
+          metadata: input.metadata ?? {}
+        },
+        contentHash: checksum,
+        checksum,
+        contentType: input.contentType,
+        sizeBytes: buf.byteLength,
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        status: "pending",
+        tags: [input.namespace, "canonical_blob"],
+        metadata: input.metadata ?? {}
+      });
+      const ref = {
+        blobId: artifact.id,
+        namespace: input.namespace,
+        checksum: artifact.checksum,
+        sizeBytes: artifact.sizeBytes,
+        contentType: input.contentType,
+        uri: artifact.storageRef || `zg://storage/artifacts/${artifact.id}`,
+        createdAt: artifact.createdAt,
+        status: blobStorageStatus()
+      };
+      return ref;
+    },
+    async getBlob(uriOrId) {
+      return loadBlobBytes(inner, uriOrId);
+    },
+    async verifyBlob(ref) {
+      try {
+        const data = await loadBlobBytes(inner, ref.uri);
+        const checksum = hashValue(Buffer.from(data).toString("base64"));
+        return checksum === ref.checksum;
+      } catch {
+        return false;
+      }
+    },
+    async listBlobs(namespace) {
+      const kinds = await inner.listArtifactsByKind("asset");
+      return kinds.filter((a) => !namespace || a.tags.includes(namespace)).map(
+        (a) => ({
+          blobId: a.id,
+          namespace: typeof a.content === "object" && a.content && "namespace" in a.content ? String(a.content.namespace ?? a.title) : a.title || "default",
+          checksum: a.checksum,
+          sizeBytes: a.sizeBytes,
+          contentType: a.contentType,
+          uri: a.storageRef || `zg://storage/artifacts/${a.id}`,
+          createdAt: a.createdAt,
+          status: blobStorageStatus()
+        })
+      );
+    }
+  };
+}
+var init_canonicalBlobAdapter = __esm({
+  "server/zerog/canonicalBlobAdapter.ts"() {
+    "use strict";
+    init_artifacts();
+    init_config();
+    init_storage();
+  }
+});
+
+// server/zerog/canonicalDa.ts
+import crypto7 from "crypto";
+function randomId3(prefix) {
+  return `${prefix}_${crypto7.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+function leafHash(payloadHash, subjectId, ts) {
+  return crypto7.createHash("sha256").update(`${payloadHash}|${subjectId}|${ts}`).digest("hex");
+}
+function combineRoot(hashes) {
+  return hashes.reduce((acc, h) => crypto7.createHash("sha256").update(`${acc}:${h}`).digest("hex"), "GENESIS");
+}
+var CanonicalDaService, canonicalDaService;
+var init_canonicalDa = __esm({
+  "server/zerog/canonicalDa.ts"() {
+    "use strict";
+    CanonicalDaService = class {
+      records = [];
+      roots = /* @__PURE__ */ new Map();
+      async appendRecord(input) {
+        const batchId = `batch_${input.subjectType}_${input.subjectId}`.slice(0, 64);
+        const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+        const lh = leafHash(input.payloadHash, input.subjectId, createdAt);
+        const rootHash = combineRoot([lh]);
+        const rec = {
+          id: randomId3("da"),
+          batchId,
+          rootHash,
+          leafHash: lh,
+          payloadHash: input.payloadHash,
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          createdAt,
+          uri: input.blobRef ? `zg://da/leaves/${lh.slice(0, 16)}` : void 0,
+          status: "rooted"
+        };
+        this.records.unshift(rec);
+        return rec;
+      }
+      async appendBatch(input) {
+        const batchId = randomId3(`batch_${input.batchType}`);
+        const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+        const hashes = input.records.map((r) => r.leafHash);
+        const rootHash = hashes.length ? combineRoot(hashes) : crypto7.randomBytes(32).toString("hex");
+        this.roots.set(rootHash, { batchId, createdAt, status: "batched" });
+        return {
+          batchId,
+          rootHash,
+          batchUri: `zg://da/batches/${batchId}`,
+          createdAt
+        };
+      }
+      async verifyBatch(rootHash) {
+        const row = this.roots.get(rootHash);
+        if (!row) return false;
+        this.roots.set(rootHash, { ...row, status: "verified" });
+        return true;
+      }
+      listRecords() {
+        return [...this.records];
+      }
+    };
+    canonicalDaService = new CanonicalDaService();
+  }
+});
+
+// server/solana/receipts.ts
+function solanaProofToReceiptRecord(proof, cluster, type, explorerBase) {
+  const explorerUrl = explorerBase && proof.txSignature ? `${explorerBase.replace(/\/$/, "")}/tx/${proof.txSignature}` : void 0;
+  return {
+    id: proof.id,
+    type,
+    subjectId: proof.subjectId,
+    wallet: proof.wallet,
+    cluster,
+    txSignature: proof.txSignature,
+    account: proof.account,
+    summaryHash: proof.summaryHash,
+    status: proof.status,
+    createdAt: proof.createdAt,
+    explorerUrl,
+    storageRef: proof.zeroGStorageRef,
+    proofRef: proof.txSignature,
+    daRoot: proof.zeroGAvailabilityRef
+  };
+}
+var init_receipts = __esm({
+  "server/solana/receipts.ts"() {
+    "use strict";
+  }
+});
+
+// server/zerog/sidecarOrchestrator.ts
+import crypto8 from "crypto";
+function createSidecarOrchestrator(module) {
+  const blobs = createCanonicalBlobAdapter(module.store);
+  return {
+    async persistArtifact(input) {
+      const errors = [];
+      let blobRef;
+      let daRecord;
+      let daBatch;
+      let receipt;
+      try {
+        blobRef = await blobs.putBlob({
+          namespace: input.namespace,
+          contentType: input.contentType,
+          data: input.payload,
+          metadata: {
+            wallet: input.wallet,
+            cluster: input.cluster,
+            subjectId: input.subjectId
+          }
+        });
+      } catch (e) {
+        errors.push({
+          code: "storage_put_failed",
+          message: e instanceof Error ? e.message : "storage_put_failed",
+          retryable: true
+        });
+      }
+      const payloadHash = crypto8.createHash("sha256").update(Buffer.from(input.payload)).digest("hex");
+      try {
+        daRecord = await canonicalDaService.appendRecord({
+          subjectType: input.receiptType,
+          subjectId: input.subjectId,
+          kind: "artifact_lineage",
+          payloadHash,
+          blobRef: blobRef?.uri,
+          wallet: input.wallet,
+          metadata: { namespace: input.namespace }
+        });
+        daBatch = await canonicalDaService.appendBatch({
+          batchType: "solana_sidecar",
+          subjectType: input.receiptType,
+          subjectId: input.subjectId,
+          records: daRecord ? [daRecord] : [],
+          metadata: { wallet: input.wallet }
+        });
+      } catch (e) {
+        errors.push({
+          code: "da_append_failed",
+          message: e instanceof Error ? e.message : "da_append_failed",
+          retryable: true
+        });
+      }
+      try {
+        const subjectType = input.receiptType === "zerog_upload" ? "zerog_upload" : input.receiptType === "zerog_da_batch" ? "zerog_da_batch" : input.receiptType === "proof" ? "proof" : input.receiptType === "reflection" ? "reflection" : input.receiptType === "memory" ? "memory" : input.receiptType === "plan" ? "plan" : input.receiptType === "execution" ? "execution" : input.receiptType === "skill" ? "skill" : "bridge";
+        const proof = module.store.createSolanaReceipt({
+          subjectType,
+          subjectId: input.subjectId,
+          wallet: input.wallet,
+          summaryHash: blobRef?.checksum || hashValue(payloadHash),
+          zeroGStorageRef: blobRef?.uri,
+          zeroGAvailabilityRef: daBatch?.batchUri
+        });
+        receipt = solanaProofToReceiptRecord(proof, input.cluster, input.receiptType, input.explorerBaseUrl);
+        receipt.daRoot = daBatch?.rootHash;
+      } catch (e) {
+        errors.push({
+          code: "receipt_mirror_failed",
+          message: e instanceof Error ? e.message : "receipt_mirror_failed",
+          retryable: false
+        });
+      }
+      const status = blobRef && daRecord && receipt ? "success" : blobRef || daRecord || receipt ? "partial" : errors.length ? "failed" : "degraded";
+      const zerogCfg = getZeroGConfig();
+      const zerogMode = zerogCfg.mode === "live" ? "live" : zerogCfg.mode === "degraded" ? "degraded" : "mock";
+      const proofStatus = inferProofIntegrity({
+        txSignature: receipt?.txSignature,
+        zerogMode,
+        storageStatus: blobRef?.status,
+        daStatus: daRecord?.status,
+        degradedFlags: status === "failed" || zerogCfg.mode === "degraded"
+      });
+      return {
+        blobRef,
+        daRecord,
+        daBatch,
+        receipt,
+        proofStatus,
+        status,
+        errors: errors.length ? errors : void 0
+      };
+    }
+  };
+}
+var init_sidecarOrchestrator = __esm({
+  "server/zerog/sidecarOrchestrator.ts"() {
+    "use strict";
+    init_integrity();
+    init_artifacts();
+    init_canonicalBlobAdapter();
+    init_canonicalDa();
+    init_config();
+    init_receipts();
+  }
+});
+
+// server/zerog/routes.ts
+var routes_exports = {};
+__export(routes_exports, {
+  createZeroGModule: () => createZeroGModule,
+  getZeroGModule: () => getZeroGModule,
+  registerZeroGRoutes: () => registerZeroGRoutes
+});
+import crypto9 from "crypto";
+import { z as z2 } from "zod";
+function ok(res, data) {
+  res.json({ ok: true, data });
+}
+function fail(res, error, status = 400) {
+  const message = error instanceof Error ? error.message : "zerog_route_failed";
+  res.status(status).json({ ok: false, error: message });
+}
+function randomId4(prefix) {
+  return `${prefix}_${crypto9.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+function mockWallet() {
+  return `demo_${crypto9.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+function createZeroGModule() {
+  const store = new ZeroGOrchestratorStore();
+  const storage = new ZeroGStorageService(store);
+  const compute = new ZeroGComputeService(store);
+  const da = new ZeroGDataAvailabilityService(store);
+  const bridge = new ZeroGBridgeService(store);
+  const replay = createZeroGReplayService(store);
+  const services = { store, storage, compute, da, bridge, replay };
+  async function runDemoFlow(input) {
+    const now5 = (/* @__PURE__ */ new Date()).toISOString();
+    const reflectionId = randomId4("reflection");
+    const fullReflection = `Root cause: schema mismatch
+Correction: enforce schema-first tool calls
+Next action: replay using normalized receipt path`;
+    const artifact = await storage.storeArtifact({
+      id: reflectionId,
+      kind: "reflection",
+      title: "Runtime Reflection Artifact",
+      summary: "Failure reflection stored in 0G sidecar for replay.",
+      content: {
+        wallet: input?.wallet || mockWallet(),
+        skill: input?.skill || "planner-core",
+        prompt: input?.prompt || "Demonstrate Solana + 0G proof flow",
+        fullText: fullReflection,
+        createdAt: now5
+      },
+      contentHash: hashValue(fullReflection),
+      checksum: hashValue({ fullReflection, now: now5 }),
+      contentType: "application/json",
+      sizeBytes: Buffer.byteLength(fullReflection, "utf8"),
+      createdAt: now5,
+      status: "pending",
+      tags: ["demo", "reflection", "memory"],
+      metadata: { source: "zerog-demo" }
+    });
+    const computeJob = await compute.submitJob({
+      id: randomId4("job"),
+      taskType: "summarize_reflection",
+      inputRef: artifact.storageRef,
+      input: artifact.content,
+      status: "queued",
+      createdAt: now5,
+      updatedAt: now5,
+      metadata: { source: "zerog-demo", wallet: input?.wallet || null }
+    });
+    const availability = await da.publish({
+      artifactId: artifact.id,
+      artifactKind: artifact.kind,
+      rootHash: artifact.contentHash,
+      sizeBytes: artifact.sizeBytes,
+      metadata: {
+        storageRef: artifact.storageRef
+      }
+    });
+    const bridgeState = await bridge.simulate({
+      sourceChain: "Solana",
+      destinationChain: "0G",
+      tokenSymbol: "0G",
+      amount: "42"
+    });
+    const receipt = store.createSolanaReceipt({
+      subjectType: "reflection",
+      subjectId: artifact.id,
+      wallet: input?.wallet || mockWallet(),
+      summaryHash: hashValue(computeJob.output || artifact.summary),
+      zeroGStorageRef: artifact.storageRef,
+      zeroGComputeRef: computeJob.computeRef,
+      zeroGAvailabilityRef: availability.availabilityRef
+    });
+    const link = store.createLink({
+      subjectType: "reflection",
+      subjectId: artifact.id,
+      contentHash: artifact.contentHash,
+      summaryHash: receipt.summaryHash,
+      receipt,
+      artifact,
+      computeJob,
+      availability,
+      bridgeState
+    });
+    return { artifact, computeJob, availability, bridgeState, receipt, link };
+  }
+  return {
+    ...services,
+    runDemoFlow
+  };
+}
+function registerZeroGRoutes(app, moduleParam) {
+  const module = moduleParam ?? getZeroGModule();
+  app.get("/api/zerog/config", (_req, res) => {
+    ok(res, getZeroGConfig());
+  });
+  app.get("/api/zerog/network", (_req, res) => {
+    const c = getZeroGConfig();
+    ok(res, {
+      ogChainId: c.ogChainId,
+      bridgeProvider: c.bridgeProvider,
+      tokenMetadataDisclaimer: c.tokenMetadataDisclaimer,
+      explorerUrl: c.explorerUrl,
+      bridgeUrl: c.bridgeUrl
+    });
+  });
+  app.get("/api/zerog/health", async (_req, res) => {
+    try {
+      const data = await getZeroGHealth(module);
+      ok(res, data);
+    } catch (error) {
+      fail(res, error, 500);
+    }
+  });
+  app.get("/api/zerog/integration", async (_req, res) => {
+    try {
+      ok(res, await buildZeroGIntegrationStatus(module));
+    } catch (error) {
+      fail(res, error, 500);
+    }
+  });
+  app.get("/api/zerog/status", async (_req, res) => {
+    try {
+      ok(res, await buildZeroGIntegrationStatus(module));
+    } catch (error) {
+      fail(res, error, 500);
+    }
+  });
+  const storageUploadSchema = z2.object({
+    namespace: z2.string().min(1),
+    contentType: z2.string().default("application/json"),
+    payloadB64: z2.string().min(1),
+    metadata: z2.record(z2.string(), z2.string()).optional()
+  });
+  const blobRefVerifySchema = z2.object({
+    blobId: z2.string(),
+    namespace: z2.string(),
+    checksum: z2.string(),
+    uri: z2.string(),
+    sizeBytes: z2.number(),
+    contentType: z2.string(),
+    createdAt: z2.string(),
+    status: z2.enum(["not_stored", "stored", "retrieved", "failed", "degraded"])
+  });
+  app.post("/api/zerog/storage/upload", async (req, res) => {
+    try {
+      const input = storageUploadSchema.parse(req.body ?? {});
+      const blobAdapter = createCanonicalBlobAdapter(module.store);
+      const data = Buffer.from(input.payloadB64, "base64");
+      ok(
+        res,
+        await blobAdapter.putBlob({
+          namespace: input.namespace,
+          contentType: input.contentType,
+          data: new Uint8Array(data),
+          metadata: input.metadata
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.post("/api/zerog/storage/verify", async (req, res) => {
+    try {
+      const ref = blobRefVerifySchema.parse(req.body?.ref ?? req.body ?? {});
+      const blobAdapter = createCanonicalBlobAdapter(module.store);
+      const verified = await blobAdapter.verifyBlob(ref);
+      ok(res, { verified, ref });
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.get("/api/zerog/storage/health", async (_req, res) => ok(res, await module.storage.getHealth()));
+  app.get("/api/zerog/storage/blob/:storageId", async (req, res) => {
+    try {
+      const id = decodeURIComponent(String(req.params.storageId));
+      const blobAdapter = createCanonicalBlobAdapter(module.store);
+      const bytes = await blobAdapter.getBlob(id);
+      ok(res, { bytesB64: Buffer.from(bytes).toString("base64"), ref: id });
+    } catch (error) {
+      fail(res, error, 404);
+    }
+  });
+  const daAppendSchema = z2.object({
+    subjectType: z2.string().min(1),
+    subjectId: z2.string().min(1),
+    kind: z2.string().min(1),
+    payloadHash: z2.string().min(8),
+    blobRef: z2.string().optional(),
+    wallet: z2.string().optional(),
+    metadata: z2.record(z2.string(), z2.unknown()).optional()
+  });
+  const daBatchSchema = z2.object({
+    batchType: z2.string().min(1),
+    subjectType: z2.string().min(1),
+    subjectId: z2.string().optional(),
+    records: z2.array(z2.any()),
+    metadata: z2.record(z2.string(), z2.unknown()).optional()
+  });
+  app.post("/api/zerog/da/append", async (req, res) => {
+    try {
+      const input = daAppendSchema.parse(req.body ?? {});
+      ok(
+        res,
+        await canonicalDaService.appendRecord({
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          kind: input.kind,
+          payloadHash: input.payloadHash,
+          blobRef: input.blobRef,
+          wallet: input.wallet,
+          metadata: input.metadata
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.post("/api/zerog/da/batch", async (req, res) => {
+    try {
+      const input = daBatchSchema.parse(req.body ?? {});
+      ok(
+        res,
+        await canonicalDaService.appendBatch({
+          batchType: input.batchType,
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          records: input.records,
+          metadata: input.metadata
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.post("/api/zerog/da/verify", async (req, res) => {
+    try {
+      const rootHash = String(req.body?.rootHash ?? "").trim();
+      if (!rootHash) throw new Error("rootHash_required");
+      const verified = await canonicalDaService.verifyBatch(rootHash);
+      ok(res, { verified, rootHash });
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.get("/api/zerog/compute/health", async (_req, res) => ok(res, await module.compute.getHealth()));
+  app.get("/api/zerog/da/health", async (_req, res) => ok(res, await module.da.getHealth()));
+  app.get("/api/zerog/bridge/health", async (_req, res) => ok(res, await module.bridge.getHealth()));
+  app.get("/api/zerog/bridge/status", async (_req, res) => ok(res, await module.bridge.getStatus()));
+  app.post("/api/zerog/bridge/simulate", async (req, res) => {
+    try {
+      const input = bridgeSimSchema.parse(req.body ?? {});
+      ok(res, await module.bridge.simulate(input));
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.get("/api/zerog/bridge/history", async (_req, res) => ok(res, await module.bridge.listHistory()));
+  app.post("/api/zerog/artifacts", async (req, res) => {
+    try {
+      const input = createArtifactSchema.parse(req.body);
+      const id = input.id || randomId4("artifact");
+      const contentHash2 = hashValue(input.content);
+      const artifact = await module.storage.storeArtifact({
+        id,
+        kind: input.kind,
+        title: input.title,
+        summary: input.summary,
+        content: input.content,
+        contentHash: contentHash2,
+        checksum: hashValue({ id, contentHash: contentHash2 }),
+        contentType: input.contentType,
+        sizeBytes: Buffer.byteLength(JSON.stringify(input.content), "utf8"),
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        status: "pending",
+        tags: input.tags,
+        metadata: input.metadata ?? {}
+      });
+      ok(res, artifact);
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.get("/api/zerog/artifacts", (_req, res) => ok(res, module.store.listArtifacts()));
+  app.get("/api/zerog/artifacts/kind/:kind", (req, res) => {
+    const kind = String(req.params.kind);
+    ok(
+      res,
+      module.store.listArtifacts().filter((item) => item.kind === kind)
+    );
+  });
+  app.get("/api/zerog/artifacts/:storageRef", async (req, res) => {
+    try {
+      const storageRef = decodeURIComponent(String(req.params.storageRef));
+      const artifact = await module.storage.getArtifact(storageRef);
+      if (!artifact) return fail(res, "artifact_not_found", 404);
+      ok(res, artifact);
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.post("/api/zerog/artifacts/:storageRef/verify", async (req, res) => {
+    try {
+      const storageRef = decodeURIComponent(String(req.params.storageRef));
+      const expectedHash = String(req.body?.expectedHash || "");
+      if (!expectedHash) throw new Error("expectedHash_required");
+      const verified = await module.storage.verifyArtifact(storageRef, expectedHash);
+      ok(res, { verified, storageRef, expectedHash });
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.post("/api/zerog/compute/jobs", async (req, res) => {
+    try {
+      const input = createComputeSchema.parse(req.body);
+      const now5 = (/* @__PURE__ */ new Date()).toISOString();
+      const job = await module.compute.submitJob({
+        id: input.id || randomId4("job"),
+        taskType: input.taskType,
+        inputRef: input.inputRef,
+        input: input.input,
+        status: "queued",
+        createdAt: now5,
+        updatedAt: now5,
+        model: input.model,
+        metadata: input.metadata ?? {}
+      });
+      ok(res, job);
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.get("/api/zerog/compute/jobs", (_req, res) => ok(res, module.store.listComputeJobs()));
+  app.get("/api/zerog/compute/jobs/:jobId", async (req, res) => {
+    const job = await module.compute.getJob(String(req.params.jobId));
+    if (!job) return fail(res, "compute_job_not_found", 404);
+    ok(res, job);
+  });
+  app.post("/api/zerog/compute/jobs/:jobId/wait", async (req, res) => {
+    try {
+      const job = await module.compute.waitForJob(String(req.params.jobId));
+      ok(res, job);
+    } catch (error) {
+      fail(res, error, 404);
+    }
+  });
+  app.post("/api/zerog/da/publish", async (req, res) => {
+    try {
+      const input = publishDaSchema.parse(req.body);
+      ok(res, await module.da.publish(input));
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  app.get("/api/zerog/da/records", (_req, res) => ok(res, module.store.listAvailability()));
+  app.get("/api/zerog/da/root/:rootHash", async (req, res) => {
+    try {
+      const rootHash = decodeURIComponent(String(req.params.rootHash));
+      const hit = canonicalDaService.listRecords().find((r) => r.rootHash === rootHash);
+      if (!hit) return fail(res, "da_record_not_found", 404);
+      ok(res, hit);
+    } catch (error) {
+      fail(res, error, 404);
+    }
+  });
+  app.get("/api/zerog/links", (_req, res) => ok(res, module.store.listLinks()));
+  app.get("/api/zerog/receipts", (_req, res) => ok(res, module.store.listReceipts()));
+  app.get("/api/zerog/proof-graph", (_req, res) => ok(res, module.replay.getGraph()));
+  app.get("/api/zerog/replay/artifact", (req, res) => {
+    const storageRef = String(req.query.storageRef || "");
+    if (!storageRef) return fail(res, "storageRef_required");
+    const artifact = module.replay.getArtifact(storageRef);
+    if (!artifact) return fail(res, "artifact_not_found", 404);
+    ok(res, artifact);
+  });
+  app.post("/api/zerog/demo/run", async (req, res) => {
+    try {
+      const body = z2.object({
+        wallet: z2.string().optional(),
+        skill: z2.string().optional(),
+        prompt: z2.string().optional()
+      }).optional().parse(req.body);
+      ok(res, await module.runDemoFlow(body));
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+  const persistSchema = z2.object({
+    wallet: z2.string().min(32),
+    cluster: z2.enum(["devnet", "testnet", "mainnet-beta", "localnet"]).default("devnet"),
+    namespace: z2.string().min(1).default("claw_sidecar"),
+    receiptType: z2.enum([
+      "skill",
+      "plan",
+      "execution",
+      "reflection",
+      "memory",
+      "proof",
+      "zerog_upload",
+      "zerog_da_batch"
+    ]),
+    subjectId: z2.string().min(1),
+    contentType: z2.string().default("application/json"),
+    payloadB64: z2.string().min(1),
+    explorerBaseUrl: z2.string().optional()
+  });
+  app.post("/api/zerog/orchestrate/persist", async (req, res) => {
+    try {
+      const input = persistSchema.parse(req.body ?? {});
+      const orchestrator = createSidecarOrchestrator(module);
+      const payload = new Uint8Array(Buffer.from(input.payloadB64, "base64"));
+      ok(
+        res,
+        await orchestrator.persistArtifact({
+          wallet: input.wallet,
+          cluster: input.cluster,
+          namespace: input.namespace,
+          receiptType: input.receiptType,
+          subjectId: input.subjectId,
+          contentType: input.contentType,
+          payload,
+          explorerBaseUrl: input.explorerBaseUrl
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+}
+function getZeroGModule() {
+  if (!zeroGSingleton) zeroGSingleton = createZeroGModule();
+  return zeroGSingleton;
+}
+var createArtifactSchema, createComputeSchema, publishDaSchema, bridgeSimSchema, zeroGSingleton;
+var init_routes = __esm({
+  "server/zerog/routes.ts"() {
+    "use strict";
+    init_artifacts();
+    init_bridge();
+    init_compute();
+    init_config();
+    init_da();
+    init_health();
+    init_replay();
+    init_storage();
+    init_integrationSummary();
+    init_sidecarOrchestrator();
+    init_canonicalBlobAdapter();
+    init_canonicalDa();
+    createArtifactSchema = z2.object({
+      id: z2.string().optional(),
+      kind: z2.enum(["reflection", "memory", "plan", "execution", "receipt", "proof", "skill", "bridge", "asset"]),
+      title: z2.string().min(2),
+      summary: z2.string().min(2),
+      content: z2.unknown(),
+      contentType: z2.string().default("application/json"),
+      tags: z2.array(z2.string()).default([]),
+      metadata: z2.record(z2.string(), z2.unknown()).optional()
+    });
+    createComputeSchema = z2.object({
+      id: z2.string().optional(),
+      taskType: z2.enum([
+        "summarize_reflection",
+        "consolidate_memory",
+        "compress_plan",
+        "extract_metadata",
+        "normalize_receipt",
+        "generate_proof_summary",
+        "multimodal_reasoning"
+      ]),
+      inputRef: z2.string().optional(),
+      input: z2.unknown(),
+      model: z2.string().optional(),
+      metadata: z2.record(z2.string(), z2.unknown()).optional()
+    });
+    publishDaSchema = z2.object({
+      artifactId: z2.string().min(1),
+      artifactKind: z2.string().min(1),
+      rootHash: z2.string().min(8),
+      sizeBytes: z2.number().optional(),
+      metadata: z2.record(z2.string(), z2.unknown()).optional()
+    });
+    bridgeSimSchema = z2.object({
+      sourceChain: z2.string().default("Solana"),
+      destinationChain: z2.string().default("0G"),
+      tokenSymbol: z2.string().default("0G"),
+      amount: z2.string().optional()
+    });
+    zeroGSingleton = null;
+  }
+});
+
 // server/_core/index.ts
 import "dotenv/config";
 import express2 from "express";
@@ -2781,1141 +4222,9 @@ async function getMemoryReceiptService(input) {
 }
 
 // server/zerog/orchestration.ts
+init_artifacts();
+init_routes();
 import crypto10 from "crypto";
-
-// server/zerog/artifacts.ts
-import crypto4 from "crypto";
-function now() {
-  return (/* @__PURE__ */ new Date()).toISOString();
-}
-function hashValue(value) {
-  return crypto4.createHash("sha256").update(JSON.stringify(value)).digest("hex");
-}
-function mockTxSignature(seed) {
-  const base = crypto4.createHash("sha256").update(seed).digest("hex");
-  return `SIM_${base.slice(0, 64)}`;
-}
-function randomId(prefix) {
-  return `${prefix}_${crypto4.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-}
-var ZeroGOrchestratorStore = class {
-  state = {
-    artifacts: [],
-    computeJobs: [],
-    availability: [],
-    links: [],
-    receipts: [],
-    bridgeHistory: []
-  };
-  listArtifacts() {
-    return [...this.state.artifacts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  listComputeJobs() {
-    return [...this.state.computeJobs].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  listAvailability() {
-    return [...this.state.availability].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  listLinks() {
-    return [...this.state.links].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  listReceipts() {
-    return [...this.state.receipts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  listBridgeHistory() {
-    return [...this.state.bridgeHistory].sort(
-      (a, b) => (b.lastUpdatedAt || "").localeCompare(a.lastUpdatedAt || "")
-    );
-  }
-  putArtifact(artifact) {
-    this.state.artifacts = this.state.artifacts.filter((item) => item.id !== artifact.id);
-    this.state.artifacts.unshift(artifact);
-    return artifact;
-  }
-  putComputeJob(job) {
-    this.state.computeJobs = this.state.computeJobs.filter((item) => item.id !== job.id);
-    this.state.computeJobs.unshift(job);
-    return job;
-  }
-  putAvailability(record) {
-    this.state.availability = this.state.availability.filter((item) => item.id !== record.id);
-    this.state.availability.unshift(record);
-    return record;
-  }
-  putLink(link) {
-    this.state.links = this.state.links.filter((item) => item.id !== link.id);
-    this.state.links.unshift(link);
-    return link;
-  }
-  putReceipt(receipt) {
-    this.state.receipts = this.state.receipts.filter((item) => item.id !== receipt.id);
-    this.state.receipts.unshift(receipt);
-    return receipt;
-  }
-  pushBridgeState(bridge) {
-    this.state.bridgeHistory.unshift(bridge);
-    this.state.bridgeHistory = this.state.bridgeHistory.slice(0, 200);
-    return bridge;
-  }
-  getArtifactByRef(storageRef) {
-    return this.state.artifacts.find((item) => item.storageRef === storageRef) || null;
-  }
-  getJobById(jobId) {
-    return this.state.computeJobs.find((item) => item.id === jobId) || null;
-  }
-  getAvailabilityByRef(ref) {
-    return this.state.availability.find((item) => item.availabilityRef === ref) || null;
-  }
-  createSolanaReceipt(input) {
-    const id = randomId("solproof");
-    const receipt = {
-      id,
-      subjectType: input.subjectType,
-      subjectId: input.subjectId,
-      wallet: input.wallet,
-      txSignature: mockTxSignature(id),
-      account: `pda_${hashValue(id).slice(0, 32)}`,
-      summaryHash: input.summaryHash,
-      zeroGStorageRef: input.zeroGStorageRef,
-      zeroGComputeRef: input.zeroGComputeRef,
-      zeroGAvailabilityRef: input.zeroGAvailabilityRef,
-      createdAt: now(),
-      status: "confirmed"
-    };
-    return this.putReceipt(receipt);
-  }
-  createLink(input) {
-    const link = {
-      id: randomId("link"),
-      subjectType: input.subjectType,
-      subjectId: input.subjectId,
-      solanaReceiptId: input.receipt?.id,
-      solanaTxSignature: input.receipt?.txSignature,
-      solanaAccount: input.receipt?.account,
-      zeroGStorageRef: input.artifact?.storageRef,
-      zeroGComputeRef: input.computeJob?.computeRef,
-      zeroGAvailabilityRef: input.availability?.availabilityRef,
-      bridgeState: input.bridgeState,
-      contentHash: input.contentHash,
-      summaryHash: input.summaryHash,
-      createdAt: now(),
-      status: input.receipt ? "verified" : "linked"
-    };
-    return this.putLink(link);
-  }
-};
-
-// server/zerog/routes.ts
-import crypto9 from "crypto";
-import { z as z2 } from "zod";
-
-// server/zerog/bridge.ts
-import crypto5 from "crypto";
-
-// shared/zerog/index.ts
-var ZEROG_CHAIN_ID_DEFAULT = 16661;
-
-// server/zerog/config.ts
-function parseEnvironment(input) {
-  if (input === "local" || input === "testnet" || input === "mainnet" || input === "demo") {
-    return input;
-  }
-  if (process.env.NODE_ENV === "production") return "mainnet";
-  return "demo";
-}
-function parseBoolean(input, fallback) {
-  if (input === void 0) return fallback;
-  return input === "true";
-}
-function getZeroGConfig() {
-  const environment = parseEnvironment(process.env.ZEROG_ENV);
-  const demoMode = parseBoolean(process.env.ZEROG_DEMO_MODE, environment === "demo");
-  const enabled = parseBoolean(process.env.ZEROG_ENABLED, true);
-  const readOnly = parseBoolean(process.env.ZEROG_READ_ONLY, demoMode);
-  const ogChainId = Number(process.env.ZEROG_OG_CHAIN_ID || ZEROG_CHAIN_ID_DEFAULT);
-  return {
-    environment,
-    storageUrl: process.env.ZEROG_STORAGE_URL || "https://storage.demo.0g.ai/v1",
-    computeUrl: process.env.ZEROG_COMPUTE_URL || "https://compute.demo.0g.ai/v1",
-    dataAvailabilityUrl: process.env.ZEROG_DA_URL || "https://da.demo.0g.ai/v1",
-    explorerUrl: process.env.ZEROG_EXPLORER_URL || "https://explorer.demo.0g.ai",
-    bridgeUrl: process.env.ZEROG_BRIDGE_URL || "https://bridge.demo.0g.ai",
-    ogChainId: Number.isFinite(ogChainId) ? ogChainId : ZEROG_CHAIN_ID_DEFAULT,
-    bridgeProvider: process.env.ZEROG_BRIDGE_PROVIDER || "XSwap (per official 0G docs)",
-    tokenMetadataDisclaimer: process.env.ZEROG_TOKEN_DISCLAIMER || "Third-party exchange or tracker labels (e.g. \u201CSolana-based token\u201D) are untrusted metadata unless verified against your configured official 0G sources.",
-    apiKey: process.env.ZEROG_API_KEY,
-    timeoutMs: Number(process.env.ZEROG_TIMEOUT_MS || 12e3),
-    enabled,
-    readOnly,
-    mode: !enabled ? "degraded" : demoMode ? "demo" : "live",
-    version: process.env.ZEROG_VERSION || "0g-sidecar-v1"
-  };
-}
-
-// server/zerog/bridge.ts
-function now2() {
-  return (/* @__PURE__ */ new Date()).toISOString();
-}
-function hash(seed) {
-  return crypto5.createHash("sha256").update(seed).digest("hex");
-}
-var ZeroGBridgeService = class {
-  constructor(store) {
-    this.store = store;
-    const config = getZeroGConfig();
-    this.latest = {
-      enabled: true,
-      sourceChain: "Solana",
-      destinationChain: "0G",
-      tokenSymbol: "0G",
-      status: "idle",
-      provider: config.bridgeProvider,
-      notes: "Bridge-aware stub: official flows use XSwap toward 0G Chain. No live bridge API is implied unless mode is live. Treat exchange token labels as untrusted metadata.",
-      mode: "mock",
-      version: "bridge-v1",
-      lastUpdatedAt: now2()
-    };
-  }
-  latest;
-  async getStatus() {
-    return this.latest;
-  }
-  async simulate(input) {
-    const config = getZeroGConfig();
-    const txHash = `0x${hash(`${input.sourceChain}:${input.destinationChain}:${Date.now()}`).slice(0, 64)}`;
-    const status = {
-      enabled: config.enabled,
-      sourceChain: input.sourceChain,
-      destinationChain: input.destinationChain,
-      tokenSymbol: input.tokenSymbol,
-      status: config.enabled ? "confirmed" : "degraded",
-      txHash,
-      explorerUrl: `${config.explorerUrl}/bridge/${txHash}`,
-      provider: config.bridgeProvider,
-      notes: config.enabled ? `Simulated transfer toward 0G Chain (chainId ${config.ogChainId})${input.amount ? `; amount=${input.amount}` : ""}. Not a claim about real token custody.` : "Bridge simulated while sidecar is degraded.",
-      mode: config.mode === "live" ? "live" : "mock",
-      version: "bridge-v1",
-      lastUpdatedAt: now2()
-    };
-    this.latest = status;
-    this.store.pushBridgeState(status);
-    return status;
-  }
-  async listHistory() {
-    return this.store.listBridgeHistory();
-  }
-  async getHealth() {
-    const config = getZeroGConfig();
-    return {
-      ok: config.enabled,
-      reason: config.enabled ? void 0 : "zerog_bridge_disabled",
-      latencyMs: 8,
-      mode: config.mode
-    };
-  }
-};
-
-// server/zerog/compute.ts
-function now3() {
-  return (/* @__PURE__ */ new Date()).toISOString();
-}
-function toComputeRef(id) {
-  return `zg://compute/jobs/${id}`;
-}
-function computeOutput(job) {
-  if (job.taskType === "summarize_reflection") {
-    const text2 = typeof job.input === "string" ? job.input : JSON.stringify(job.input);
-    return {
-      summary: text2.slice(0, 220),
-      bullets: ["Root cause captured", "Corrective advice extracted", "Anchoring-ready summary generated"]
-    };
-  }
-  if (job.taskType === "normalize_receipt") {
-    return {
-      normalized: true,
-      digest: hashValue(job.input).slice(0, 32),
-      schema: "solana-zerog-receipt-v1"
-    };
-  }
-  return {
-    status: "processed",
-    digest: hashValue(job.input),
-    taskType: job.taskType
-  };
-}
-var ZeroGComputeService = class {
-  constructor(store) {
-    this.store = store;
-  }
-  async submitJob(input) {
-    const config = getZeroGConfig();
-    const queued = {
-      ...input,
-      status: config.enabled ? "running" : "degraded",
-      createdAt: input.createdAt || now3(),
-      updatedAt: now3(),
-      metadata: {
-        mode: config.mode,
-        environment: config.environment,
-        ...input.metadata
-      },
-      computeRef: input.computeRef || toComputeRef(input.id)
-    };
-    this.store.putComputeJob(queued);
-    if (!config.enabled) {
-      const degraded = {
-        ...queued,
-        status: "degraded",
-        finishedAt: now3()
-      };
-      return this.store.putComputeJob(degraded);
-    }
-    const output = computeOutput(input);
-    const completed = {
-      ...queued,
-      output,
-      outputHash: hashValue(output),
-      status: config.mode === "degraded" ? "degraded" : "completed",
-      updatedAt: now3(),
-      finishedAt: now3()
-    };
-    return this.store.putComputeJob(completed);
-  }
-  async getJob(jobId) {
-    return this.store.getJobById(jobId);
-  }
-  async waitForJob(jobId) {
-    const job = this.store.getJobById(jobId);
-    if (!job) throw new Error("compute_job_not_found");
-    if (job.status === "completed" || job.status === "failed" || job.status === "degraded") return job;
-    return {
-      ...job,
-      status: "completed",
-      output: job.output || computeOutput(job),
-      outputHash: job.outputHash || hashValue(job.output || computeOutput(job)),
-      updatedAt: now3(),
-      finishedAt: now3()
-    };
-  }
-  async getHealth() {
-    const config = getZeroGConfig();
-    return {
-      ok: config.enabled,
-      reason: config.enabled ? void 0 : "zerog_compute_disabled",
-      latencyMs: 12,
-      mode: config.mode
-    };
-  }
-};
-
-// server/zerog/da.ts
-import crypto6 from "crypto";
-function randomId2(prefix) {
-  return `${prefix}_${crypto6.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-}
-function now4() {
-  return (/* @__PURE__ */ new Date()).toISOString();
-}
-var ZeroGDataAvailabilityService = class {
-  constructor(store) {
-    this.store = store;
-  }
-  async publish(input) {
-    const config = getZeroGConfig();
-    const id = randomId2("da");
-    const record = {
-      id,
-      artifactId: input.artifactId,
-      artifactKind: input.artifactKind,
-      availabilityRef: `zg://da/records/${id}`,
-      rootHash: input.rootHash,
-      chunkCount: typeof input.sizeBytes === "number" ? Math.max(1, Math.ceil(input.sizeBytes / 4096)) : 1,
-      sizeBytes: input.sizeBytes,
-      createdAt: now4(),
-      status: config.enabled ? config.mode === "degraded" ? "degraded" : "available" : "failed",
-      metadata: {
-        mode: config.mode,
-        ...input.metadata
-      }
-    };
-    return this.store.putAvailability(record);
-  }
-  async getByRef(availabilityRef) {
-    return this.store.getAvailabilityByRef(availabilityRef);
-  }
-  async getHealth() {
-    const config = getZeroGConfig();
-    return {
-      ok: config.enabled,
-      reason: config.enabled ? void 0 : "zerog_da_disabled",
-      latencyMs: 9,
-      mode: config.mode
-    };
-  }
-};
-
-// server/zerog/health.ts
-async function probeUrl(url, timeoutMs) {
-  const started = Date.now();
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, { method: "HEAD", signal: controller.signal, redirect: "follow" });
-    clearTimeout(timer);
-    return { ok: res.ok || res.status >= 200 && res.status < 500, latencyMs: Date.now() - started };
-  } catch {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(url, { method: "GET", signal: controller.signal, redirect: "follow" });
-      clearTimeout(timer);
-      return { ok: res.ok || res.status >= 200 && res.status < 500, latencyMs: Date.now() - started };
-    } catch {
-      return { ok: false, latencyMs: Date.now() - started };
-    }
-  }
-}
-function mergeProbe(base, probe) {
-  return {
-    ...base,
-    latencyMs: probe.latencyMs,
-    remoteReachable: probe.ok,
-    ok: base.ok && probe.ok,
-    reason: !base.ok ? base.reason : !probe.ok ? "zerog_remote_unreachable" : void 0
-  };
-}
-async function getZeroGHealth(input) {
-  const config = getZeroGConfig();
-  const skipRemote = process.env.ZEROG_SKIP_REMOTE_PROBE === "true" || !config.enabled || config.mode !== "live" && process.env.ZEROG_REMOTE_PROBE !== "true";
-  const [storageBase, computeBase, daBase, bridge] = await Promise.all([
-    input.storage.getHealth(),
-    input.compute.getHealth(),
-    input.da.getHealth(),
-    input.bridge.getHealth()
-  ]);
-  let storage = storageBase;
-  let compute = computeBase;
-  let da = daBase;
-  if (!skipRemote) {
-    const t2 = Math.min(config.timeoutMs, 4e3);
-    const [ps, pc, pd] = await Promise.all([
-      probeUrl(config.storageUrl, t2),
-      probeUrl(config.computeUrl, t2),
-      probeUrl(config.dataAvailabilityUrl, t2)
-    ]);
-    storage = mergeProbe(storageBase, ps);
-    compute = mergeProbe(computeBase, pc);
-    da = mergeProbe(daBase, pd);
-  }
-  const ok5 = storage.ok && compute.ok && da.ok && bridge.ok;
-  return {
-    ok: ok5,
-    config,
-    mode: config.mode,
-    storage,
-    compute,
-    da,
-    bridge,
-    remoteProbesSkipped: skipRemote,
-    statusLabel: !config.enabled ? "0G unavailable" : config.mode === "demo" ? "0G demo mode" : ok5 ? "0G live" : "0G degraded"
-  };
-}
-
-// server/zerog/replay.ts
-function createZeroGReplayService(store) {
-  return {
-    getArtifact(storageRef) {
-      return store.getArtifactByRef(storageRef);
-    },
-    getComputeJob(jobId) {
-      return store.getJobById(jobId);
-    },
-    getAvailability(availabilityRef) {
-      return store.getAvailabilityByRef(availabilityRef);
-    },
-    getGraph() {
-      return {
-        artifacts: store.listArtifacts(),
-        computeJobs: store.listComputeJobs(),
-        availability: store.listAvailability(),
-        links: store.listLinks(),
-        receipts: store.listReceipts()
-      };
-    }
-  };
-}
-
-// server/zerog/storage.ts
-function storageRefFromId(id) {
-  return `zg://storage/artifacts/${id}`;
-}
-function sizeOf(value) {
-  return Buffer.byteLength(JSON.stringify(value), "utf8");
-}
-var ZeroGStorageService = class {
-  constructor(store) {
-    this.store = store;
-  }
-  async storeArtifact(input) {
-    const config = getZeroGConfig();
-    const contentHash2 = input.contentHash || hashValue(input.content);
-    const next = {
-      ...input,
-      contentHash: contentHash2,
-      checksum: input.checksum || hashValue({ id: input.id, contentHash: contentHash2, title: input.title }),
-      sizeBytes: input.sizeBytes || sizeOf(input.content),
-      storageRef: input.storageRef || storageRefFromId(input.id),
-      status: config.enabled ? config.mode === "degraded" ? "degraded" : "stored" : "failed",
-      createdAt: input.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
-      metadata: {
-        mode: config.mode,
-        environment: config.environment,
-        ...input.metadata
-      }
-    };
-    return this.store.putArtifact(next);
-  }
-  async getArtifact(storageRef) {
-    return this.store.getArtifactByRef(storageRef);
-  }
-  async verifyArtifact(storageRef, expectedHash) {
-    const artifact = this.store.getArtifactByRef(storageRef);
-    if (!artifact) return false;
-    const verified = artifact.contentHash === expectedHash;
-    if (verified) {
-      this.store.putArtifact({
-        ...artifact,
-        status: "verified"
-      });
-    }
-    return verified;
-  }
-  async listArtifactsByKind(kind) {
-    return this.store.listArtifacts().filter((item) => item.kind === kind).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-  async getHealth() {
-    const config = getZeroGConfig();
-    const started = Date.now();
-    const ok5 = config.enabled;
-    return {
-      ok: ok5,
-      reason: ok5 ? void 0 : "zerog_disabled",
-      latencyMs: Date.now() - started,
-      mode: config.mode
-    };
-  }
-};
-
-// server/zerog/integrationSummary.ts
-async function buildZeroGIntegrationStatus(module) {
-  const cfg = getZeroGConfig();
-  const [storageH, daH] = await Promise.all([module.storage.getHealth(), module.da.getHealth()]);
-  const mode = cfg.mode === "live" ? "live" : cfg.mode === "degraded" ? "degraded" : "mock";
-  const lastArtifact = module.store.listArtifacts()[0];
-  const lastDa = module.store.listAvailability()[0];
-  return {
-    storage: {
-      available: cfg.enabled && storageH.ok,
-      connected: storageH.ok,
-      lastUploadAt: lastArtifact?.createdAt,
-      lastError: storageH.ok ? void 0 : storageH.reason
-    },
-    da: {
-      available: cfg.enabled && daH.ok,
-      connected: daH.ok,
-      lastBatchAt: lastDa?.createdAt,
-      lastRootHash: lastDa?.rootHash,
-      lastError: daH.ok ? void 0 : daH.reason
-    },
-    mode
-  };
-}
-
-// server/zerog/sidecarOrchestrator.ts
-import crypto8 from "crypto";
-
-// server/zerog/canonicalBlobAdapter.ts
-async function loadBlobBytes(inner, uri) {
-  const artifact = await inner.getArtifact(uri);
-  if (!artifact || typeof artifact.content !== "object" || artifact.content === null) {
-    throw new Error("blob_not_found");
-  }
-  const bytesB64 = artifact.content.bytesB64;
-  if (!bytesB64) throw new Error("blob_payload_missing");
-  return new Uint8Array(Buffer.from(bytesB64, "base64"));
-}
-function createCanonicalBlobAdapter(store) {
-  const inner = new ZeroGStorageService(store);
-  return {
-    async putBlob(input) {
-      const id = `blob_${hashValue({ ns: input.namespace, ct: input.contentType }).slice(0, 24)}`;
-      const buf = Buffer.from(input.data);
-      const checksum = hashValue(buf.toString("base64"));
-      const artifact = await inner.storeArtifact({
-        id,
-        kind: "asset",
-        title: input.namespace,
-        summary: `Canonical blob (${input.contentType})`,
-        content: {
-          namespace: input.namespace,
-          bytesB64: buf.toString("base64"),
-          metadata: input.metadata ?? {}
-        },
-        contentHash: checksum,
-        checksum,
-        contentType: input.contentType,
-        sizeBytes: buf.byteLength,
-        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-        status: "pending",
-        tags: [input.namespace, "canonical_blob"],
-        metadata: input.metadata ?? {}
-      });
-      const ref = {
-        blobId: artifact.id,
-        namespace: input.namespace,
-        checksum: artifact.checksum,
-        sizeBytes: artifact.sizeBytes,
-        contentType: input.contentType,
-        uri: artifact.storageRef || `zg://storage/artifacts/${artifact.id}`,
-        createdAt: artifact.createdAt
-      };
-      return ref;
-    },
-    async getBlob(uriOrId) {
-      return loadBlobBytes(inner, uriOrId);
-    },
-    async verifyBlob(ref) {
-      try {
-        const data = await loadBlobBytes(inner, ref.uri);
-        const checksum = hashValue(Buffer.from(data).toString("base64"));
-        return checksum === ref.checksum;
-      } catch {
-        return false;
-      }
-    },
-    async listBlobs(namespace) {
-      const kinds = await inner.listArtifactsByKind("asset");
-      return kinds.filter((a) => !namespace || a.tags.includes(namespace)).map(
-        (a) => ({
-          blobId: a.id,
-          namespace: typeof a.content === "object" && a.content && "namespace" in a.content ? String(a.content.namespace ?? a.title) : a.title || "default",
-          checksum: a.checksum,
-          sizeBytes: a.sizeBytes,
-          contentType: a.contentType,
-          uri: a.storageRef || `zg://storage/artifacts/${a.id}`,
-          createdAt: a.createdAt
-        })
-      );
-    }
-  };
-}
-
-// server/zerog/canonicalDa.ts
-import crypto7 from "crypto";
-function randomId3(prefix) {
-  return `${prefix}_${crypto7.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-}
-function leafHash(payloadHash, subjectId, ts) {
-  return crypto7.createHash("sha256").update(`${payloadHash}|${subjectId}|${ts}`).digest("hex");
-}
-function combineRoot(hashes) {
-  return hashes.reduce((acc, h) => crypto7.createHash("sha256").update(`${acc}:${h}`).digest("hex"), "GENESIS");
-}
-var CanonicalDaService = class {
-  records = [];
-  roots = /* @__PURE__ */ new Map();
-  async appendRecord(input) {
-    const batchId = `batch_${input.subjectType}_${input.subjectId}`.slice(0, 64);
-    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
-    const lh = leafHash(input.payloadHash, input.subjectId, createdAt);
-    const rootHash = combineRoot([lh]);
-    const rec = {
-      id: randomId3("da"),
-      batchId,
-      rootHash,
-      leafHash: lh,
-      payloadHash: input.payloadHash,
-      subjectType: input.subjectType,
-      subjectId: input.subjectId,
-      createdAt,
-      uri: input.blobRef ? `zg://da/leaves/${lh.slice(0, 16)}` : void 0
-    };
-    this.records.unshift(rec);
-    return rec;
-  }
-  async appendBatch(input) {
-    const batchId = randomId3(`batch_${input.batchType}`);
-    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
-    const hashes = input.records.map((r) => r.leafHash);
-    const rootHash = hashes.length ? combineRoot(hashes) : crypto7.randomBytes(32).toString("hex");
-    this.roots.set(rootHash, { batchId, createdAt });
-    return {
-      batchId,
-      rootHash,
-      batchUri: `zg://da/batches/${batchId}`,
-      createdAt
-    };
-  }
-  async verifyBatch(rootHash) {
-    return this.roots.has(rootHash);
-  }
-  listRecords() {
-    return [...this.records];
-  }
-};
-
-// server/solana/receipts.ts
-function solanaProofToReceiptRecord(proof, cluster, type, explorerBase) {
-  const explorerUrl = explorerBase && proof.txSignature ? `${explorerBase.replace(/\/$/, "")}/tx/${proof.txSignature}` : void 0;
-  return {
-    id: proof.id,
-    type,
-    subjectId: proof.subjectId,
-    wallet: proof.wallet,
-    cluster,
-    txSignature: proof.txSignature,
-    account: proof.account,
-    summaryHash: proof.summaryHash,
-    status: proof.status,
-    createdAt: proof.createdAt,
-    explorerUrl,
-    storageRef: proof.zeroGStorageRef,
-    proofRef: proof.txSignature,
-    daRoot: proof.zeroGAvailabilityRef
-  };
-}
-
-// server/zerog/sidecarOrchestrator.ts
-var daLane = new CanonicalDaService();
-function createSidecarOrchestrator(module) {
-  const blobs = createCanonicalBlobAdapter(module.store);
-  return {
-    async persistArtifact(input) {
-      const errors = [];
-      let blobRef;
-      let daRecord;
-      let daBatch;
-      let receipt;
-      try {
-        blobRef = await blobs.putBlob({
-          namespace: input.namespace,
-          contentType: input.contentType,
-          data: input.payload,
-          metadata: {
-            wallet: input.wallet,
-            cluster: input.cluster,
-            subjectId: input.subjectId
-          }
-        });
-      } catch (e) {
-        errors.push({
-          code: "storage_put_failed",
-          message: e instanceof Error ? e.message : "storage_put_failed",
-          retryable: true
-        });
-      }
-      const payloadHash = crypto8.createHash("sha256").update(Buffer.from(input.payload)).digest("hex");
-      try {
-        daRecord = await daLane.appendRecord({
-          subjectType: input.receiptType,
-          subjectId: input.subjectId,
-          kind: "artifact_lineage",
-          payloadHash,
-          blobRef: blobRef?.uri,
-          wallet: input.wallet,
-          metadata: { namespace: input.namespace }
-        });
-        daBatch = await daLane.appendBatch({
-          batchType: "solana_sidecar",
-          subjectType: input.receiptType,
-          subjectId: input.subjectId,
-          records: daRecord ? [daRecord] : [],
-          metadata: { wallet: input.wallet }
-        });
-      } catch (e) {
-        errors.push({
-          code: "da_append_failed",
-          message: e instanceof Error ? e.message : "da_append_failed",
-          retryable: true
-        });
-      }
-      try {
-        const subjectType = input.receiptType === "zerog_upload" ? "zerog_upload" : input.receiptType === "zerog_da_batch" ? "zerog_da_batch" : input.receiptType === "proof" ? "proof" : input.receiptType === "reflection" ? "reflection" : input.receiptType === "memory" ? "memory" : input.receiptType === "plan" ? "plan" : input.receiptType === "execution" ? "execution" : input.receiptType === "skill" ? "skill" : "bridge";
-        const proof = module.store.createSolanaReceipt({
-          subjectType,
-          subjectId: input.subjectId,
-          wallet: input.wallet,
-          summaryHash: blobRef?.checksum || hashValue(payloadHash),
-          zeroGStorageRef: blobRef?.uri,
-          zeroGAvailabilityRef: daBatch?.batchUri
-        });
-        receipt = solanaProofToReceiptRecord(proof, input.cluster, input.receiptType, input.explorerBaseUrl);
-        receipt.daRoot = daBatch?.rootHash;
-      } catch (e) {
-        errors.push({
-          code: "receipt_mirror_failed",
-          message: e instanceof Error ? e.message : "receipt_mirror_failed",
-          retryable: false
-        });
-      }
-      const status = blobRef && daRecord && receipt ? "success" : blobRef || daRecord || receipt ? "partial" : errors.length ? "failed" : "degraded";
-      return { blobRef, daRecord, daBatch, receipt, status, errors: errors.length ? errors : void 0 };
-    }
-  };
-}
-
-// server/zerog/routes.ts
-function ok(res, data) {
-  res.json({ ok: true, data });
-}
-function fail(res, error, status = 400) {
-  const message = error instanceof Error ? error.message : "zerog_route_failed";
-  res.status(status).json({ ok: false, error: message });
-}
-function randomId4(prefix) {
-  return `${prefix}_${crypto9.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-}
-function mockWallet() {
-  return `demo_${crypto9.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-}
-function createZeroGModule() {
-  const store = new ZeroGOrchestratorStore();
-  const storage = new ZeroGStorageService(store);
-  const compute = new ZeroGComputeService(store);
-  const da = new ZeroGDataAvailabilityService(store);
-  const bridge = new ZeroGBridgeService(store);
-  const replay = createZeroGReplayService(store);
-  const services = { store, storage, compute, da, bridge, replay };
-  async function runDemoFlow(input) {
-    const now5 = (/* @__PURE__ */ new Date()).toISOString();
-    const reflectionId = randomId4("reflection");
-    const fullReflection = `Root cause: schema mismatch
-Correction: enforce schema-first tool calls
-Next action: replay using normalized receipt path`;
-    const artifact = await storage.storeArtifact({
-      id: reflectionId,
-      kind: "reflection",
-      title: "Runtime Reflection Artifact",
-      summary: "Failure reflection stored in 0G sidecar for replay.",
-      content: {
-        wallet: input?.wallet || mockWallet(),
-        skill: input?.skill || "planner-core",
-        prompt: input?.prompt || "Demonstrate Solana + 0G proof flow",
-        fullText: fullReflection,
-        createdAt: now5
-      },
-      contentHash: hashValue(fullReflection),
-      checksum: hashValue({ fullReflection, now: now5 }),
-      contentType: "application/json",
-      sizeBytes: Buffer.byteLength(fullReflection, "utf8"),
-      createdAt: now5,
-      status: "pending",
-      tags: ["demo", "reflection", "memory"],
-      metadata: { source: "zerog-demo" }
-    });
-    const computeJob = await compute.submitJob({
-      id: randomId4("job"),
-      taskType: "summarize_reflection",
-      inputRef: artifact.storageRef,
-      input: artifact.content,
-      status: "queued",
-      createdAt: now5,
-      updatedAt: now5,
-      metadata: { source: "zerog-demo", wallet: input?.wallet || null }
-    });
-    const availability = await da.publish({
-      artifactId: artifact.id,
-      artifactKind: artifact.kind,
-      rootHash: artifact.contentHash,
-      sizeBytes: artifact.sizeBytes,
-      metadata: {
-        storageRef: artifact.storageRef
-      }
-    });
-    const bridgeState = await bridge.simulate({
-      sourceChain: "Solana",
-      destinationChain: "0G",
-      tokenSymbol: "0G",
-      amount: "42"
-    });
-    const receipt = store.createSolanaReceipt({
-      subjectType: "reflection",
-      subjectId: artifact.id,
-      wallet: input?.wallet || mockWallet(),
-      summaryHash: hashValue(computeJob.output || artifact.summary),
-      zeroGStorageRef: artifact.storageRef,
-      zeroGComputeRef: computeJob.computeRef,
-      zeroGAvailabilityRef: availability.availabilityRef
-    });
-    const link = store.createLink({
-      subjectType: "reflection",
-      subjectId: artifact.id,
-      contentHash: artifact.contentHash,
-      summaryHash: receipt.summaryHash,
-      receipt,
-      artifact,
-      computeJob,
-      availability,
-      bridgeState
-    });
-    return { artifact, computeJob, availability, bridgeState, receipt, link };
-  }
-  return {
-    ...services,
-    runDemoFlow
-  };
-}
-var createArtifactSchema = z2.object({
-  id: z2.string().optional(),
-  kind: z2.enum(["reflection", "memory", "plan", "execution", "receipt", "proof", "skill", "bridge", "asset"]),
-  title: z2.string().min(2),
-  summary: z2.string().min(2),
-  content: z2.unknown(),
-  contentType: z2.string().default("application/json"),
-  tags: z2.array(z2.string()).default([]),
-  metadata: z2.record(z2.string(), z2.unknown()).optional()
-});
-var createComputeSchema = z2.object({
-  id: z2.string().optional(),
-  taskType: z2.enum([
-    "summarize_reflection",
-    "consolidate_memory",
-    "compress_plan",
-    "extract_metadata",
-    "normalize_receipt",
-    "generate_proof_summary",
-    "multimodal_reasoning"
-  ]),
-  inputRef: z2.string().optional(),
-  input: z2.unknown(),
-  model: z2.string().optional(),
-  metadata: z2.record(z2.string(), z2.unknown()).optional()
-});
-var publishDaSchema = z2.object({
-  artifactId: z2.string().min(1),
-  artifactKind: z2.string().min(1),
-  rootHash: z2.string().min(8),
-  sizeBytes: z2.number().optional(),
-  metadata: z2.record(z2.string(), z2.unknown()).optional()
-});
-var bridgeSimSchema = z2.object({
-  sourceChain: z2.string().default("Solana"),
-  destinationChain: z2.string().default("0G"),
-  tokenSymbol: z2.string().default("0G"),
-  amount: z2.string().optional()
-});
-function registerZeroGRoutes(app, moduleParam) {
-  const module = moduleParam ?? getZeroGModule();
-  app.get("/api/zerog/config", (_req, res) => {
-    ok(res, getZeroGConfig());
-  });
-  app.get("/api/zerog/network", (_req, res) => {
-    const c = getZeroGConfig();
-    ok(res, {
-      ogChainId: c.ogChainId,
-      bridgeProvider: c.bridgeProvider,
-      tokenMetadataDisclaimer: c.tokenMetadataDisclaimer,
-      explorerUrl: c.explorerUrl,
-      bridgeUrl: c.bridgeUrl
-    });
-  });
-  app.get("/api/zerog/health", async (_req, res) => {
-    try {
-      const data = await getZeroGHealth(module);
-      ok(res, data);
-    } catch (error) {
-      fail(res, error, 500);
-    }
-  });
-  app.get("/api/zerog/integration", async (_req, res) => {
-    try {
-      ok(res, await buildZeroGIntegrationStatus(module));
-    } catch (error) {
-      fail(res, error, 500);
-    }
-  });
-  app.get("/api/zerog/storage/health", async (_req, res) => ok(res, await module.storage.getHealth()));
-  app.get("/api/zerog/compute/health", async (_req, res) => ok(res, await module.compute.getHealth()));
-  app.get("/api/zerog/da/health", async (_req, res) => ok(res, await module.da.getHealth()));
-  app.get("/api/zerog/bridge/health", async (_req, res) => ok(res, await module.bridge.getHealth()));
-  app.get("/api/zerog/bridge/status", async (_req, res) => ok(res, await module.bridge.getStatus()));
-  app.post("/api/zerog/bridge/simulate", async (req, res) => {
-    try {
-      const input = bridgeSimSchema.parse(req.body ?? {});
-      ok(res, await module.bridge.simulate(input));
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  app.get("/api/zerog/bridge/history", async (_req, res) => ok(res, await module.bridge.listHistory()));
-  app.post("/api/zerog/artifacts", async (req, res) => {
-    try {
-      const input = createArtifactSchema.parse(req.body);
-      const id = input.id || randomId4("artifact");
-      const contentHash2 = hashValue(input.content);
-      const artifact = await module.storage.storeArtifact({
-        id,
-        kind: input.kind,
-        title: input.title,
-        summary: input.summary,
-        content: input.content,
-        contentHash: contentHash2,
-        checksum: hashValue({ id, contentHash: contentHash2 }),
-        contentType: input.contentType,
-        sizeBytes: Buffer.byteLength(JSON.stringify(input.content), "utf8"),
-        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-        status: "pending",
-        tags: input.tags,
-        metadata: input.metadata ?? {}
-      });
-      ok(res, artifact);
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  app.get("/api/zerog/artifacts", (_req, res) => ok(res, module.store.listArtifacts()));
-  app.get("/api/zerog/artifacts/kind/:kind", (req, res) => {
-    const kind = String(req.params.kind);
-    ok(
-      res,
-      module.store.listArtifacts().filter((item) => item.kind === kind)
-    );
-  });
-  app.get("/api/zerog/artifacts/:storageRef", async (req, res) => {
-    try {
-      const storageRef = decodeURIComponent(String(req.params.storageRef));
-      const artifact = await module.storage.getArtifact(storageRef);
-      if (!artifact) return fail(res, "artifact_not_found", 404);
-      ok(res, artifact);
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  app.post("/api/zerog/artifacts/:storageRef/verify", async (req, res) => {
-    try {
-      const storageRef = decodeURIComponent(String(req.params.storageRef));
-      const expectedHash = String(req.body?.expectedHash || "");
-      if (!expectedHash) throw new Error("expectedHash_required");
-      const verified = await module.storage.verifyArtifact(storageRef, expectedHash);
-      ok(res, { verified, storageRef, expectedHash });
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  app.post("/api/zerog/compute/jobs", async (req, res) => {
-    try {
-      const input = createComputeSchema.parse(req.body);
-      const now5 = (/* @__PURE__ */ new Date()).toISOString();
-      const job = await module.compute.submitJob({
-        id: input.id || randomId4("job"),
-        taskType: input.taskType,
-        inputRef: input.inputRef,
-        input: input.input,
-        status: "queued",
-        createdAt: now5,
-        updatedAt: now5,
-        model: input.model,
-        metadata: input.metadata ?? {}
-      });
-      ok(res, job);
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  app.get("/api/zerog/compute/jobs", (_req, res) => ok(res, module.store.listComputeJobs()));
-  app.get("/api/zerog/compute/jobs/:jobId", async (req, res) => {
-    const job = await module.compute.getJob(String(req.params.jobId));
-    if (!job) return fail(res, "compute_job_not_found", 404);
-    ok(res, job);
-  });
-  app.post("/api/zerog/compute/jobs/:jobId/wait", async (req, res) => {
-    try {
-      const job = await module.compute.waitForJob(String(req.params.jobId));
-      ok(res, job);
-    } catch (error) {
-      fail(res, error, 404);
-    }
-  });
-  app.post("/api/zerog/da/publish", async (req, res) => {
-    try {
-      const input = publishDaSchema.parse(req.body);
-      ok(res, await module.da.publish(input));
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  app.get("/api/zerog/da/records", (_req, res) => ok(res, module.store.listAvailability()));
-  app.get("/api/zerog/links", (_req, res) => ok(res, module.store.listLinks()));
-  app.get("/api/zerog/receipts", (_req, res) => ok(res, module.store.listReceipts()));
-  app.get("/api/zerog/proof-graph", (_req, res) => ok(res, module.replay.getGraph()));
-  app.get("/api/zerog/replay/artifact", (req, res) => {
-    const storageRef = String(req.query.storageRef || "");
-    if (!storageRef) return fail(res, "storageRef_required");
-    const artifact = module.replay.getArtifact(storageRef);
-    if (!artifact) return fail(res, "artifact_not_found", 404);
-    ok(res, artifact);
-  });
-  app.post("/api/zerog/demo/run", async (req, res) => {
-    try {
-      const body = z2.object({
-        wallet: z2.string().optional(),
-        skill: z2.string().optional(),
-        prompt: z2.string().optional()
-      }).optional().parse(req.body);
-      ok(res, await module.runDemoFlow(body));
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-  const persistSchema = z2.object({
-    wallet: z2.string().min(32),
-    cluster: z2.enum(["devnet", "testnet", "mainnet-beta", "localnet"]).default("devnet"),
-    namespace: z2.string().min(1).default("claw_sidecar"),
-    receiptType: z2.enum([
-      "skill",
-      "plan",
-      "execution",
-      "reflection",
-      "memory",
-      "proof",
-      "zerog_upload",
-      "zerog_da_batch"
-    ]),
-    subjectId: z2.string().min(1),
-    contentType: z2.string().default("application/json"),
-    payloadB64: z2.string().min(1),
-    explorerBaseUrl: z2.string().optional()
-  });
-  app.post("/api/zerog/orchestrate/persist", async (req, res) => {
-    try {
-      const input = persistSchema.parse(req.body ?? {});
-      const orchestrator = createSidecarOrchestrator(module);
-      const payload = new Uint8Array(Buffer.from(input.payloadB64, "base64"));
-      ok(
-        res,
-        await orchestrator.persistArtifact({
-          wallet: input.wallet,
-          cluster: input.cluster,
-          namespace: input.namespace,
-          receiptType: input.receiptType,
-          subjectId: input.subjectId,
-          contentType: input.contentType,
-          payload,
-          explorerBaseUrl: input.explorerBaseUrl
-        })
-      );
-    } catch (error) {
-      fail(res, error);
-    }
-  });
-}
-var zeroGSingleton = null;
-function getZeroGModule() {
-  if (!zeroGSingleton) zeroGSingleton = createZeroGModule();
-  return zeroGSingleton;
-}
-
-// server/zerog/orchestration.ts
 async function orchestrateReflectionSidecar(input) {
   const module = getZeroGModule();
   const now5 = (/* @__PURE__ */ new Date()).toISOString();
@@ -6156,8 +6465,10 @@ function registerSolanaIdentityRoutes(app, service, sessionService) {
   app.post("/api/solana/session/nonce", async (req, res) => {
     try {
       const walletAddress = String(req.body.walletAddress || "").trim();
+      const cluster = String(req.body.cluster || "").trim();
       if (!walletAddress) throw new Error("walletAddress required");
-      const data = sessionService.issueNonce(normalizeWalletAddress(walletAddress));
+      if (!cluster) throw new Error("cluster required");
+      const data = sessionService.issueNonce(normalizeWalletAddress(walletAddress), cluster);
       res.json({ ok: true, data });
     } catch (error) {
       const message = error instanceof Error ? error.message : "session_nonce_failed";
@@ -6169,13 +6480,20 @@ function registerSolanaIdentityRoutes(app, service, sessionService) {
       const walletAddress = String(req.body.walletAddress || "").trim();
       const nonceId = String(req.body.nonceId || "").trim();
       const signature = String(req.body.signature || "").trim();
+      const clusterRaw = String(req.body.cluster || "").trim();
+      const cluster = clusterRaw;
+      const message = req.body.message !== void 0 && req.body.message !== null ? String(req.body.message) : "";
       if (!walletAddress || !nonceId || !signature) {
         throw new Error("walletAddress, nonceId, and signature are required");
       }
+      if (!clusterRaw) throw new Error("cluster required");
+      if (!message) throw new Error("message required");
       const data = sessionService.verifySession({
         walletAddress: normalizeWalletAddress(walletAddress),
         nonceId,
-        signature
+        signature,
+        cluster,
+        message
       });
       res.json({ ok: true, data });
     } catch (error) {
@@ -6185,26 +6503,13 @@ function registerSolanaIdentityRoutes(app, service, sessionService) {
   });
   app.get("/api/solana/session", async (req, res) => {
     try {
-      const queryWallet = String(req.query.walletAddress || "").trim();
       const token = readBearerToken(req);
       const profile = sessionService.getSessionFromToken(token);
       if (profile) {
         res.json({ ok: true, data: { token, profile } });
         return;
       }
-      if (queryWallet) {
-        res.json({
-          ok: true,
-          data: {
-            token: null,
-            profile: null,
-            walletAddress: normalizeWalletAddress(queryWallet),
-            active: false
-          }
-        });
-        return;
-      }
-      res.status(401).json({ ok: false, error: "session_not_found" });
+      res.status(401).json({ ok: false, error: "session_token_required" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "session_fetch_failed";
       res.status(400).json({ ok: false, error: message });
@@ -6569,8 +6874,11 @@ var SolanaSessionService = class {
     this.cluster = opts?.cluster || "devnet";
     this.productName = opts?.productName || "CLAW MACHINE";
   }
-  issueNonce(walletAddress) {
+  issueNonce(walletAddress, requestedCluster) {
     const normalizedWallet = walletAddress.trim();
+    if (requestedCluster !== this.cluster) {
+      throw new Error("solana_cluster_mismatch");
+    }
     const issuedAt = nowMs();
     const expiresAt = issuedAt + 5 * 60 * 1e3;
     const nonceId = randomId5("nonce");
@@ -6580,7 +6888,7 @@ var SolanaSessionService = class {
       `${this.productName.toUpperCase()} Solana session verification`,
       `Wallet: ${normalizedWallet}`,
       `Cluster: ${this.cluster}`,
-      "Purpose: authorize skill publishing, agent execution, and receipt anchoring",
+      "Purpose: authorize skill publishing, task execution, memory writes, and receipt anchoring",
       `Nonce: ${nonce}`,
       `Timestamp: ${issuedAtIso}`
     ].join("\n");
@@ -6596,6 +6904,7 @@ var SolanaSessionService = class {
     });
     return {
       nonceId,
+      sessionId: nonceId,
       nonce,
       message,
       expiresAt,
@@ -6609,6 +6918,14 @@ var SolanaSessionService = class {
     if (nonce.used) throw new Error("session_nonce_already_used");
     if (nonce.walletAddress !== normalizedWallet) throw new Error("session_wallet_mismatch");
     if (nonce.expiresAt < nowMs()) throw new Error("session_nonce_expired");
+    if (!input.cluster) throw new Error("cluster_required");
+    if (input.cluster !== nonce.cluster) {
+      throw new Error("solana_cluster_mismatch");
+    }
+    if (!input.message) throw new Error("session_message_required");
+    if (input.message !== nonce.message) {
+      throw new Error("session_message_mismatch");
+    }
     const messageBytes = new TextEncoder().encode(nonce.message);
     const signatureBytes = bs582.decode(input.signature);
     const walletBytes = new PublicKey3(normalizedWallet).toBytes();
@@ -6812,7 +7129,7 @@ var SolanaIndexerStore = class {
 };
 
 // server/solana/bridgeService.ts
-import crypto14 from "crypto";
+import crypto15 from "crypto";
 import { nanoid as nanoid7 } from "nanoid";
 import bs583 from "bs58";
 import {
@@ -6822,6 +7139,34 @@ import {
   Transaction,
   TransactionInstruction
 } from "@solana/web3.js";
+
+// server/solana/compactMemo.ts
+import crypto14 from "crypto";
+function metadataDigest(metadata) {
+  if (!metadata || Object.keys(metadata).length === 0) return void 0;
+  return crypto14.createHash("sha256").update(JSON.stringify(metadata)).digest("hex").slice(0, 32);
+}
+function buildCompactSolanaBridgeMemo(input, metadata) {
+  const mh = metadataDigest(metadata);
+  const body = {
+    v: 1,
+    rid: input.requestId,
+    a: input.action,
+    sid: input.subjectId,
+    ph: input.payloadHash,
+    acct: input.accountAddress,
+    w: input.walletAddress,
+    c: input.cluster,
+    mh
+  };
+  Object.keys(body).forEach((k) => {
+    const key = k;
+    if (body[key] === void 0) delete body[key];
+  });
+  return `CLAW_SOL_BRIDGE_V1::${JSON.stringify(body)}`;
+}
+
+// server/solana/bridgeService.ts
 var MEMO_PROGRAM_ID = new PublicKey4("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 var DEFAULT_PROGRAM_ID3 = "11111111111111111111111111111111";
 function loadRelayerSigner() {
@@ -6845,7 +7190,7 @@ function isValidHash(hash2) {
   return /^[0-9a-f]{32,128}$/i.test(hash2);
 }
 function shortHash2(value) {
-  return crypto14.createHash("sha256").update(value).digest("hex").slice(0, 32);
+  return crypto15.createHash("sha256").update(value).digest("hex").slice(0, 32);
 }
 function seedFromSubject(subjectId) {
   return Buffer.from(shortHash2(subjectId), "hex");
@@ -7000,17 +7345,18 @@ var SolanaBridgeService = class {
     };
   }
   buildMemoInstruction(build, metadata) {
-    const body = {
-      requestId: build.requestId,
-      action: build.action,
-      subjectId: build.subjectId,
-      payloadHash: build.payloadHash,
-      account: build.accountAddress,
-      wallet: build.walletAddress,
-      cluster: build.cluster,
-      metadata: metadata || {}
-    };
-    const memo = `CLAW_SOLANA_BRIDGE::${JSON.stringify(body)}`;
+    const memo = buildCompactSolanaBridgeMemo(
+      {
+        requestId: build.requestId,
+        action: build.action,
+        subjectId: build.subjectId,
+        payloadHash: build.payloadHash,
+        accountAddress: build.accountAddress,
+        walletAddress: build.walletAddress,
+        cluster: build.cluster
+      },
+      metadata
+    );
     return new TransactionInstruction({
       programId: MEMO_PROGRAM_ID,
       keys: [],
@@ -7132,10 +7478,185 @@ var SolanaBridgeService = class {
 };
 
 // server/solana/bridgeRoutes.ts
-import crypto15 from "crypto";
+import crypto16 from "crypto";
+import { nanoid as nanoid8 } from "nanoid";
 import { z as z4 } from "zod";
+
+// server/solana/structuredReceipts.ts
+init_integrity();
+
+// server/solana/explorer.ts
+var DEFAULT_BASE = "https://explorer.solana.com";
+function explorerBaseUrl() {
+  return process.env.SOLANA_EXPLORER_BASE || DEFAULT_BASE;
+}
+function buildExplorerTxUrl(signature, cluster) {
+  const base = explorerBaseUrl().replace(/\/$/, "");
+  return `${base}/tx/${signature}?cluster=${cluster}`;
+}
+
+// server/solana/structuredReceipts.ts
+init_receipts();
+var manualStructured = [];
+function pushManualStructuredReceipt(receipt) {
+  manualStructured.unshift(receipt);
+}
+function integrationMode(mode) {
+  return mode;
+}
+function receiptRowTypeFromProofSubject(st) {
+  switch (st) {
+    case "bridge":
+      return "proof";
+    case "skill":
+      return "skill";
+    case "reflection":
+      return "reflection";
+    case "memory":
+      return "memory";
+    case "plan":
+      return "plan";
+    case "execution":
+      return "execution";
+    case "proof":
+      return "proof";
+    case "zerog_upload":
+      return "zerog_upload";
+    case "zerog_da_batch":
+      return "zerog_da_batch";
+    default:
+      return "proof";
+  }
+}
+function structuredTypeFromMirrorRow(row) {
+  if (row.type === "session") return "wallet_session";
+  if (row.type === "skill") return "skill_publish";
+  if (row.type === "zerog_upload") return "zerog_storage";
+  if (row.type === "zerog_da_batch") return "zerog_da_batch";
+  if (row.type === "openclaw_import") return "openclaw_import";
+  if (row.type === "openclaw_export") return "openclaw_export";
+  return row.type;
+}
+function mirrorReceiptRowToStructured(row, integration) {
+  const cluster = row.cluster ?? getServerSolanaCluster();
+  const now5 = (/* @__PURE__ */ new Date()).toISOString();
+  const mode = integrationMode(integration.mode);
+  const proofStatus = inferProofIntegrity({
+    txSignature: row.txSignature,
+    zerogMode: mode,
+    degradedFlags: row.status === "degraded"
+  });
+  const showExplorer = Boolean(row.txSignature && !isDemoSimulatedTxSignature(row.txSignature));
+  const explorerUrl = showExplorer && row.explorerUrl === void 0 && row.txSignature !== void 0 && cluster ? buildExplorerTxUrl(row.txSignature, cluster) : row.explorerUrl;
+  const title = `${structuredTypeFromMirrorRow(row)} \xB7 ${row.subjectId.slice(0, 12)}`;
+  const summary = `Compact Solana receipt mirror for ${row.type} subject ${row.subjectId}`;
+  return {
+    id: row.id,
+    receiptType: structuredTypeFromMirrorRow(row),
+    subjectId: row.subjectId,
+    subjectType: row.type,
+    walletAddress: row.wallet,
+    cluster,
+    title,
+    summary,
+    status: row.status,
+    proofStatus,
+    createdAt: row.createdAt,
+    updatedAt: now5,
+    evidence: {
+      txSignature: row.txSignature,
+      accountAddress: row.account,
+      pda: row.account,
+      storageRef: row.storageRef,
+      daRoot: row.daRoot,
+      checksum: row.summaryHash,
+      proofHash: row.summaryHash,
+      verificationUrl: explorerUrl,
+      explorerUrl: showExplorer ? explorerUrl : void 0,
+      storageUrl: row.storageRef,
+      daUrl: row.daRoot ? `zg://da/root/${row.daRoot}` : void 0
+    },
+    references: [
+      ...row.storageRef ? [
+        {
+          kind: "zero_g_storage",
+          id: row.storageRef,
+          label: "Stored in 0G Storage",
+          url: row.storageRef,
+          checksum: row.summaryHash,
+          verified: proofStatus === "verified"
+        }
+      ] : [],
+      ...row.daRoot ? [
+        {
+          kind: "zero_g_da",
+          id: row.daRoot,
+          label: "Committed to 0G DA",
+          url: `zg://da/root/${row.daRoot}`,
+          verified: proofStatus === "verified"
+        }
+      ] : [],
+      ...row.txSignature && showExplorer && explorerUrl ? [
+        {
+          kind: "solana_tx",
+          id: row.txSignature,
+          label: "Open on Solana Explorer",
+          url: explorerUrl,
+          verified: proofStatus === "verified"
+        }
+      ] : []
+    ],
+    links: {
+      explorer: showExplorer ? explorerUrl : void 0,
+      storage: row.storageRef ?? void 0,
+      da: row.daRoot ? `zg://da/root/${row.daRoot}` : void 0
+    },
+    provenance: {},
+    claim: {
+      text: `${row.wallet} anchored a ${row.type} receipt with summary hash ${row.summaryHash.slice(0, 16)}\u2026.`,
+      supportedBy: [
+        ...row.storageRef ? ["0G Storage ref present"] : ["No 0G Storage ref"],
+        ...row.daRoot ? ["0G DA root present"] : ["No DA root"],
+        ...row.txSignature ? showExplorer ? ["Solana tx signature present"] : ["Demo Solana mirror signature"] : ["No Solana signature"]
+      ],
+      unsupported: proofStatus === "demo_only" ? ["Not an explorer-verified mainnet/devnet confirmation without RPC check"] : proofStatus === "pending" ? ["Awaiting confirmation / indexing"] : void 0
+    },
+    metadata: {
+      source: "solana-sidecar-mirror",
+      integrationMode: integration.mode
+    }
+  };
+}
+function proofsToStructuredReceipts(params) {
+  const cluster = getServerSolanaCluster();
+  const rows = params.proofs.map(
+    (p) => solanaProofToReceiptRecord(p, cluster, receiptRowTypeFromProofSubject(p.subjectType))
+  );
+  const structured = rows.map((r) => mirrorReceiptRowToStructured(r, params.integration));
+  structured.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return structured;
+}
+function mergeStructuredReceiptLists(a, b) {
+  const map = /* @__PURE__ */ new Map();
+  for (const item of [...a, ...b]) {
+    map.set(item.id, item);
+  }
+  return [...map.values()].sort((x, y) => y.createdAt.localeCompare(x.createdAt));
+}
+function listManualStructuredReceipts() {
+  return [...manualStructured];
+}
+
+// server/solana/bridgeRoutes.ts
+function normalizeStructuredCluster(cluster) {
+  const c = cluster.toLowerCase();
+  if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
+  if (c === "testnet") return "testnet";
+  if (c === "localnet") return "localnet";
+  return "devnet";
+}
 function hashPayload(payload) {
-  return crypto15.createHash("sha256").update(JSON.stringify(payload ?? {})).digest("hex");
+  return crypto16.createHash("sha256").update(JSON.stringify(payload ?? {})).digest("hex");
 }
 function requestId2() {
   return `req_${Date.now()}`;
@@ -7221,7 +7742,7 @@ var postReceiptSchema = z4.object({
   metadata: z4.record(z4.string(), z4.unknown()).optional()
 });
 function registerSolanaBridgeRoutes(app, deps) {
-  app.get("/api/solana/session", async (req, res) => {
+  app.get("/api/solana/wallet-session", async (req, res) => {
     try {
       const walletAddress = String(req.query.walletAddress || "").trim();
       if (!walletAddress) throw new Error("walletAddress query is required");
@@ -7529,6 +8050,59 @@ function registerSolanaBridgeRoutes(app, deps) {
       res.status(400).json(fail2(error));
     }
   });
+  app.get("/api/solana/receipts", async (req, res) => {
+    try {
+      const walletFilter = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : void 0;
+      const { getZeroGModule: getZeroGModule2 } = await Promise.resolve().then(() => (init_routes(), routes_exports));
+      const { buildZeroGIntegrationStatus: buildZeroGIntegrationStatus2 } = await Promise.resolve().then(() => (init_integrationSummary(), integrationSummary_exports));
+      const module = getZeroGModule2();
+      const integration = await buildZeroGIntegrationStatus2(module);
+      const derived = proofsToStructuredReceipts({ proofs: module.store.listReceipts(), integration });
+      const merged = mergeStructuredReceiptLists(derived, listManualStructuredReceipts());
+      const filtered = walletFilter ? merged.filter((r) => r.walletAddress === walletFilter) : merged;
+      res.json({ ok: true, data: filtered });
+    } catch (error) {
+      res.status(400).json(fail2(error));
+    }
+  });
+  app.post("/api/solana/receipt", async (req, res) => {
+    try {
+      const body = req.body;
+      if (!body.walletAddress || !body.subjectId || !body.title || !body.summary) {
+        throw new Error("walletAddress, subjectId, title, summary required");
+      }
+      const nowIso4 = (/* @__PURE__ */ new Date()).toISOString();
+      const net2 = await deps.bridge.getNetwork();
+      const cluster = body.cluster ?? normalizeStructuredCluster(net2.cluster);
+      const full = {
+        id: body.id ?? `rcpt_${nanoid8()}`,
+        receiptType: body.receiptType ?? "proof",
+        subjectId: body.subjectId,
+        subjectType: body.subjectType ?? "custom",
+        walletAddress: normalizeWalletAddress(body.walletAddress),
+        cluster,
+        title: body.title,
+        summary: body.summary,
+        status: body.status ?? "draft",
+        proofStatus: body.proofStatus ?? "pending",
+        createdAt: body.createdAt ?? nowIso4,
+        updatedAt: nowIso4,
+        evidence: body.evidence ?? {},
+        references: body.references ?? [],
+        links: body.links ?? {},
+        provenance: body.provenance ?? {},
+        claim: body.claim ?? {
+          text: body.summary,
+          supportedBy: []
+        },
+        metadata: body.metadata ?? { source: "api.post_solana_receipt" }
+      };
+      pushManualStructuredReceipt(full);
+      res.json({ ok: true, data: full });
+    } catch (error) {
+      res.status(400).json(fail2(error));
+    }
+  });
   app.post("/api/solana/receipts", async (req, res) => {
     try {
       const body = postReceiptSchema.parse(req.body);
@@ -7559,7 +8133,18 @@ function registerSolanaBridgeRoutes(app, deps) {
   });
   app.get("/api/solana/receipts/:id", async (req, res) => {
     try {
-      const account = await deps.bridge.getMirrorAccount(String(req.params.id));
+      const id = String(req.params.id);
+      const { getZeroGModule: getZeroGModule2 } = await Promise.resolve().then(() => (init_routes(), routes_exports));
+      const { buildZeroGIntegrationStatus: buildZeroGIntegrationStatus2 } = await Promise.resolve().then(() => (init_integrationSummary(), integrationSummary_exports));
+      const module = getZeroGModule2();
+      const integration = await buildZeroGIntegrationStatus2(module);
+      const derived = proofsToStructuredReceipts({ proofs: module.store.listReceipts(), integration });
+      const structured = mergeStructuredReceiptLists(derived, listManualStructuredReceipts()).find((r) => r.id === id);
+      if (structured) {
+        res.json({ ok: true, data: structured });
+        return;
+      }
+      const account = await deps.bridge.getMirrorAccount(id);
       if (!account) {
         res.status(404).json({ ok: false, error: "receipt_not_found" });
         return;
@@ -7860,7 +8445,7 @@ async function mountMemoryReceipts(app, options) {
 }
 
 // server/plans/normalize.ts
-import { nanoid as nanoid8 } from "nanoid";
+import { nanoid as nanoid9 } from "nanoid";
 function nowIso2() {
   return (/* @__PURE__ */ new Date()).toISOString();
 }
@@ -7871,7 +8456,7 @@ function normalizeDate(input) {
   return date.toISOString();
 }
 function normalizePlanId(planId) {
-  return planId?.trim() || `plan_${nanoid8(12)}`;
+  return planId?.trim() || `plan_${nanoid9(12)}`;
 }
 function normalizeSteps(input) {
   return input.map((step, index) => ({
@@ -8005,9 +8590,9 @@ function canonicalResultPayload(result) {
 }
 
 // server/plans/hash.ts
-import crypto16 from "crypto";
+import crypto17 from "crypto";
 function sha256Hex2(input) {
-  return crypto16.createHash("sha256").update(input).digest("hex");
+  return crypto17.createHash("sha256").update(input).digest("hex");
 }
 function hashCanonical2(input) {
   return sha256Hex2(canonicalize2(input));
@@ -8274,7 +8859,7 @@ var PlanAnchorService = class {
 };
 
 // server/plans/PlanReceiptService.ts
-import { nanoid as nanoid9 } from "nanoid";
+import { nanoid as nanoid10 } from "nanoid";
 var PlanReceiptService = class {
   constructor(store, storage, anchor, pushEvent) {
     this.store = store;
@@ -8290,7 +8875,7 @@ var PlanReceiptService = class {
     const existingVersions = await this.store.listReceiptsByPlanId(planId);
     const version = (existingVersions[0]?.version || 0) + 1;
     const base = {
-      id: `prc_${nanoid9(12)}`,
+      id: `prc_${nanoid10(12)}`,
       version,
       planId,
       taskType: input.taskType,
@@ -8407,7 +8992,7 @@ var PlanReceiptService = class {
     if (!plan) throw new Error("plan_not_found");
     const now5 = nowIso2();
     const execution = {
-      id: `pex_${nanoid9(12)}`,
+      id: `pex_${nanoid10(12)}`,
       planReceiptId: plan.id,
       planId: plan.planId,
       status: input.status ?? "running",
@@ -8491,7 +9076,7 @@ var PlanReceiptService = class {
     const next = {
       ...receipt,
       ...changes,
-      id: `prc_${nanoid9(12)}`,
+      id: `prc_${nanoid10(12)}`,
       version: receipt.version + 1,
       createdAt: receipt.createdAt,
       updatedAt: nowIso2(),
@@ -8508,7 +9093,7 @@ var PlanReceiptService = class {
 };
 
 // server/plans/PlanResultService.ts
-import { nanoid as nanoid10 } from "nanoid";
+import { nanoid as nanoid11 } from "nanoid";
 var PlanResultService = class {
   constructor(store, storage, anchor, pushEvent) {
     this.store = store;
@@ -8521,7 +9106,7 @@ var PlanResultService = class {
     if (!receipt) throw new Error("plan_not_found");
     const now5 = nowIso2();
     const result = {
-      id: `pres_${nanoid10(12)}`,
+      id: `pres_${nanoid11(12)}`,
       planReceiptId: receipt.id,
       planId: receipt.planId,
       actualOutcome: input.actualOutcome,
@@ -9124,8 +9709,8 @@ function registerPlanRoutes(app, services) {
 
 // server/plans/mount.ts
 import path10 from "path";
-import crypto17 from "crypto";
-import { nanoid as nanoid11 } from "nanoid";
+import crypto18 from "crypto";
+import { nanoid as nanoid12 } from "nanoid";
 async function mountPlanReceipts(app, options) {
   const store = new PlanStore(path10.join(process.cwd(), "data", "plan-receipts.json"));
   await store.init();
@@ -9135,7 +9720,7 @@ async function mountPlanReceipts(app, options) {
     programId: process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID,
     anchorClient: options?.solanaIdentityService ? {
       anchorPlan: async (input) => {
-        const payloadHash = crypto17.createHash("sha256").update(
+        const payloadHash = crypto18.createHash("sha256").update(
           JSON.stringify({
             planId: input.planId,
             taskType: input.taskType,
@@ -9182,7 +9767,7 @@ async function mountPlanReceipts(app, options) {
   async function pushEvent(event) {
     await store.pushTimelineEvent({
       ...event,
-      id: `pevt_${nanoid11(10)}`,
+      id: `pevt_${nanoid12(10)}`,
       createdAt: nowIso2()
     });
   }
@@ -9207,12 +9792,12 @@ async function mountPlanReceipts(app, options) {
 }
 
 // server/openclaw/bridge.ts
-import crypto18 from "crypto";
+import crypto19 from "crypto";
 function hashJson(value) {
-  return crypto18.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return crypto19.createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 function receiptId() {
-  return `bridge_${crypto18.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  return `bridge_${crypto19.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 var OpenClawBridgeService = class {
   state = {
@@ -9533,6 +10118,9 @@ async function mountNft(app) {
   return { store, service };
 }
 
+// server/_core/index.ts
+init_routes();
+
 // server/dao/mount.ts
 import path14 from "path";
 
@@ -9612,7 +10200,7 @@ var DaoStore = class {
 };
 
 // server/dao/daoService.ts
-import crypto19 from "crypto";
+import crypto20 from "crypto";
 function rankScore(proposal) {
   const total = proposal.yesVotes + proposal.noVotes + proposal.abstainVotes;
   const participation = total > 0 ? Math.floor(proposal.totalVotes / (total + 1) * 1e4) : 0;
@@ -9793,7 +10381,7 @@ var DaoService = class {
       status: "executed",
       executedAt: Date.now(),
       updatedAt: Date.now(),
-      resultHash: crypto19.createHash("sha256").update(`${proposal.kind}:${proposal.proposalId}:${proposal.title}`).digest("hex")
+      resultHash: crypto20.createHash("sha256").update(`${proposal.kind}:${proposal.proposalId}:${proposal.title}`).digest("hex")
     };
     await this.store.upsertProposal(next);
     const cfg = this.store.getConfig();
@@ -9930,10 +10518,152 @@ async function mountDao(app) {
 import { z as z7 } from "zod";
 
 // server/orchestration/ExecutionOrchestratorService.ts
-import crypto20 from "crypto";
-import { nanoid as nanoid12 } from "nanoid";
+import crypto21 from "crypto";
+import { nanoid as nanoid13 } from "nanoid";
+
+// shared/proofTruth.ts
+function titleForStructuredType(t2, subjectId) {
+  const short = subjectId.length > 14 ? `${subjectId.slice(0, 6)}\u2026${subjectId.slice(-4)}` : subjectId;
+  const labels = {
+    wallet_session: `Wallet session receipt \xB7 ${short}`,
+    skill_publish: `Skill publish receipt \xB7 ${short}`,
+    skill_update: `Skill update receipt \xB7 ${short}`,
+    plan: `Plan receipt \xB7 ${short}`,
+    execution: `Execution receipt \xB7 ${short}`,
+    reflection: `Reflection receipt \xB7 ${short}`,
+    memory: `Memory write receipt \xB7 ${short}`,
+    proof: `Proof anchor receipt \xB7 ${short}`,
+    zerog_storage: `0G storage receipt \xB7 ${short}`,
+    zerog_da_batch: `0G DA batch receipt \xB7 ${short}`,
+    openclaw_import: `OpenClaw import receipt \xB7 ${short}`,
+    openclaw_export: `OpenClaw export receipt \xB7 ${short}`,
+    reputation_update: `Reputation update receipt \xB7 ${short}`,
+    autonomy_update: `Autonomy update receipt \xB7 ${short}`
+  };
+  return labels[t2];
+}
+function chainIdToCluster(chainId) {
+  switch (chainId) {
+    case 101:
+      return "mainnet-beta";
+    case 102:
+      return "testnet";
+    case 103:
+      return "devnet";
+    default:
+      return "devnet";
+  }
+}
+var DOMAIN_RECEIPT_TYPE_MAP = {
+  "skill.publish": "skill_publish",
+  "skill.update": "skill_update",
+  plan: "plan",
+  execution: "execution",
+  reflection: "reflection",
+  memory: "memory",
+  proof: "proof",
+  dao: "reputation_update",
+  queue: "proof",
+  wallet: "wallet_session"
+};
+function deriveProofStatusDomain(r, evidence) {
+  if (r.status === "failed") return "degraded";
+  if (r.status === "degraded") return "degraded";
+  if (!evidence.txSignature) return r.status === "verified" ? "pending" : "unverified";
+  if (r.status === "verified" && evidence.txSignature && evidence.explorerUrl) return "verified";
+  if (evidence.txSignature && evidence.explorerUrl && (r.status === "submitted" || r.status === "confirmed")) {
+    return "pending";
+  }
+  if (evidence.txSignature && !evidence.explorerUrl) return "pending";
+  return "unverified";
+}
+function receiptRecordToStructured(r) {
+  const receiptType = DOMAIN_RECEIPT_TYPE_MAP[r.type] ?? "proof";
+  const cluster = chainIdToCluster(r.chainId);
+  const evidence = {
+    txSignature: r.txSignature,
+    accountAddress: r.accountAddress,
+    storageRef: r.storageRef,
+    checksum: r.summaryHash,
+    explorerUrl: r.explorerUrl
+  };
+  const proofStatus = deriveProofStatusDomain(r, evidence);
+  const status = r.status === "draft" ? "draft" : r.status === "submitted" ? "submitted" : r.status === "confirmed" ? "confirmed" : r.status === "verified" ? "verified" : r.status === "failed" ? "failed" : "degraded";
+  const references = [];
+  if (r.txSignature) {
+    references.push({
+      kind: "solana_tx",
+      id: r.txSignature,
+      label: "Solana transaction",
+      url: r.explorerUrl,
+      verified: proofStatus === "verified"
+    });
+  }
+  if (r.accountAddress) {
+    references.push({
+      kind: "solana_account",
+      id: r.accountAddress,
+      label: "Solana account / PDA",
+      verified: proofStatus === "verified"
+    });
+  }
+  if (r.storageRef) {
+    references.push({
+      kind: "zero_g_storage",
+      id: r.storageRef,
+      label: "Storage reference"
+    });
+  }
+  if (r.summaryHash) {
+    references.push({
+      kind: "offchain_checksum",
+      id: r.summaryHash,
+      label: "Summary hash",
+      checksum: r.summaryHash
+    });
+  }
+  const unsupported = [];
+  if (!r.txSignature) unsupported.push("txSignature");
+  if (!r.explorerUrl && r.txSignature) unsupported.push("explorerUrl");
+  const anchoredClaim = proofStatus === "verified";
+  const claimText = anchoredClaim ? "Execution artifact anchored with explorer-verifiable Solana transaction." : "Receipt recorded; verifier pending or incomplete \u2014 see evidence fields.";
+  return {
+    id: r.id,
+    receiptType,
+    subjectId: r.subjectId,
+    subjectType: r.subjectType,
+    walletAddress: r.wallet,
+    cluster,
+    title: titleForStructuredType(receiptType, r.subjectId),
+    summary: `${r.subjectType} \xB7 ${r.type} \xB7 ${r.summaryHash.slice(0, 18)}\u2026`,
+    status,
+    proofStatus,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    evidence,
+    references,
+    links: {
+      explorer: r.explorerUrl,
+      storage: r.storageRef
+    },
+    provenance: {
+      sourceExecutionId: typeof r.metadata?.executionId === "string" ? r.metadata.executionId : void 0
+    },
+    claim: {
+      text: claimText,
+      supportedBy: anchoredClaim ? ["solana_tx", "explorer"] : ["receipt_draft"],
+      unsupported: unsupported.length ? unsupported : void 0
+    },
+    metadata: { ...r.metadata, domainReceiptType: r.type }
+  };
+}
+function domainReceiptsToStructured(receipts) {
+  return receipts.map(receiptRecordToStructured);
+}
+
+// server/orchestration/ExecutionOrchestratorService.ts
 function sha256Hex3(value) {
-  return crypto20.createHash("sha256").update(value).digest("hex");
+  return crypto21.createHash("sha256").update(value).digest("hex");
 }
 function nowIso3() {
   return (/* @__PURE__ */ new Date()).toISOString();
@@ -9965,8 +10695,8 @@ var ExecutionOrchestratorService = class {
   async runSwarmExecute(input) {
     const wallet = normalizeWalletAddress(input.wallet);
     const requestId6 = input.requestId;
-    const executionId = `ex_${nanoid12(12)}`;
-    const sourceTurnId = `turn_${nanoid12(10)}`;
+    const executionId = `ex_${nanoid13(12)}`;
+    const sourceTurnId = `turn_${nanoid13(10)}`;
     const chainId = Number(process.env.SOLANA_CHAIN_ID || 101);
     const errors = [];
     let degraded = false;
@@ -10005,7 +10735,7 @@ var ExecutionOrchestratorService = class {
       receipts.push(r);
       await this.deps.mirror.appendReceipt(r);
     };
-    const planId = `plan_${nanoid12(10)}`;
+    const planId = `plan_${nanoid13(10)}`;
     let planReceiptId;
     try {
       orchestration[0].status = "active";
@@ -10066,7 +10796,7 @@ var ExecutionOrchestratorService = class {
           degraded = true;
         }
         await pushReceipt({
-          id: `rcpt_plan_${nanoid12(8)}`,
+          id: `rcpt_plan_${nanoid13(8)}`,
           type: "plan",
           subjectId: planId,
           subjectType: "plan_receipt",
@@ -10192,7 +10922,7 @@ ${nextAction}`;
       execution.updatedAt = nowIso3();
       await this.deps.mirror.upsertExecution(execution);
       await pushReceipt({
-        id: `rcpt_refl_${nanoid12(8)}`,
+        id: `rcpt_refl_${nanoid13(8)}`,
         type: "reflection",
         subjectId: reflection.id,
         subjectType: "reflection",
@@ -10251,7 +10981,7 @@ ${nextAction}`;
       execution.updatedAt = nowIso3();
       await this.deps.mirror.upsertExecution(execution);
       await pushReceipt({
-        id: `rcpt_proof_${nanoid12(8)}`,
+        id: `rcpt_proof_${nanoid13(8)}`,
         type: "proof",
         subjectId: proofSubject,
         subjectType: "execution_proof",
@@ -10296,6 +11026,7 @@ ${nextAction}`;
       reflection,
       memoryReflectionId,
       receipts,
+      structuredReceipts: domainReceiptsToStructured(receipts),
       planReceiptId,
       planId,
       degraded,

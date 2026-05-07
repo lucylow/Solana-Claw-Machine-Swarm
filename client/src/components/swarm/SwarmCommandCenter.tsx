@@ -1,4 +1,8 @@
-import { CommandTopRail, CommandCenterShell, StatusChip } from "@/components/command-center/CommandCenterShell";
+import {
+  CommandTopRail,
+  CommandCenterShell,
+  StatusChip,
+} from "@/components/command-center/CommandCenterShell";
 import {
   AgentsOrchestrationGrid,
   buildDemoBundle,
@@ -22,10 +26,22 @@ import { Button } from "@/components/ui/button";
 import { useSolanaSession } from "@/hooks/solana/useSolanaSession";
 import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
 import { getClientZeroGConfig } from "@/lib/zerog/config";
-import type { ZeroGHealthResponse, ZeroGProofGraphResponse } from "@/lib/zerog/types";
+import type {
+  ZeroGHealthResponse,
+  ZeroGProofGraphResponse,
+} from "@/lib/zerog/types";
 import { formatSessionExpiry } from "@/lib/solana/format";
-import { executeSwarm, fetchSkillsList, fetchSolanaStatus, selectSkill } from "@/lib/swarmApi";
-import { createInitialRuntime, executeAutonomousCycle } from "@/lib/swarmRuntime";
+import {
+  executeSwarm,
+  fetchSkillsList,
+  fetchSolanaStatus,
+  selectSkill,
+} from "@/lib/swarmApi";
+import {
+  createInitialRuntime,
+  executeAutonomousCycle,
+} from "@/lib/swarmRuntime";
+import { isStructuredReflectionControl } from "@shared/commandCenterTimeline";
 import { DEMO_SKILLS } from "@shared/demoFixtures";
 import { SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
 import type { SkillIdentity, SwarmExecuteResult } from "@shared/domainModel";
@@ -44,9 +60,15 @@ function toZeroGHealth(runtime: SwarmRuntimeState): ZeroGHealthResponse {
   return {
     ok: runtime.zeroGStatus.enabled,
     mode: runtime.zeroGStatus.mode,
-    statusLabel: runtime.zeroGStatus.mode === "degraded" ? "0G degraded mode" : `0G ${runtime.zeroGStatus.mode} mode`,
+    statusLabel:
+      runtime.zeroGStatus.mode === "degraded"
+        ? "0G degraded mode"
+        : `0G ${runtime.zeroGStatus.mode} mode`,
     config: {
-      environment: runtime.cluster === "mainnet" || runtime.cluster === "mainnet-beta" ? "mainnet" : "demo",
+      environment:
+        runtime.cluster === "mainnet" || runtime.cluster === "mainnet-beta"
+          ? "mainnet"
+          : "demo",
       storageUrl: runtime.zeroGStatus.storageUrl,
       computeUrl: runtime.zeroGStatus.computeUrl,
       dataAvailabilityUrl: runtime.zeroGStatus.daUrl,
@@ -60,16 +82,28 @@ function toZeroGHealth(runtime: SwarmRuntimeState): ZeroGHealthResponse {
       mode: runtime.zeroGStatus.mode,
       version: "0g-sidecar-v1",
     },
-    storage: { ok: runtime.zeroGStatus.storageStatus === "healthy", mode: runtime.zeroGStatus.mode },
-    compute: { ok: runtime.zeroGStatus.computeStatus === "healthy", mode: runtime.zeroGStatus.mode },
-    da: { ok: runtime.zeroGStatus.daStatus === "healthy", mode: runtime.zeroGStatus.mode },
-    bridge: { ok: runtime.zeroGStatus.bridgeStatus !== "degraded", mode: runtime.zeroGStatus.mode },
+    storage: {
+      ok: runtime.zeroGStatus.storageStatus === "healthy",
+      mode: runtime.zeroGStatus.mode,
+    },
+    compute: {
+      ok: runtime.zeroGStatus.computeStatus === "healthy",
+      mode: runtime.zeroGStatus.mode,
+    },
+    da: {
+      ok: runtime.zeroGStatus.daStatus === "healthy",
+      mode: runtime.zeroGStatus.mode,
+    },
+    bridge: {
+      ok: runtime.zeroGStatus.bridgeStatus !== "degraded",
+      mode: runtime.zeroGStatus.mode,
+    },
   };
 }
 
 function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
   return {
-    artifacts: runtime.zeroGLinks.map(link => ({
+    artifacts: runtime.zeroGLinks.map((link) => ({
       id: link.subjectId,
       kind: "reflection",
       title: `Off-chain artifact · ${link.subjectId}`,
@@ -85,7 +119,7 @@ function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
       tags: ["runtime"],
       metadata: {},
     })),
-    computeJobs: runtime.zeroGLinks.map(link => ({
+    computeJobs: runtime.zeroGLinks.map((link) => ({
       id: link.id,
       taskType: "summarize_reflection",
       input: {},
@@ -95,7 +129,7 @@ function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
       computeRef: link.zeroGComputeRef,
       metadata: {},
     })),
-    availability: runtime.zeroGLinks.map(link => ({
+    availability: runtime.zeroGLinks.map((link) => ({
       id: `${link.id}_da`,
       artifactId: link.subjectId,
       artifactKind: link.subjectType,
@@ -106,7 +140,7 @@ function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
       metadata: {},
     })),
     links: runtime.zeroGLinks,
-    receipts: runtime.receipts.map(receipt => ({
+    receipts: runtime.receipts.map((receipt) => ({
       id: receipt.id,
       subjectType: "reflection",
       subjectId: receipt.runId,
@@ -124,7 +158,7 @@ function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
 }
 
 function demoSkillRows() {
-  return DEMO_SKILLS.slice(0, 9).map(s => ({
+  return DEMO_SKILLS.slice(0, 9).map((s) => ({
     id: s.id,
     name: s.name,
     version: s.version,
@@ -136,7 +170,7 @@ function demoSkillRows() {
 }
 
 function skillRowsFromChain(skills: SkillIdentity[]) {
-  return skills.map(s => ({
+  return skills.map((s) => ({
     id: s.id,
     name: s.name,
     version: s.version,
@@ -147,48 +181,70 @@ function skillRowsFromChain(skills: SkillIdentity[]) {
   }));
 }
 
-export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: string }) {
+export default function SwarmCommandCenter({
+  walletAddress,
+}: {
+  walletAddress?: string;
+}) {
   const wallet = useSolanaWallet();
   const session = useSolanaSession();
   const [section, setSection] = useState<SwarmSectionId>("overview");
   const [demoMode, setDemoMode] = useState(false);
-  const [runtime, setRuntime] = useState<SwarmRuntimeState>(() => createInitialRuntime(walletAddress));
+  const [runtime, setRuntime] = useState<SwarmRuntimeState>(() =>
+    createInitialRuntime(walletAddress),
+  );
   const [goal, setGoal] = useState(
-    "Bind wallet → choose skill → planner emits steps → operator executes → critic reflects → memory writes → receipt anchors on Solana."
+    "Bind wallet → choose skill → planner emits steps → operator executes → critic reflects → memory writes → receipt anchors on Solana.",
   );
   const [autoplay, setAutoplay] = useState(false);
-  const [liveZeroGHealth, setLiveZeroGHealth] = useState<ZeroGHealthResponse | null>(null);
-  const [liveProofGraph, setLiveProofGraph] = useState<ZeroGProofGraphResponse | null>(null);
+  const [liveZeroGHealth, setLiveZeroGHealth] =
+    useState<ZeroGHealthResponse | null>(null);
+  const [liveProofGraph, setLiveProofGraph] =
+    useState<ZeroGProofGraphResponse | null>(null);
   const [chainSkills, setChainSkills] = useState<SkillIdentity[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [loopStep, setLoopStep] = useState(0);
-  const [chainStatus, setChainStatus] = useState<Awaited<ReturnType<typeof fetchSolanaStatus>> | null>(null);
+  const [chainStatus, setChainStatus] = useState<Awaited<
+    ReturnType<typeof fetchSolanaStatus>
+  > | null>(null);
   const [lastResult, setLastResult] = useState<SwarmExecuteResult | null>(null);
   const [loopBusy, setLoopBusy] = useState(false);
   const [loopError, setLoopError] = useState<string | null>(null);
 
-  const demoBundle = useMemo(() => (demoMode ? buildDemoBundle(selectedSkillId) : null), [demoMode, selectedSkillId]);
+  const demoBundle = useMemo(
+    () => (demoMode ? buildDemoBundle(selectedSkillId) : null),
+    [demoMode, selectedSkillId],
+  );
 
-  const effectiveWallet = walletAddress ?? (demoMode ? demoBundle?.wallet.address : undefined);
+  const effectiveWallet =
+    walletAddress ?? (demoMode ? demoBundle?.wallet.address : undefined);
   const skillRows = useMemo(() => {
     if (chainSkills.length) return skillRowsFromChain(chainSkills);
     if (demoMode) return demoSkillRows();
     return [];
   }, [chainSkills, demoMode]);
 
-  const activeSkillName = useMemo(() => {
-    const fromChain = chainSkills.find(s => s.id === selectedSkillId)?.name;
+  const activeSkillMeta = useMemo(() => {
+    const fromChain = chainSkills.find((s) => s.id === selectedSkillId);
     if (fromChain) return fromChain;
-    return demoBundle?.skill.name;
-  }, [chainSkills, selectedSkillId, demoBundle?.skill.name]);
+    return demoBundle?.skill ?? null;
+  }, [chainSkills, selectedSkillId, demoBundle?.skill]);
+
+  const activeSkillName = useMemo(
+    () => activeSkillMeta?.name,
+    [activeSkillMeta?.name],
+  );
 
   useEffect(() => {
     void (async () => {
       try {
-        const [st, sk] = await Promise.all([fetchSolanaStatus(), fetchSkillsList({ sort: "success_rate" })]);
+        const [st, sk] = await Promise.all([
+          fetchSolanaStatus(),
+          fetchSkillsList({ sort: "success_rate" }),
+        ]);
         setChainStatus(st);
         setChainSkills(sk.skills);
-        setSelectedSkillId(prev => prev ?? sk.skills[0]?.id ?? null);
+        setSelectedSkillId((prev) => prev ?? sk.skills[0]?.id ?? null);
       } catch {
         /* registry may be empty */
       }
@@ -220,7 +276,7 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
   useEffect(() => {
     if (!autoplay) return;
     const interval = setInterval(() => {
-      setRuntime(prev => executeAutonomousCycle(prev, goal));
+      setRuntime((prev) => executeAutonomousCycle(prev, goal));
     }, 2_500);
     return () => clearInterval(interval);
   }, [autoplay, goal]);
@@ -237,20 +293,25 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       importedCount: demoMode ? 14 : 3,
       exportedCount: demoMode ? 6 : 1,
     }),
-    [session.isVerified, demoMode]
+    [session.isVerified, demoMode],
   );
 
   const openClawReceipts = useMemo(
     () => [
-      { id: "oc-br-01", label: "Skill manifest hash export", direction: "export" },
+      {
+        id: "oc-br-01",
+        label: "Skill manifest hash export",
+        direction: "export",
+      },
       { id: "oc-br-02", label: "Tool schema import", direction: "import" },
       { id: "oc-br-03", label: "Receipt mirror", direction: "export" },
     ],
-    []
+    [],
   );
 
   const memorySnippet = useMemo(() => {
-    if (runtime.memories[0]?.correctiveAdvice) return runtime.memories[0]!.correctiveAdvice;
+    if (runtime.memories[0]?.correctiveAdvice)
+      return runtime.memories[0]!.correctiveAdvice;
     if (demoBundle?.memory?.summary) return demoBundle.memory.summary;
     if (lastResult?.reflection?.summary) return lastResult.reflection.summary;
     return undefined;
@@ -259,18 +320,35 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
   const receiptPreview = useMemo(() => {
     const tx = wallet.latestSignature ?? lastResult?.receipts?.[0]?.txSignature;
     if (tx) return tx;
-    const demoTx = demoBundle?.receipts?.[demoBundle.receipts.length - 1]?.txSignature;
+    const demoTx =
+      demoBundle?.receipts?.[demoBundle.receipts.length - 1]?.txSignature;
     return demoTx;
   }, [wallet.latestSignature, lastResult?.receipts, demoBundle?.receipts]);
+
+  const receiptTxPreview = useMemo(() => {
+    if (!receiptPreview || receiptPreview.length < 8) return undefined;
+    return receiptPreview.length > 14
+      ? `${receiptPreview.slice(0, 10)}…`
+      : receiptPreview;
+  }, [receiptPreview]);
 
   const degradedMessages = useMemo(() => {
     const m: string[] = [];
     if (loopError) m.push(loopError);
-    if (lastResult?.degraded) m.push("Last run used a degraded verification path.");
-    if (!effectiveWallet && !demoMode) m.push("Wallet disconnected — proof scope not bound.");
-    if (effectiveWallet && !session.isVerified && !demoMode) m.push("Session not verified — anchoring may be blocked.");
+    if (lastResult?.degraded)
+      m.push("Last run used a degraded verification path.");
+    if (!effectiveWallet && !demoMode)
+      m.push("Wallet disconnected — proof scope not bound.");
+    if (effectiveWallet && !session.isVerified && !demoMode)
+      m.push("Session not verified — anchoring may be blocked.");
     return m;
-  }, [loopError, lastResult?.degraded, effectiveWallet, session.isVerified, demoMode]);
+  }, [
+    loopError,
+    lastResult?.degraded,
+    effectiveWallet,
+    session.isVerified,
+    demoMode,
+  ]);
 
   const recoverHints = useMemo(() => {
     const h: string[] = [];
@@ -287,27 +365,46 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       walletConnected: Boolean(effectiveWallet),
       sessionVerified: session.isVerified || demoMode,
       activeSkillName,
+      skillVersion: activeSkillMeta?.version,
+      skillContentHashPreview: activeSkillMeta?.contentHash?.slice(0, 14),
       goalSummary: goal,
       loopStep,
       loopBusy,
       lastExecutionStatus: lastResult?.execution.status,
       hasReflection: Boolean(lastResult?.reflection ?? demoBundle?.reflection),
+      structuredReflection:
+        isStructuredReflectionControl(lastResult?.reflection) ||
+        isStructuredReflectionControl(
+          demoBundle?.reflection
+            ? {
+                rootCause: demoBundle.reflection.rootCause,
+                correctiveAdvice: demoBundle.reflection.correctiveAdvice,
+                nextAction: demoBundle.reflection.nextAction,
+              }
+            : undefined,
+        ),
       hasMemory: Boolean(lastResult?.memoryReflectionId ?? demoBundle?.memory),
+      planReceiptId:
+        lastResult?.planReceiptId ??
+        demoBundle?.plan?.receiptRef ??
+        demoBundle?.plan?.id ??
+        undefined,
+      receiptTxPreview,
       zerogStored: Boolean(
         demoBundle ||
           lastResult?.reflection?.offchainStorageRef ||
-          liveProofGraph?.artifacts?.length
+          liveProofGraph?.artifacts?.length,
       ),
       zerogDaCommitted: Boolean(
         demoBundle ||
           lastResult?.execution.status === "anchored" ||
           lastResult?.execution.status === "verified" ||
-          liveProofGraph?.availability?.length
+          liveProofGraph?.availability?.length,
       ),
       receiptAnchored:
         lastResult?.execution.status === "verified" ||
         lastResult?.execution.status === "anchored" ||
-        Boolean(demoBundle?.receipts.some(r => r.kind === "proof_anchor")),
+        Boolean(demoBundle?.receipts.some((r) => r.kind === "proof_anchor")),
       degraded: Boolean(lastResult?.degraded) || degradedMessages.length > 0,
     }),
     [
@@ -315,21 +412,27 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       session.isVerified,
       demoMode,
       activeSkillName,
+      activeSkillMeta?.version,
+      activeSkillMeta?.contentHash,
       goal,
       loopStep,
       loopBusy,
       lastResult?.execution.status,
       lastResult?.reflection,
+      lastResult?.planReceiptId,
       lastResult?.memoryReflectionId,
       lastResult?.degraded,
       demoBundle?.reflection,
       demoBundle?.memory,
+      demoBundle?.plan?.receiptRef,
+      demoBundle?.plan?.id,
       demoBundle?.receipts,
+      receiptTxPreview,
       degradedMessages.length,
       liveProofGraph?.artifacts?.length,
       liveProofGraph?.availability?.length,
       demoBundle,
-    ]
+    ],
   );
 
   const runLinkedLoop = useCallback(async () => {
@@ -341,7 +444,7 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       setLoopStep(1);
       await selectSkill(selectedSkillId, effectiveWallet);
       setLoopStep(2);
-      const skill = chainSkills.find(s => s.id === selectedSkillId);
+      const skill = chainSkills.find((s) => s.id === selectedSkillId);
       const result = await executeSwarm({
         walletAddress: effectiveWallet,
         goal,
@@ -359,7 +462,14 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
     } finally {
       setLoopBusy(false);
     }
-  }, [effectiveWallet, selectedSkillId, chainSkills, goal, demoBundle?.skill.name, storyFinalIdx]);
+  }, [
+    effectiveWallet,
+    selectedSkillId,
+    chainSkills,
+    goal,
+    demoBundle?.skill.name,
+    storyFinalIdx,
+  ]);
 
   const top = (
     <CommandTopRail
@@ -373,25 +483,50 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
           />
           <StatusChip
             tone={effectiveWallet ? "proof" : "warn"}
-            label={effectiveWallet ? `${effectiveWallet.slice(0, 4)}…${effectiveWallet.slice(-4)}` : SOLANA_COPY.wallet.offlineChip}
+            label={
+              effectiveWallet
+                ? `${effectiveWallet.slice(0, 4)}…${effectiveWallet.slice(-4)}`
+                : SOLANA_COPY.wallet.offlineChip
+            }
           />
           <StatusChip
             tone={session.isVerified || demoMode ? "proof" : "warn"}
-            label={session.isVerified || demoMode ? SOLANA_COPY.session.verifiedSession : SOLANA_COPY.session.sessionOpen}
+            label={
+              session.isVerified || demoMode
+                ? SOLANA_COPY.session.verifiedSession
+                : SOLANA_COPY.session.sessionOpen
+            }
           />
-          <StatusChip tone="neutral" label={`epoch · ${runtime.ecosystem.currentEpoch}`} />
-          <StatusChip tone="live" pulse={liveIndicator} label={liveIndicator ? "live execution" : "standby"} />
+          <StatusChip
+            tone="neutral"
+            label={`epoch · ${runtime.ecosystem.currentEpoch}`}
+          />
+          <StatusChip
+            tone="live"
+            pulse={liveIndicator}
+            label={liveIndicator ? "live execution" : "standby"}
+          />
           <StatusChip tone="proof" label={`memory +${runtime.memoryGrowth}`} />
-          <StatusChip tone="proof" label={`receipts · ${runtime.receipts.length}`} />
-          <StatusChip tone="neutral" label={`0G · ${liveZeroGHealth?.statusLabel ?? runtime.zeroGStatus.mode}`} />
-          <StatusChip label={`expiry · ${formatSessionExpiry(session.sessionProfile?.expiresAt)}`} />
+          <StatusChip
+            tone="proof"
+            label={`receipts · ${runtime.receipts.length}`}
+          />
+          <StatusChip
+            tone="neutral"
+            label={`0G · ${liveZeroGHealth?.statusLabel ?? runtime.zeroGStatus.mode}`}
+          />
+          <StatusChip
+            label={`expiry · ${formatSessionExpiry(session.sessionProfile?.expiresAt)}`}
+          />
           <Button
             size="sm"
             variant="outline"
             className="ml-auto shrink-0 border-[#14f195]/50 text-[11px] text-[#b8ffd9]"
             onClick={() => wallet.connectAndVerify().catch(() => undefined)}
           >
-            {session.isVerified ? SOLANA_COPY.wallet.refreshSession : SOLANA_COPY.wallet.connectVerify}
+            {session.isVerified
+              ? SOLANA_COPY.wallet.refreshSession
+              : SOLANA_COPY.wallet.connectVerify}
           </Button>
         </>
       }
@@ -409,14 +544,17 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       memorySnippet={memorySnippet}
       receiptPreview={receiptPreview}
       openClawCompact={`${openClawStatus.connected ? "Bridge live" : "Idle"} · ${openClawStatus.importedCount} imports / ${openClawStatus.exportedCount} exports · OpenClaw compatible manifests.`}
-      demoReflection={demoMode ? demoBundle?.reflection ?? null : null}
+      demoReflection={demoMode ? (demoBundle?.reflection ?? null) : null}
     />
   );
 
   const main = (
     <div className="mx-auto max-w-4xl xl:max-w-none">
       <DemoModeToggle enabled={demoMode} onChange={setDemoMode} />
-      <DegradedStateBanner messages={degradedMessages} recoverHints={recoverHints} />
+      <DegradedStateBanner
+        messages={degradedMessages}
+        recoverHints={recoverHints}
+      />
 
       {section === "overview" ? (
         <OverviewMissionBlock
@@ -436,32 +574,51 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
           onSelectSkill={setSelectedSkillId}
           skillRows={skillRows}
           lastResult={lastResult}
-          demoSteps={demoMode ? demoBundle?.steps ?? null : null}
+          demoSteps={demoMode ? (demoBundle?.steps ?? null) : null}
           demoMode={demoMode}
-          demoExecutionRun={demoMode ? demoBundle?.executionRun ?? null : null}
+          demoExecutionRun={
+            demoMode ? (demoBundle?.executionRun ?? null) : null
+          }
         />
       ) : null}
 
       {section === "live-run" ? <LiveRunsBoard runs={runtime.runs} /> : null}
-      {section === "skills" ? <SkillsAssetGallery skills={runtime.skills} /> : null}
+      {section === "skills" ? (
+        <SkillsAssetGallery skills={runtime.skills} />
+      ) : null}
       {section === "memory" ? (
         <MemoryLineageColumn
           memories={runtime.memories}
-          demoTimeline={demoMode ? demoBundle?.memoryTimeline ?? null : null}
-          demoTraceable={demoMode ? demoBundle?.traceableMemory ?? null : null}
+          demoTimeline={demoMode ? (demoBundle?.memoryTimeline ?? null) : null}
+          demoTraceable={
+            demoMode ? (demoBundle?.traceableMemory ?? null) : null
+          }
         />
       ) : null}
-      {section === "reflections" ? <ReflectionStack reflections={runtime.reflections} /> : null}
-      {section === "receipts" || section === "proof-explorer" ? <ProofExplorerList receipts={runtime.receipts} /> : null}
-      {section === "agents" ? <AgentsOrchestrationGrid agents={runtime.agents} /> : null}
-      {section === "reputation" ? <ReputationAutonomyBoard runtime={runtime} /> : null}
-      {section === "openclaw-bridge" ? <OpenClawBridgeBoard status={openClawStatus} receipts={openClawReceipts} /> : null}
+      {section === "reflections" ? (
+        <ReflectionStack reflections={runtime.reflections} />
+      ) : null}
+      {section === "receipts" || section === "proof-explorer" ? (
+        <ProofExplorerList receipts={runtime.receipts} />
+      ) : null}
+      {section === "agents" ? (
+        <AgentsOrchestrationGrid agents={runtime.agents} />
+      ) : null}
+      {section === "reputation" ? (
+        <ReputationAutonomyBoard runtime={runtime} />
+      ) : null}
+      {section === "openclaw-bridge" ? (
+        <OpenClawBridgeBoard
+          status={openClawStatus}
+          receipts={openClawReceipts}
+        />
+      ) : null}
       {section === "settings" ? (
         <SettingsDeck
           runtime={runtime}
           autoplay={autoplay}
-          onAutoplay={() => setAutoplay(p => !p)}
-          onRunOnce={() => setRuntime(p => executeAutonomousCycle(p, goal))}
+          onAutoplay={() => setAutoplay((p) => !p)}
+          onRunOnce={() => setRuntime((p) => executeAutonomousCycle(p, goal))}
         />
       ) : null}
       {section === "zerog-sidecar" ? (
@@ -469,22 +626,51 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
           health={liveZeroGHealth ?? toZeroGHealth(runtime)}
           runtimeSnippet={
             <>
-              <p>0G chain id: {liveZeroGHealth?.config.ogChainId ?? getClientZeroGConfig().ogChainId}</p>
-              <p>Storage: {liveZeroGHealth?.config.storageUrl ?? runtime.zeroGStatus.storageUrl}</p>
-              <p>Compute: {liveZeroGHealth?.config.computeUrl ?? runtime.zeroGStatus.computeUrl}</p>
-              <p>Latest DA ref: {liveProofGraph?.artifacts[0]?.storageRef ?? runtime.zeroGLinks[0]?.zeroGStorageRef ?? "—"}</p>
+              <p>
+                0G chain id:{" "}
+                {liveZeroGHealth?.config.ogChainId ??
+                  getClientZeroGConfig().ogChainId}
+              </p>
+              <p>
+                Storage:{" "}
+                {liveZeroGHealth?.config.storageUrl ??
+                  runtime.zeroGStatus.storageUrl}
+              </p>
+              <p>
+                Compute:{" "}
+                {liveZeroGHealth?.config.computeUrl ??
+                  runtime.zeroGStatus.computeUrl}
+              </p>
+              <p>
+                Latest DA ref:{" "}
+                {liveProofGraph?.artifacts[0]?.storageRef ??
+                  runtime.zeroGLinks[0]?.zeroGStorageRef ??
+                  "—"}
+              </p>
             </>
           }
         />
       ) : null}
       {section === "proof-graph" ? (
-        <ProofGraphPanel graph={liveProofGraph && liveProofGraph.links.length ? liveProofGraph : toProofGraph(runtime)} />
+        <ProofGraphPanel
+          graph={
+            liveProofGraph && liveProofGraph.links.length
+              ? liveProofGraph
+              : toProofGraph(runtime)
+          }
+        />
       ) : null}
     </div>
   );
 
   return (
-    <CommandCenterShell top={top} right={right} timelineInput={timelineInput} section={section} onSection={setSection}>
+    <CommandCenterShell
+      top={top}
+      right={right}
+      timelineInput={timelineInput}
+      section={section}
+      onSection={setSection}
+    >
       {main}
     </CommandCenterShell>
   );
