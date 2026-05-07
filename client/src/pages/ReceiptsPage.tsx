@@ -1,33 +1,57 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
+import { AUTONOMY_LEVEL_LABELS, autonomyLevelClass } from "@/lib/autonomy";
 import { trpc } from "@/lib/trpc";
 import { Zap, Shield, Plus } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import type { AutonomyLevel } from "@shared/autonomy";
 
 export default function ReceiptsPage() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [showCreateReceipt, setShowCreateReceipt] = useState(false);
-  const [receiptType, setReceiptType] = useState("plan");
+  const [receiptType, setReceiptType] = useState<
+    "plan" | "execution" | "reflection" | "memory" | "decision"
+  >("plan");
+  const [autonomyLevel, setAutonomyLevel] = useState<AutonomyLevel>("meaningful_agency");
+  const [policyStatus, setPolicyStatus] = useState<
+    "approved" | "blocked" | "overridden" | "needs_review" | "not_required"
+  >("approved");
   const [receiptContent, setReceiptContent] = useState("");
+  const utils = trpc.useUtils();
 
   const { data: receipts, isLoading: receiptsLoading } = trpc.receipts.list.useQuery(
     undefined,
     { enabled: !!user }
   );
+  const { data: profileData } = trpc.autonomy.profile.useQuery(undefined, {
+    enabled: !!user,
+  });
   const createReceiptMutation = trpc.receipts.create.useMutation();
 
   const handleCreateReceipt = async () => {
     if (!receiptContent) return;
     try {
       await createReceiptMutation.mutateAsync({
-        receiptType,
+        receiptType: receiptType as "plan" | "execution" | "reflection" | "memory" | "decision",
         content: receiptContent,
         agentId: undefined,
+        autonomyLevel,
+        policyStatus,
+        proofType:
+          receiptType === "plan" ||
+          receiptType === "execution" ||
+          receiptType === "reflection" ||
+          receiptType === "memory" ||
+          receiptType === "decision"
+            ? receiptType
+            : "execution",
       });
+      await utils.receipts.list.invalidate();
       setReceiptContent("");
       setShowCreateReceipt(false);
     } catch (err) {
@@ -71,10 +95,11 @@ export default function ReceiptsPage() {
         {/* Info Section */}
         <Card className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 p-8 mb-8">
           <h2 className="text-2xl font-bold text-cyan-300 mb-4">
-            Immutable Agent Activity Ledger
+            Decision + Execution Receipt Ledger
           </h2>
           <p className="text-gray-400 mb-4">
-            Every agent action is recorded as a receipt on Solana devnet, creating an immutable audit trail. Receipts include plan, execution, reflection, and memory records.
+            Receipts now include decision proofs, policy states, and autonomy-level metadata so
+            you can inspect what was automated vs agent-decided.
           </p>
           <div className="grid md:grid-cols-4 gap-4 text-sm">
             <div className="bg-black/30 rounded p-3">
@@ -94,12 +119,22 @@ export default function ReceiptsPage() {
               <p className="text-cyan-400 font-bold">Active</p>
             </div>
           </div>
+          {profileData?.profile?.level ? (
+            <div className="mt-4">
+              <Badge
+                className={`border ${autonomyLevelClass(profileData.profile.level as AutonomyLevel)}`}
+              >
+                Current mode:{" "}
+                {AUTONOMY_LEVEL_LABELS[profileData.profile.level as AutonomyLevel]}
+              </Badge>
+            </div>
+          ) : null}
         </Card>
 
         {/* Receipt Types Legend */}
         <Card className="bg-black/50 border-cyan-500/30 p-6 mb-8">
           <h3 className="text-lg font-bold text-cyan-300 mb-4">Receipt Types</h3>
-          <div className="grid md:grid-cols-4 gap-4 text-sm">
+          <div className="grid md:grid-cols-5 gap-4 text-sm">
             <div className="border-l-4 border-blue-500 pl-3">
               <p className="font-bold text-blue-400">Plan</p>
               <p className="text-gray-400 text-xs">Task intent and goals</p>
@@ -115,6 +150,10 @@ export default function ReceiptsPage() {
             <div className="border-l-4 border-green-500 pl-3">
               <p className="font-bold text-green-400">Memory</p>
               <p className="text-gray-400 text-xs">Learned patterns</p>
+            </div>
+            <div className="border-l-4 border-emerald-500 pl-3">
+              <p className="font-bold text-emerald-400">Decision</p>
+              <p className="text-gray-400 text-xs">Agent choice and rationale proof</p>
             </div>
           </div>
         </Card>
@@ -152,14 +191,62 @@ export default function ReceiptsPage() {
                 </label>
                 <select
                   value={receiptType}
-                  onChange={(e) => setReceiptType(e.target.value)}
+                  onChange={(e) =>
+                    setReceiptType(
+                      e.target.value as "plan" | "execution" | "reflection" | "memory" | "decision"
+                    )
+                  }
                   className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
                 >
                   <option value="plan">Plan</option>
                   <option value="execution">Execution</option>
                   <option value="reflection">Reflection</option>
                   <option value="memory">Memory</option>
+                  <option value="decision">Decision</option>
                 </select>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    Autonomy Level
+                  </label>
+                  <select
+                    value={autonomyLevel}
+                    onChange={(e) => setAutonomyLevel(e.target.value as AutonomyLevel)}
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    {(Object.keys(AUTONOMY_LEVEL_LABELS) as AutonomyLevel[]).map((level) => (
+                      <option key={level} value={level}>
+                        {AUTONOMY_LEVEL_LABELS[level]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    Policy Status
+                  </label>
+                  <select
+                    value={policyStatus}
+                    onChange={(e) =>
+                      setPolicyStatus(
+                        e.target.value as
+                          | "approved"
+                          | "blocked"
+                          | "overridden"
+                          | "needs_review"
+                          | "not_required"
+                      )
+                    }
+                    className="w-full bg-black/50 border border-cyan-500/30 rounded px-3 py-2 text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="approved">approved</option>
+                    <option value="needs_review">needs_review</option>
+                    <option value="blocked">blocked</option>
+                    <option value="overridden">overridden</option>
+                    <option value="not_required">not_required</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-2">

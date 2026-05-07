@@ -1,48 +1,42 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
+import SolanaProvider from "@/solana/SolanaProvider";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import HowItWorks from "./pages/HowItWorks";
-import SkillsRegistry from "./pages/SkillsRegistry";
+import NotFound from "./pages/NotFound";
 import ReceiptsPage from "./pages/ReceiptsPage";
+import SkillDetailPage from "./pages/SkillDetailPage";
+import SkillsRegistry from "./pages/SkillsRegistry";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/dashboard"} component={Dashboard} />
-      <Route path={"/how-it-works"} component={HowItWorks} />
-      <Route path={"/skills"} component={SkillsRegistry} />
-      <Route path={"/receipts"} component={ReceiptsPage} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/" component={Home} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/how-it-works" component={HowItWorks} />
+      <Route path="/skills" component={SkillsRegistry} />
+      <Route path="/skills/:id" component={SkillDetailPage} />
+      <Route path="/receipts" component={ReceiptsPage} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
-function App() {
+export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <SolanaProvider>
+            <Toaster />
+            <Router />
+          </SolanaProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
 }
-
-export default App;

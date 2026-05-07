@@ -8,6 +8,9 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { mountSolanaIdentity } from "../solana";
+import { mountMemoryReceipts } from "../memory";
+import { mountPlanReceipts } from "../plans";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,6 +39,9 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  const solana = await mountSolanaIdentity(app);
+  await mountMemoryReceipts(app);
+  await mountPlanReceipts(app, { solanaIdentityService: solana.service });
   // tRPC API
   app.use(
     "/api/trpc",

@@ -2,6 +2,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, ExternalLink, Copy } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { AUTONOMY_LEVEL_LABELS, autonomyLevelClass } from "@/lib/autonomy";
+import type { AutonomyLevel } from "@shared/autonomy";
 
 interface Receipt {
   id: number;
@@ -9,6 +12,11 @@ interface Receipt {
   content: string | null;
   transactionHash: string | null;
   onchainAddress: string | null;
+  autonomyLevel?: AutonomyLevel | null;
+  policyStatus?: string | null;
+  proofType?: string | null;
+  proofHash?: string | null;
+  referenceId?: string | null;
   createdAt: Date;
 }
 
@@ -31,6 +39,8 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
         return "border-purple-500/30";
       case "memory":
         return "border-green-500/30";
+      case "decision":
+        return "border-emerald-500/30";
       default:
         return "border-cyan-500/30";
     }
@@ -47,6 +57,8 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
         return "bg-purple-500/20 text-purple-400";
       case "memory":
         return "bg-green-500/20 text-green-400";
+      case "decision":
+        return "bg-emerald-500/20 text-emerald-400";
       default:
         return "bg-cyan-500/20 text-cyan-400";
     }
@@ -84,14 +96,23 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs font-bold ${getReceiptBadgeColor(receipt.receiptType)}`}
-                  >
-                    {receipt.receiptType?.toUpperCase() || "UNKNOWN"}
-                  </span>
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs font-bold ${getReceiptBadgeColor(receipt.receiptType)}`}
+                >
+                  {receipt.receiptType?.toUpperCase() || "UNKNOWN"}
+                </span>
                 <span className="text-xs text-gray-500">
                   {receipt.createdAt ? new Date(receipt.createdAt).toLocaleString() : "Unknown date"}
                 </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {receipt.autonomyLevel ? (
+                  <Badge className={`border ${autonomyLevelClass(receipt.autonomyLevel)}`}>
+                    {AUTONOMY_LEVEL_LABELS[receipt.autonomyLevel]}
+                  </Badge>
+                ) : null}
+                {receipt.policyStatus ? <Badge variant="outline">{receipt.policyStatus}</Badge> : null}
+                {receipt.proofType ? <Badge variant="secondary">proof:{receipt.proofType}</Badge> : null}
               </div>
               {expandedId === receipt.id && (
                 <div className="mt-3 space-y-2">
@@ -118,6 +139,22 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
                       </p>
                     </div>
                   )}
+                  {receipt.proofHash ? (
+                    <div className="bg-black/30 rounded p-2">
+                      <p className="text-xs text-gray-600 mb-1">Proof Hash:</p>
+                      <p className="text-xs text-emerald-300 font-mono break-all">
+                        {receipt.proofHash}
+                      </p>
+                    </div>
+                  ) : null}
+                  {receipt.referenceId ? (
+                    <div className="bg-black/30 rounded p-2">
+                      <p className="text-xs text-gray-600 mb-1">Reference ID:</p>
+                      <p className="text-xs text-cyan-300 font-mono break-all">
+                        {receipt.referenceId}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

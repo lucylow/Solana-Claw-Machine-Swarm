@@ -23,7 +23,11 @@ export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
         return <Cpu className="w-4 h-4 text-cyan-400" />;
       case "task_completed":
       case "receipt_anchored":
+      case "decision_recorded":
         return <CheckCircle className="w-4 h-4 text-green-400" />;
+      case "policy_blocked":
+      case "policy_review_required":
+        return <AlertCircle className="w-4 h-4 text-yellow-300" />;
       case "error":
       case "task_failed":
         return <AlertCircle className="w-4 h-4 text-red-400" />;
@@ -36,7 +40,11 @@ export function ActivityFeed({ activities, isLoading }: ActivityFeedProps) {
     switch (eventType.toLowerCase()) {
       case "task_completed":
       case "receipt_anchored":
+      case "decision_recorded":
         return "border-green-500/30";
+      case "policy_blocked":
+      case "policy_review_required":
+        return "border-yellow-500/30";
       case "error":
       case "task_failed":
         return "border-red-500/30";
