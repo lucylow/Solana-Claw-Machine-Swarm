@@ -16,12 +16,12 @@ import { Link, useLocation } from "wouter";
 
 const LINKS: Array<{ path: DemoSection; label: string; icon: typeof Home }> = [
   { path: "hub", label: "Hub", icon: Home },
-  { path: "wallet", label: "Wallet", icon: Wallet },
-  { path: "skills", label: "Skills", icon: Cpu },
+  { path: "wallet", label: "Solana wallet", icon: Wallet },
+  { path: "skills", label: "Skill registry", icon: Cpu },
   { path: "execution", label: "Execution", icon: PlayCircle },
   { path: "reflection", label: "Reflection", icon: Brain },
   { path: "memory", label: "Memory", icon: MemoryStick },
-  { path: "receipts", label: "Receipts", icon: ReceiptText },
+  { path: "receipts", label: "Solana receipts", icon: ReceiptText },
   { path: "reputation", label: "Reputation", icon: Award },
   { path: "full-story", label: "Full story", icon: PlayCircle },
   { path: "playground", label: "Playground", icon: LayoutGrid },

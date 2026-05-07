@@ -57,6 +57,10 @@ function writeSession(value: StoredSession | null) {
   }
 }
 
+/**
+ * Legacy identity challenge flow for discovery dataset hydration.
+ * Wallet authority always comes from the adapter public key — never from cached session rows.
+ */
 export function useSolanaIdentity() {
   const wallet = useWallet();
   const { connection } = useConnection();
@@ -78,20 +82,33 @@ export function useSolanaIdentity() {
   );
   const [loading, setLoading] = useState(false);
 
-  const walletAddress = useMemo(
-    () => wallet.publicKey?.toBase58() || session?.walletAddress || null,
-    [wallet.publicKey, session]
-  );
+  const adapterWalletAddress = useMemo(() => wallet.publicKey?.toBase58() ?? null, [wallet.publicKey]);
+
+  const cachedWalletHint = useMemo(() => {
+    if (adapterWalletAddress) return null;
+    const cached = session?.walletAddress;
+    if (!cached) return null;
+    return cached;
+  }, [adapterWalletAddress, session?.walletAddress]);
 
   const refreshIdentity = useCallback(
     async (address?: PublicKey | string | null) => {
-      const target = address || wallet.publicKey || session?.walletAddress;
+      const target = address ?? wallet.publicKey?.toBase58();
       if (!target) return;
 
       const addressString = typeof target === "string" ? target : target.toBase58();
 
-      const [bundle, receiptRes, skillRes, memoryRes, plannerRes, deploymentRes, reputationRes, discoveryProfileRes, discoverySkillRes] =
-        await Promise.all([
+      const [
+        bundle,
+        receiptRes,
+        skillRes,
+        memoryRes,
+        plannerRes,
+        deploymentRes,
+        reputationRes,
+        discoveryProfileRes,
+        discoverySkillRes,
+      ] = await Promise.all([
         loadIdentity(addressString),
         loadReceipts(addressString).catch(() => ({ ok: true as const, data: [] })),
         loadSkills(addressString).catch(() => ({ ok: true as const, data: [] })),
@@ -120,13 +137,14 @@ export function useSolanaIdentity() {
       setStatus(data.profile?.status === "verified" ? "verified" : "unverified");
       return data;
     },
-    [session?.walletAddress, wallet.publicKey]
+    [wallet.publicKey]
   );
 
   useEffect(() => {
-    if (!walletAddress) return;
-    refreshIdentity(walletAddress).catch(() => undefined);
-  }, [walletAddress, refreshIdentity]);
+    const pk = wallet.publicKey?.toBase58();
+    if (!pk) return;
+    refreshIdentity(pk).catch(() => undefined);
+  }, [wallet.publicKey?.toBase58(), refreshIdentity]);
 
   const connectAndVerify = useCallback(async () => {
     if (!wallet.publicKey || !wallet.signMessage) {
@@ -216,7 +234,10 @@ export function useSolanaIdentity() {
   return {
     wallet,
     connection,
-    walletAddress,
+    /** Adapter-derived wallet — never read from localStorage */
+    walletAddress: adapterWalletAddress,
+    /** Cached label only when disconnected */
+    cachedWalletHint,
     status,
     challenge,
     profile,

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
 import { createSolanaExplorerUrl } from "@/lib/solana/explorer";
 import { shortenAddress } from "@/lib/solana/format";
+import { SOLANA_COPY } from "@shared/copy";
 
 type ProofRow = {
   id: string;
@@ -59,18 +60,18 @@ export default function ProofExplorerPage() {
       <header className="border-b border-slate-800 bg-black/80">
         <div className="container flex items-center justify-between py-4">
           <div>
-            <h1 className="text-2xl font-semibold">Proof Explorer</h1>
-            <p className="text-xs text-slate-400">Solana explorer for agent receipts and proof objects</p>
+            <h1 className="text-2xl font-semibold">{SOLANA_COPY.explorer.pageTitle}</h1>
+            <p className="text-xs text-slate-400">{SOLANA_COPY.explorer.pageSubtitle}</p>
           </div>
           <div className="flex gap-2">
             <Link href="/dashboard">
               <Button variant="outline" className="border-slate-700 text-slate-200">
-                Dashboard
+                {SOLANA_COPY.navigation.backCommandCenter}
               </Button>
             </Link>
             <Link href="/receipts">
               <Button variant="outline" className="border-cyan-500/40 text-cyan-200">
-                Receipts
+                Solana receipts
               </Button>
             </Link>
           </div>
@@ -79,12 +80,13 @@ export default function ProofExplorerPage() {
 
       <main className="container py-6">
         <Card className="mb-4 border-slate-800 bg-black/40 p-4 text-sm">
-          Wallet: <span className="text-[#b8ffd8]">{wallet.walletAddress || "Not connected"}</span> | Session:{" "}
-          <span className="text-cyan-300">{wallet.state}</span> | Cluster:{" "}
+          Solana wallet:{" "}
+          <span className="text-[#b8ffd8]">{wallet.walletAddress || SOLANA_COPY.wallet.notConnected}</span> | Solana session:{" "}
+          <span className="text-cyan-300">{wallet.state}</span> | {SOLANA_COPY.wallet.clusterBadge}:{" "}
           <span className="text-cyan-300">{wallet.cluster}</span>
         </Card>
 
-        {loading ? <Card className="border-slate-800 bg-black/40 p-4">Loading proof history...</Card> : null}
+        {loading ? <Card className="border-slate-800 bg-black/40 p-4">Loading Solana proof history…</Card> : null}
         {error ? <Card className="border-red-500/40 bg-red-500/10 p-4 text-red-200">{error}</Card> : null}
 
         <div className="space-y-3">
@@ -100,7 +102,7 @@ export default function ProofExplorerPage() {
                   <p className="text-slate-200">{row.action}</p>
                 </div>
                 <div>
-                  <p className="text-slate-500">Wallet</p>
+                  <p className="text-slate-500">Author wallet</p>
                   <p className="text-slate-200">{shortenAddress(row.walletAddress, 8, 8)}</p>
                 </div>
                 <div>
@@ -124,7 +126,7 @@ export default function ProofExplorerPage() {
                     className="border-cyan-500/40 text-cyan-200"
                     onClick={() => window.open(createSolanaExplorerUrl("tx", row.txSignature || ""), "_blank")}
                   >
-                    Open tx on explorer
+                    Open on Solana Explorer
                   </Button>
                 ) : null}
                 <Button
@@ -133,14 +135,14 @@ export default function ProofExplorerPage() {
                   className="border-slate-700 text-slate-200"
                   onClick={() => navigator.clipboard.writeText(row.accountAddress)}
                 >
-                  Copy account
+                  Copy Solana account
                 </Button>
               </div>
             </Card>
           ))}
           {!loading && filtered.length === 0 ? (
             <Card className="border-slate-800 bg-black/40 p-4 text-sm text-slate-400">
-              No proof receipts yet. Run a skill execution or demo to generate on-chain proof events.
+              No Solana receipts yet. Run a skill execution or demo to emit explorer-verifiable proof rows.
             </Card>
           ) : null}
         </div>

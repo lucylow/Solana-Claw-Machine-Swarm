@@ -27,8 +27,10 @@ export function registerSolanaIdentityRoutes(
   app.post("/api/solana/session/nonce", async (req, res) => {
     try {
       const walletAddress = String(req.body.walletAddress || "").trim();
+      const cluster = String(req.body.cluster || "").trim() as import("@shared/solana/types").SolanaCluster;
       if (!walletAddress) throw new Error("walletAddress required");
-      const data = sessionService.issueNonce(normalizeWalletAddress(walletAddress));
+      if (!cluster) throw new Error("cluster required");
+      const data = sessionService.issueNonce(normalizeWalletAddress(walletAddress), cluster);
       res.json({ ok: true, data });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "session_nonce_failed";
@@ -41,13 +43,21 @@ export function registerSolanaIdentityRoutes(
       const walletAddress = String(req.body.walletAddress || "").trim();
       const nonceId = String(req.body.nonceId || "").trim();
       const signature = String(req.body.signature || "").trim();
+      const clusterRaw = String(req.body.cluster || "").trim();
+      const cluster = clusterRaw as import("@shared/solana/types").SolanaCluster;
+      const message =
+        req.body.message !== undefined && req.body.message !== null ? String(req.body.message) : "";
       if (!walletAddress || !nonceId || !signature) {
         throw new Error("walletAddress, nonceId, and signature are required");
       }
+      if (!clusterRaw) throw new Error("cluster required");
+      if (!message) throw new Error("message required");
       const data = sessionService.verifySession({
         walletAddress: normalizeWalletAddress(walletAddress),
         nonceId,
         signature,
+        cluster,
+        message,
       });
       res.json({ ok: true, data });
     } catch (error: unknown) {
@@ -58,7 +68,6 @@ export function registerSolanaIdentityRoutes(
 
   app.get("/api/solana/session", async (req, res) => {
     try {
-      const queryWallet = String(req.query.walletAddress || "").trim();
       const token = readBearerToken(req);
       const profile = sessionService.getSessionFromToken(token);
 
@@ -67,21 +76,7 @@ export function registerSolanaIdentityRoutes(
         return;
       }
 
-      // Compatibility mode: query by wallet still returns basic status.
-      if (queryWallet) {
-        res.json({
-          ok: true,
-          data: {
-            token: null,
-            profile: null,
-            walletAddress: normalizeWalletAddress(queryWallet),
-            active: false,
-          },
-        });
-        return;
-      }
-
-      res.status(401).json({ ok: false, error: "session_not_found" });
+      res.status(401).json({ ok: false, error: "session_token_required" });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "session_fetch_failed";
       res.status(400).json({ ok: false, error: message });

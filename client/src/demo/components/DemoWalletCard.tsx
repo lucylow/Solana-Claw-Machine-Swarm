@@ -28,7 +28,7 @@ export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: 
 
       {!walletConnectedDemo ? (
         <div className="rounded-xl border border-dashed border-white/20 bg-black/30 p-6 text-center">
-          <p className="text-sm text-slate-300">Wallet disconnected</p>
+          <p className="text-sm text-slate-300">Solana wallet disconnected (demo)</p>
           <p className="mt-2 text-xs text-slate-500">
             The demo simulates connect + sign once you continue — no funds move in mock mode.
           </p>

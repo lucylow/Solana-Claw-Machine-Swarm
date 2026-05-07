@@ -34,15 +34,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
-const LOOP_STEPS = [
-  "Connect wallet",
-  "Choose skill",
-  "Run task",
-  "Reflection",
-  "Memory",
-  "Receipt",
-] as const;
+import { STORY_LOOP_LABELS } from "@shared/copy";
 
 function short(value?: string | null, left = 6, right = 6) {
   if (!value) return "n/a";
@@ -124,7 +116,7 @@ export function ExplorerLinkButton({ payload }: { payload: ExplorerPayload }) {
   if (!payload.url) {
     return (
       <Button variant="outline" size="sm" className="border-slate-700 text-slate-400" disabled>
-        Explorer unavailable
+        Explorer unavailable (Solana)
       </Button>
     );
   }
@@ -145,7 +137,7 @@ export function StoryLoopStrip({ activeStep }: { activeStep?: number }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-black/50 p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
-        {LOOP_STEPS.map((step, idx) => (
+        {STORY_LOOP_LABELS.map((step, idx) => (
           <div key={step} className="flex items-center gap-2">
             <span
               className={cn(
@@ -157,7 +149,7 @@ export function StoryLoopStrip({ activeStep }: { activeStep?: number }) {
             >
               {step}
             </span>
-            {idx < LOOP_STEPS.length - 1 ? <span className="text-slate-500">→</span> : null}
+            {idx < STORY_LOOP_LABELS.length - 1 ? <span className="text-slate-500">→</span> : null}
           </div>
         ))}
       </div>
@@ -653,29 +645,71 @@ export function resolveLoopStep(execution: TaskExecutionState): number {
   const map: Record<TaskExecutionState["phase"], number> = {
     start: 0,
     plan: 2,
-    execute: 2,
-    observe: 2,
-    reflect: 3,
-    store: 4,
-    receipt: 5,
-    done: 5,
+    execute: 3,
+    observe: 3,
+    reflect: 4,
+    store: 6,
+    receipt: 7,
+    done: STORY_LOOP_LABELS.length - 1,
   };
   return map[execution.phase];
 }
 
 export function buildDemoSteps(): DemoStoryStepPayload[] {
   return [
-    { id: "wallet", title: "Connect wallet", detail: "Authorize a Solana wallet to sign and anchor.", status: "completed" },
-    { id: "skill", title: "Choose skill", detail: "Select a published skill asset from registry.", status: "completed" },
-    { id: "task", title: "Run task", detail: "Watch plan, tools, and execution rail update live.", status: "active" },
-    { id: "reflection", title: "Reflection stored", detail: "Failure turns into corrective advice.", status: "pending" },
-    { id: "memory", title: "Memory written", detail: "Lesson gets persisted for next turn reuse.", status: "pending" },
-    { id: "receipt", title: "Receipt anchored", detail: "Open Solana Explorer and verify proof.", status: "pending" },
+    {
+      id: "wallet",
+      title: STORY_LOOP_LABELS[0],
+      detail: "Authorize your Solana wallet to sign the session and anchor receipts.",
+      status: "completed",
+    },
+    {
+      id: "skill",
+      title: STORY_LOOP_LABELS[1],
+      detail: "Select a published skill asset from the Solana-facing registry.",
+      status: "completed",
+    },
+    {
+      id: "task",
+      title: STORY_LOOP_LABELS[2],
+      detail: "Planner, tools, and execution rail update against your Solana session.",
+      status: "active",
+    },
+    {
+      id: "reflection",
+      title: STORY_LOOP_LABELS[3],
+      detail: "Structured reflection captures root cause and next action.",
+      status: "pending",
+    },
+    {
+      id: "memory",
+      title: STORY_LOOP_LABELS[4],
+      detail: "Lesson persists via 0G Storage; Solana anchors a compact checksum.",
+      status: "pending",
+    },
+    {
+      id: "zg-storage",
+      title: STORY_LOOP_LABELS[5],
+      detail: "Reflection + execution narrative written as canonical blob payloads.",
+      status: "pending",
+    },
+    {
+      id: "zg-da",
+      title: STORY_LOOP_LABELS[6],
+      detail: "Append-only lineage + batch roots for replay and audits.",
+      status: "pending",
+    },
+    {
+      id: "anchor",
+      title: STORY_LOOP_LABELS[7],
+      detail: "Compact PDAs / receipts on Solana; long text never lands on-chain here.",
+      status: "pending",
+    },
+    {
+      id: "explorer",
+      title: STORY_LOOP_LABELS[8],
+      detail: "Open Solana Explorer when tx is live — demo SIM sigs stay labeled demo-only.",
+      status: "pending",
+    },
   ];
 }
-
-export const COMMAND_CENTER_COPY = {
-  heroTitle: "Build agents that remember on Solana.",
-  heroSubtitle:
-    "Connect your wallet, publish skills, execute tasks, store reflections, and verify receipts on-chain.",
-};

@@ -10,6 +10,7 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 import { getSolanaSessionByWallet } from "../db";
+import { buildCompactSolanaBridgeMemo } from "./compactMemo";
 import { deriveConfigPda, deriveProfilePda, deriveSkillPda, normalizeWalletAddress } from "./pda";
 import type { MirrorAccountKind, MirrorHistoryRecord } from "./indexerStore";
 import { SolanaIndexerStore } from "./indexerStore";
@@ -259,17 +260,18 @@ export class SolanaBridgeService {
   }
 
   private buildMemoInstruction(build: BuildBridgeInstructionResult, metadata?: Record<string, unknown>) {
-    const body = {
-      requestId: build.requestId,
-      action: build.action,
-      subjectId: build.subjectId,
-      payloadHash: build.payloadHash,
-      account: build.accountAddress,
-      wallet: build.walletAddress,
-      cluster: build.cluster,
-      metadata: metadata || {},
-    };
-    const memo = `CLAW_SOLANA_BRIDGE::${JSON.stringify(body)}`;
+    const memo = buildCompactSolanaBridgeMemo(
+      {
+        requestId: build.requestId,
+        action: build.action,
+        subjectId: build.subjectId,
+        payloadHash: build.payloadHash,
+        accountAddress: build.accountAddress,
+        walletAddress: build.walletAddress,
+        cluster: build.cluster,
+      },
+      metadata
+    );
     return new TransactionInstruction({
       programId: MEMO_PROGRAM_ID,
       keys: [],

@@ -49,10 +49,9 @@ export function SolanaDiscoverySurface({ profiles, skills, walletAddress }: Prop
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-wider text-cyan-400">Solana discovery</div>
-          <h3 className="mt-1 text-2xl font-bold text-cyan-100">Which agent skills are reliable?</h3>
+          <h3 className="mt-1 text-2xl font-bold text-cyan-100">Which Solana skill assets are reliable?</h3>
           <p className="mt-2 max-w-3xl text-sm text-slate-300">
-            Ranking blends successful runs, repeated skill usage, reflection quality, wallet-authored
-            provenance, and published versions.
+            Ranking blends successful runs, repeated skill usage, reflection quality, Solana wallet–authored provenance, and published versions.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -126,9 +125,9 @@ export function SolanaDiscoverySurface({ profiles, skills, walletAddress }: Prop
         <aside className="space-y-3">
           <div className="rounded-2xl border border-cyan-500/20 bg-black/40 p-4">
             <div className="text-xs uppercase tracking-wider text-cyan-400">Wallet profile</div>
-            <div className="mt-2 text-sm text-slate-300 break-all">{walletAddress || "Connect wallet"}</div>
+            <div className="mt-2 text-sm text-slate-300 break-all">{walletAddress || "Connect Solana wallet"}</div>
             <p className="mt-3 text-xs text-slate-400">
-              Wallet verification is the identity root. Discovery scores only matter when authorship is real.
+              Solana wallet verification is the identity root. Discovery scores only matter when authorship is real.
             </p>
           </div>
 

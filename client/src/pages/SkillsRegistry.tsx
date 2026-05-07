@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
 import { trpc } from "@/lib/trpc";
 import { SOLANA_CLUSTER } from "@/solana/constants";
+import { SOLANA_COPY } from "@shared/copy";
 import type { OpenClawBridgeReceipt } from "@shared/openclaw/types";
 import type { SkillAsset, SkillStatus } from "@shared/skills";
 import { CheckCircle2, Link2, Plus } from "lucide-react";
@@ -166,11 +167,11 @@ export default function SkillsRegistry() {
         <div className="container flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
             <Link2 className="h-7 w-7 text-cyan-500" />
-            <h1 className="text-2xl font-semibold text-cyan-200">Skill Publishing Console</h1>
+            <h1 className="text-2xl font-semibold text-cyan-200">{SOLANA_COPY.skillRegistry.publishConsoleTitle}</h1>
             <SolanaStatusBadge label={`Solana ${SOLANA_CLUSTER}`} active />
           </div>
           <Button onClick={() => setLocation("/dashboard")} variant="outline" className="border-cyan-500/40 text-cyan-200">
-            Back to dashboard
+            {SOLANA_COPY.skillRegistry.backLabel}
           </Button>
         </div>
       </header>

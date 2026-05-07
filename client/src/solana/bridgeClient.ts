@@ -32,7 +32,7 @@ export function getSolanaSession(walletAddress: string) {
     expiresAt?: string;
     sessionId?: number;
     userId?: number;
-  }>(`/api/solana/session?walletAddress=${encodeURIComponent(walletAddress)}`);
+  }>(`/api/solana/wallet-session?walletAddress=${encodeURIComponent(walletAddress)}`);
 }
 
 export function getSolanaNetwork() {

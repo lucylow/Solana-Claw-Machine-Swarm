@@ -203,9 +203,9 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
 export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
   {
     id: "wallet-skill-discovery",
-    title: "Wallet connect + skill discovery",
+    title: "Solana wallet + skill discovery",
     subtitle: "Solana identity first, then a ranked skill registry.",
-    summary: "Walk from disconnected wallet to a reputation-sorted skill surface.",
+    summary: "Walk from disconnected Solana wallet to a reputation-sorted skill surface.",
     whatYouWillSee: ["Mock connect flow", "Registry search + sort", "Trust-weighted ranking"],
     accent: "green",
     defaultSkillId: "skill-support-triage",
@@ -243,7 +243,7 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
   },
   {
     id: "receipt-anchor",
-    title: "On-chain receipt anchoring",
+    title: "Solana receipt anchoring",
     subtitle: "Proof surface anyone can verify on Solana.",
     summary: "Show how execution summaries settle as compact on-chain receipts.",
     whatYouWillSee: ["Tx signature", "Explorer handoff", "Verified badge"],
@@ -275,7 +275,7 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "full-e2e",
     title: "Full end-to-end story",
     subtitle: "The complete CLAW loop in one guided pass.",
-    summary: "Wallet → discovery → execution → reflection → memory → Solana receipt → reputation.",
+    summary: "Solana wallet → discovery → execution → reflection → memory → Solana receipt → reputation.",
     whatYouWillSee: ["All panels", "Stepper + presenter notes", "Replay controls"],
     accent: "teal",
     defaultSkillId: "skill-support-triage",
@@ -648,9 +648,9 @@ export function buildMemoryTimeline(hasFailure: boolean): DemoMemoryTimelineStag
 export const DEMO_GUIDED_STEPS: DemoGuidedStep[] = [
   {
     id: "g1",
-    title: "Wallet connect",
+    title: "Solana wallet connect",
     presenterNote: "Emphasize Solana as default identity and signing surface.",
-    detail: "Demo wallet connects on devnet; scopes for publish, run, and anchor are granted.",
+    detail: "Demo Solana wallet connects on devnet; scopes for publish, run, and Solana receipt anchor are granted.",
     highlight: "wallet",
   },
   {
@@ -697,7 +697,7 @@ export const DEMO_GUIDED_STEPS: DemoGuidedStep[] = [
   },
   {
     id: "g8",
-    title: "Memory stored",
+    title: "Memory written",
     presenterNote: "Memory is durable, addressable, and tied to proofs.",
     detail: "Storage ref + proof ref + link to next turn id.",
     highlight: "memory",

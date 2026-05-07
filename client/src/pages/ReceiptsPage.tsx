@@ -25,6 +25,7 @@ import type {
 } from "@shared/memoryReceipts";
 import type { ReflectionState } from "@shared/commandCenter";
 import type { PlanReceipt, PlanTimelineEvent } from "@shared/planReceipts";
+import { SOLANA_COPY } from "@shared/copy";
 import { useLocation } from "wouter";
 
 type ReflectionItem = {
@@ -251,7 +252,7 @@ export default function ReceiptsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-cyan-300">Loading memory receipts...</div>
+        <div className="text-cyan-300">Loading Solana memory and receipt trail…</div>
       </div>
     );
   }
@@ -275,7 +276,7 @@ export default function ReceiptsPage() {
               Planner Demo
             </Button>
             <Button onClick={() => setLocation("/dashboard")} variant="outline" className="border-[#3bff96]/60">
-              Back
+              {SOLANA_COPY.navigation.backCommandCenter}
             </Button>
           </div>
         </div>

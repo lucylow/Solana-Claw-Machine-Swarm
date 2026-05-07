@@ -18,6 +18,7 @@ import SkillsRegistry from "./pages/SkillsRegistry";
 import NftPage from "./pages/NftPage";
 import DaoPage from "./pages/DaoPage";
 import ZeroGPage from "./pages/ZeroGPage";
+import OnchainPage from "./pages/OnchainPage";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/skills" component={SkillsRegistry} />
       <Route path="/skills/:id" component={SkillDetailPage} />
       <Route path="/receipts" component={ReceiptsPage} />
+      <Route path="/onchain" component={OnchainPage} />
       <Route path="/proofs" component={ProofExplorerPage} />
       <Route path="/zerog" component={ZeroGPage} />
       <Route path="/nft" component={NftPage} />

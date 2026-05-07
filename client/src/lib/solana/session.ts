@@ -8,7 +8,7 @@ export function buildSessionSignPreview(wallet: string, cluster: SolanaCluster, 
     `${CLAW_PRODUCT_NAME.toUpperCase()} Solana session verification`,
     `Wallet: ${wallet}`,
     `Cluster: ${cluster}`,
-    "Purpose: authorize skill publishing, agent execution, and receipt anchoring",
+    "Purpose: authorize skill publishing, task execution, memory writes, and receipt anchoring",
     `Nonce: ${nonce}`,
     `Timestamp: ${isoTimestamp}`,
   ].join("\n");
@@ -51,10 +51,10 @@ export function storeSessionToken(token: string | null) {
   }
 }
 
-export async function requestSolanaSessionNonce(walletAddress: string) {
+export async function requestSolanaSessionNonce(walletAddress: string, cluster: SolanaCluster) {
   return request<SolanaSessionNonce>("/api/solana/session/nonce", {
     method: "POST",
-    body: JSON.stringify({ walletAddress }),
+    body: JSON.stringify({ walletAddress, cluster }),
   });
 }
 
@@ -62,6 +62,8 @@ export async function verifySolanaSession(input: {
   walletAddress: string;
   nonceId: string;
   signature: string;
+  cluster: SolanaCluster;
+  message: string;
 }) {
   return request<{ token: string; profile: SolanaSessionStatus["profile"] }>("/api/solana/session/verify", {
     method: "POST",

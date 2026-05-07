@@ -28,10 +28,11 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
             Solana-native identity gateway
           </div>
           <h1 className="mt-4 text-3xl md:text-5xl font-black tracking-tight text-cyan-100">
-            Connect wallet. Sign challenge. Become the agent.
+            Connect Solana wallet. Sign challenge. Become the agent.
           </h1>
           <p className="mt-4 max-w-2xl text-sm md:text-base text-slate-300">
-            CLAW binds session identity directly to your Solana wallet, verifies ownership with a signed challenge, then immediately loads your saved skills, memory, and on-chain receipts.
+            CLAW binds session identity directly to your Solana wallet, verifies ownership with a signed challenge, then immediately loads your
+            saved skills, memory, and Solana-anchored receipts.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -50,7 +51,7 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
               onClick={() => {
                 identity.refreshIdentity().catch(() => undefined);
               }}
-              disabled={!identity.walletAddress || identity.loading}
+              disabled={!identity.wallet.publicKey || identity.loading}
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -91,7 +92,7 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
             <div>
               <div className="text-xs uppercase tracking-wider text-cyan-400">Identity badge</div>
               <h3 className="mt-1 text-lg font-semibold text-cyan-100">
-                {identity.profile?.displayName || "Wallet-linked agent"}
+                {identity.profile?.displayName || "Solana wallet–linked agent"}
               </h3>
             </div>
             <div
@@ -105,10 +106,16 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
 
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <div>
-              <div className="text-slate-400">Wallet</div>
+              <div className="text-slate-400">Solana wallet (adapter)</div>
               <div className="font-medium text-slate-100 break-all">
-                {identity.walletAddress || "Not connected"}
+                {identity.wallet.publicKey?.toBase58() ?? "Not connected"}
               </div>
+              {identity.cachedWalletHint ? (
+                <div className="mt-1 text-[11px] text-amber-200">
+                  Last known wallet (cached):{" "}
+                  <span className="font-mono text-amber-100">{identity.cachedWalletHint}</span>
+                </div>
+              ) : null}
             </div>
             <div>
               <div className="text-slate-400">Reputation</div>
@@ -125,7 +132,7 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
               <div className="font-semibold text-cyan-100">{identity.memories.length}</div>
             </div>
             <div>
-              <div className="text-slate-400">Receipts</div>
+              <div className="text-slate-400">Solana receipts</div>
               <div className="font-semibold text-cyan-100">{identity.receipts.length}</div>
             </div>
             <div>

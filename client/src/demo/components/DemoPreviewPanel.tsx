@@ -52,7 +52,7 @@ export function DemoPreviewPanel({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-[#8ceada]">Live preview</p>
-          <h2 className={cn("font-semibold text-white", presentationMode ? "text-2xl" : "text-xl")}>Command surface</h2>
+          <h2 className={cn("font-semibold text-white", presentationMode ? "text-2xl" : "text-xl")}>Solana command surface</h2>
         </div>
         <ProofVerificationBadge
           verification={{
@@ -66,7 +66,7 @@ export function DemoPreviewPanel({
         <div className={cn("rounded-xl border p-3 transition-colors", highlightClass(guidedActive("wallet")))}>
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
             <Wallet className="h-3.5 w-3.5 text-[#3bff96]" />
-            Wallet
+            Solana wallet
           </div>
           <p className="font-mono text-sm text-white">
             {walletConnectedDemo ? shortenAddress(DEMO_WALLET.address, 6, 6) : "Disconnected (demo)"}

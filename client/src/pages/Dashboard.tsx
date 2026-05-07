@@ -23,9 +23,9 @@ export default function Dashboard() {
                 <Cpu className="h-5 w-5 animate-spin text-cyan-300" aria-hidden />
               </div>
               <div>
-                <p className="font-medium text-slate-100">Syncing command center</p>
+                <p className="font-medium text-slate-100">Syncing Solana command center</p>
                 <p className="mt-1 text-sm text-slate-400">
-                  Pulling runs, skills, and the receipt index for your session.
+                  Loading session, skills, run index, and Solana receipt summaries for your wallet.
                 </p>
               </div>
             </div>

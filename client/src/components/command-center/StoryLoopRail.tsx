@@ -1,8 +1,6 @@
 import { cn } from "@/lib/utils";
-import type { STORY_LOOP_LABELS } from "@/lib/swarmApi";
+import type { StoryLoopLabel } from "@shared/copy";
 import { Check } from "lucide-react";
-
-type Step = (typeof STORY_LOOP_LABELS)[number];
 
 export function StoryLoopRail({
   activeIndex,
@@ -10,7 +8,7 @@ export function StoryLoopRail({
   className,
 }: {
   activeIndex: number;
-  labels: readonly Step[];
+  labels: readonly StoryLoopLabel[];
   className?: string;
 }) {
   return (

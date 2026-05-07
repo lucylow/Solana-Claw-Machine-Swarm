@@ -66,8 +66,11 @@ export class SolanaSessionService {
     this.productName = opts?.productName || "CLAW MACHINE";
   }
 
-  issueNonce(walletAddress: string): SessionNonceResponse {
+  issueNonce(walletAddress: string, requestedCluster: SolanaCluster): SessionNonceResponse {
     const normalizedWallet = walletAddress.trim();
+    if (requestedCluster !== this.cluster) {
+      throw new Error("solana_cluster_mismatch");
+    }
     const issuedAt = nowMs();
     const expiresAt = issuedAt + 5 * 60 * 1000;
     const nonceId = randomId("nonce");
@@ -77,7 +80,7 @@ export class SolanaSessionService {
       `${this.productName.toUpperCase()} Solana session verification`,
       `Wallet: ${normalizedWallet}`,
       `Cluster: ${this.cluster}`,
-      "Purpose: authorize skill publishing, agent execution, and receipt anchoring",
+      "Purpose: authorize skill publishing, task execution, memory writes, and receipt anchoring",
       `Nonce: ${nonce}`,
       `Timestamp: ${issuedAtIso}`,
     ].join("\n");
@@ -95,6 +98,7 @@ export class SolanaSessionService {
 
     return {
       nonceId,
+      sessionId: nonceId,
       nonce,
       message,
       expiresAt,
@@ -102,13 +106,27 @@ export class SolanaSessionService {
     };
   }
 
-  verifySession(input: { walletAddress: string; nonceId: string; signature: string }): SessionVerifyResponse {
+  verifySession(input: {
+    walletAddress: string;
+    nonceId: string;
+    signature: string;
+    cluster: SolanaCluster;
+    message: string;
+  }): SessionVerifyResponse {
     const normalizedWallet = input.walletAddress.trim();
     const nonce = this.nonceStore.get(input.nonceId);
     if (!nonce) throw new Error("session_nonce_not_found");
     if (nonce.used) throw new Error("session_nonce_already_used");
     if (nonce.walletAddress !== normalizedWallet) throw new Error("session_wallet_mismatch");
     if (nonce.expiresAt < nowMs()) throw new Error("session_nonce_expired");
+    if (!input.cluster) throw new Error("cluster_required");
+    if (input.cluster !== nonce.cluster) {
+      throw new Error("solana_cluster_mismatch");
+    }
+    if (!input.message) throw new Error("session_message_required");
+    if (input.message !== nonce.message) {
+      throw new Error("session_message_mismatch");
+    }
 
     const messageBytes = new TextEncoder().encode(nonce.message);
     const signatureBytes = bs58.decode(input.signature);

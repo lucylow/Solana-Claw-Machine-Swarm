@@ -1,6 +1,7 @@
 import { StoryLoopStrip } from "@/components/command-center";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
 import { ArrowRight, Layers, Shield, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -20,7 +21,7 @@ export default function HowItWorks() {
             variant="outline"
             className="border-cyan-500 text-cyan-300"
           >
-            Back to dashboard
+            {SOLANA_COPY.navigation.backCommandCenter}
           </Button>
         </div>
       </header>
@@ -31,18 +32,11 @@ export default function HowItWorks() {
         <Card className="bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 border border-cyan-500/30 p-8">
           <h2 className="text-3xl font-bold text-cyan-200 mb-4">Solana Command Loop</h2>
           <p className="text-gray-300">
-            Connect wallet, choose a published skill, execute visibly, generate a reflection,
-            store memory, and anchor a verifiable receipt on Solana.
+            Connect your Solana wallet, choose a published skill, execute with a visible timeline, create a reflection,
+            write memory offchain, and anchor a compact receipt on Solana for Solana Explorer verification.
           </p>
           <div className="flex flex-wrap items-center gap-2 mt-5 text-sm text-gray-300">
-            {[
-              "Connect wallet",
-              "Choose skill",
-              "Run task",
-              "Reflection",
-              "Memory",
-              "Receipt",
-            ].map((step, idx, arr) => (
+            {STORY_LOOP_LABELS.map((step, idx, arr) => (
               <div key={step} className="flex items-center gap-2">
                 <span className="px-2 py-1 rounded bg-black/50 border border-white/10">{step}</span>
                 {idx < arr.length - 1 ? <ArrowRight className="w-4 h-4 text-[#6dffb3]" /> : null}
@@ -66,12 +60,12 @@ export default function HowItWorks() {
           <Card className="bg-black/50 border-cyan-500/30 p-6">
             <h4 className="text-lg font-semibold text-cyan-200 mb-3">
               <Shield className="w-5 h-5 inline mr-2" />
-              On-Chain Verification
+              On-Solana verification
             </h4>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li>Receipts include hashes, wallet authority, and tx signatures.</li>
-              <li>Explorer links make verification one click away.</li>
-              <li>Audit trails connect plans, reflections, memory, and proof.</li>
+              <li>Receipts carry hashes, authoring wallet, and Solana tx signatures.</li>
+              <li>Solana Explorer links are one click away.</li>
+              <li>The proof trail links plans, reflections, memory, and receipts.</li>
             </ul>
           </Card>
         </div>

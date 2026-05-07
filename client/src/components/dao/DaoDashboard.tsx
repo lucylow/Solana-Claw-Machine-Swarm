@@ -49,7 +49,7 @@ export default function DaoDashboard() {
 
   async function registerMe() {
     if (!walletAddress) {
-      setMessage("Connect wallet first.");
+      setMessage("Connect Solana wallet first.");
       return;
     }
     try {
@@ -68,7 +68,7 @@ export default function DaoDashboard() {
 
   async function createProposal() {
     if (!walletAddress) {
-      setMessage("Connect wallet first.");
+      setMessage("Connect Solana wallet first.");
       return;
     }
     try {
@@ -97,7 +97,7 @@ export default function DaoDashboard() {
 
   async function vote(proposalId: number, choice: "yes" | "no" | "abstain") {
     if (!walletAddress) {
-      setMessage("Connect wallet first.");
+      setMessage("Connect Solana wallet first.");
       return;
     }
     try {

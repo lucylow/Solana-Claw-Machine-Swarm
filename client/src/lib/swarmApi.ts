@@ -1,4 +1,5 @@
 import type { SkillIdentity, SwarmExecuteResult } from "@shared/domainModel";
+export { STORY_LOOP_LABELS } from "@shared/copy";
 
 type ApiOk<T> = { ok: true; data: T };
 type ApiErr = { ok: false; error: string };
@@ -8,15 +9,6 @@ async function parse<T>(response: Response): Promise<T> {
   if (!body.ok) throw new Error("error" in body ? body.error : "api_error");
   return body.data;
 }
-
-export const STORY_LOOP_LABELS = [
-  "Connect wallet",
-  "Choose skill",
-  "Run task",
-  "Reflection",
-  "Memory",
-  "Receipt anchored",
-] as const;
 
 export async function fetchSolanaStatus() {
   const res = await fetch("/api/solana/status");

@@ -79,7 +79,7 @@ export default function ZeroGPage() {
             <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="mb-3 -ml-2 gap-1 text-slate-400 hover:text-white">
                 <ArrowLeft className="h-4 w-4" />
-                Command center
+                Solana command center
               </Button>
             </Link>
             <h1 className="text-2xl font-semibold tracking-tight">0G infrastructure audit</h1>
@@ -94,7 +94,7 @@ export default function ZeroGPage() {
               Proof posture
             </div>
             <p className="mt-2 text-[11px] text-slate-300">
-              Chain says: <span className="text-[#8efad0]">“this happened — here is the proof.”</span>
+            Solana layer says: <span className="text-[#8efad0]">“this happened — here is the Solana proof.”</span>
             </p>
             <p className="mt-1 text-[11px] text-slate-300">
               0G says: <span className="text-[#8efad0]">“here is the durable artifact / compute output.”</span>

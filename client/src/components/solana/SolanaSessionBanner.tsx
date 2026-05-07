@@ -18,7 +18,7 @@ export function SolanaSessionBanner({
         )}
         role="status"
       >
-        <p className="font-semibold">Solana cluster mismatch</p>
+        <p className="font-semibold">Wrong cluster</p>
         <p className="text-amber-100/85">
           Switch your wallet RPC to match this command center, then refresh the verified session.
         </p>

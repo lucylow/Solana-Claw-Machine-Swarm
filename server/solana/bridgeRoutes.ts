@@ -1,11 +1,27 @@
 import crypto from "crypto";
 import type { Express } from "express";
+import { nanoid } from "nanoid";
+import type { StructuredReceipt } from "@shared/structuredReceipt";
 import { z } from "zod";
 import type { MemoryReceiptService } from "../memory";
 import type { PlanReceiptService } from "../plans/PlanReceiptService";
 import type { SolanaIdentityService } from "./identityService";
 import { normalizeWalletAddress } from "./pda";
 import type { SolanaBridgeService } from "./bridgeService";
+import {
+  listManualStructuredReceipts,
+  mergeStructuredReceiptLists,
+  proofsToStructuredReceipts,
+  pushManualStructuredReceipt,
+} from "./structuredReceipts";
+
+function normalizeStructuredCluster(cluster: string): StructuredReceipt["cluster"] {
+  const c = cluster.toLowerCase();
+  if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
+  if (c === "testnet") return "testnet";
+  if (c === "localnet") return "localnet";
+  return "devnet";
+}
 
 function hashPayload(payload: unknown) {
   return crypto.createHash("sha256").update(JSON.stringify(payload ?? {})).digest("hex");
@@ -112,7 +128,8 @@ export function registerSolanaBridgeRoutes(
     planReceiptService?: PlanReceiptService;
   }
 ) {
-  app.get("/api/solana/session", async (req, res) => {
+  /** DB-backed wallet session row — distinct from Bearer `/api/solana/session` identity handshake */
+  app.get("/api/solana/wallet-session", async (req, res) => {
     try {
       const walletAddress = String(req.query.walletAddress || "").trim();
       if (!walletAddress) throw new Error("walletAddress query is required");
@@ -439,6 +456,61 @@ export function registerSolanaBridgeRoutes(
     }
   });
 
+  app.get("/api/solana/receipts", async (req, res) => {
+    try {
+      const walletFilter = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const { getZeroGModule } = await import("../zerog/routes");
+      const { buildZeroGIntegrationStatus } = await import("../zerog/integrationSummary");
+      const module = getZeroGModule();
+      const integration = await buildZeroGIntegrationStatus(module);
+      const derived = proofsToStructuredReceipts({ proofs: module.store.listReceipts(), integration });
+      const merged = mergeStructuredReceiptLists(derived, listManualStructuredReceipts());
+      const filtered = walletFilter ? merged.filter(r => r.walletAddress === walletFilter) : merged;
+      res.json({ ok: true, data: filtered });
+    } catch (error) {
+      res.status(400).json(fail(error));
+    }
+  });
+
+  app.post("/api/solana/receipt", async (req, res) => {
+    try {
+      const body = req.body as Partial<StructuredReceipt> & Pick<StructuredReceipt, "walletAddress" | "subjectId">;
+      if (!body.walletAddress || !body.subjectId || !body.title || !body.summary) {
+        throw new Error("walletAddress, subjectId, title, summary required");
+      }
+      const nowIso = new Date().toISOString();
+      const net = await deps.bridge.getNetwork();
+      const cluster = body.cluster ?? normalizeStructuredCluster(net.cluster);
+      const full: StructuredReceipt = {
+        id: body.id ?? `rcpt_${nanoid()}`,
+        receiptType: (body.receiptType ?? "proof") as StructuredReceipt["receiptType"],
+        subjectId: body.subjectId,
+        subjectType: body.subjectType ?? "custom",
+        walletAddress: normalizeWalletAddress(body.walletAddress),
+        cluster,
+        title: body.title,
+        summary: body.summary,
+        status: body.status ?? "draft",
+        proofStatus: body.proofStatus ?? "pending",
+        createdAt: body.createdAt ?? nowIso,
+        updatedAt: nowIso,
+        evidence: body.evidence ?? {},
+        references: body.references ?? [],
+        links: body.links ?? {},
+        provenance: body.provenance ?? {},
+        claim: body.claim ?? {
+          text: body.summary,
+          supportedBy: [],
+        },
+        metadata: body.metadata ?? { source: "api.post_solana_receipt" },
+      };
+      pushManualStructuredReceipt(full);
+      res.json({ ok: true, data: full });
+    } catch (error) {
+      res.status(400).json(fail(error));
+    }
+  });
+
   app.post("/api/solana/receipts", async (req, res) => {
     try {
       const body = postReceiptSchema.parse(req.body);
@@ -470,7 +542,18 @@ export function registerSolanaBridgeRoutes(
 
   app.get("/api/solana/receipts/:id", async (req, res) => {
     try {
-      const account = await deps.bridge.getMirrorAccount(String(req.params.id));
+      const id = String(req.params.id);
+      const { getZeroGModule } = await import("../zerog/routes");
+      const { buildZeroGIntegrationStatus } = await import("../zerog/integrationSummary");
+      const module = getZeroGModule();
+      const integration = await buildZeroGIntegrationStatus(module);
+      const derived = proofsToStructuredReceipts({ proofs: module.store.listReceipts(), integration });
+      const structured = mergeStructuredReceiptLists(derived, listManualStructuredReceipts()).find(r => r.id === id);
+      if (structured) {
+        res.json({ ok: true, data: structured });
+        return;
+      }
+      const account = await deps.bridge.getMirrorAccount(id);
       if (!account) {
         res.status(404).json({ ok: false, error: "receipt_not_found" });
         return;
