@@ -71,7 +71,7 @@ export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: 
               <p className="mt-1 text-sm text-white">{DEMO_WALLET.cluster}</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-              <p className="text-xs text-slate-500">Activity</p>
+              <p className="text-xs text-slate-500">Solana receipts (mock tally)</p>
               <p className="mt-1 text-xs text-slate-300">3 receipts anchored today · 2 skills ranked in discovery</p>
             </div>
           </div>

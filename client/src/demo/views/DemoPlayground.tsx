@@ -180,7 +180,7 @@ export function DemoPlayground() {
           <DemoProofPanel receipt={receipts[receipts.length - 1]} />
         </div>
         <div className="space-y-4">
-          <DemoPreviewPanel presentationMode={presentationMode} guidedStep={undefined} />
+          <DemoPreviewPanel presentationMode={presentationMode} />
         </div>
       </div>
     </div>

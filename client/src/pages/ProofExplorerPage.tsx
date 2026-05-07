@@ -79,11 +79,17 @@ export default function ProofExplorerPage() {
       </header>
 
       <main className="container py-6">
-        <Card className="mb-4 border-slate-800 bg-black/40 p-4 text-sm">
-          Solana wallet:{" "}
-          <span className="text-[#b8ffd8]">{wallet.walletAddress || SOLANA_COPY.wallet.notConnected}</span> | Solana session:{" "}
-          <span className="text-cyan-300">{wallet.state}</span> | {SOLANA_COPY.wallet.clusterBadge}:{" "}
-          <span className="text-cyan-300">{wallet.cluster}</span>
+        <Card className="mb-4 border-slate-800 bg-black/40 p-4 text-sm leading-relaxed text-slate-300">
+          <p>
+            Solana wallet:{" "}
+            <span className="text-[#b8ffd8]">{wallet.walletAddress || SOLANA_COPY.wallet.notConnected}</span> | Solana session:{" "}
+            <span className="text-cyan-300">{wallet.state}</span> | {SOLANA_COPY.wallet.clusterBadge}:{" "}
+            <span className="text-cyan-300">{wallet.cluster}</span>
+          </p>
+          <p className="mt-2 text-[11px] text-slate-500">
+            Provenance rails: tie each receipt to wallet address, Solana explorer tx/PDA hashes, reflection id, execution id,
+            storage reference, proof state · when any field is missing the UI stays unknown rather than implying verification.
+          </p>
         </Card>
 
         {loading ? <Card className="border-slate-800 bg-black/40 p-4">Loading Solana proof history…</Card> : null}

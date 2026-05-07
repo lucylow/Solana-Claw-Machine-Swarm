@@ -2,25 +2,19 @@ import { ExplorerLinkButton, ProofVerificationBadge } from "@/components/command
 import { txExplorerUrl } from "@/lib/solana/explorer";
 import { shortenAddress } from "@/lib/solana/format";
 import { cn } from "@/lib/utils";
-import { DEMO_GUIDED_STEPS, DEMO_WALLET } from "@shared/demoFixtures";
-import type { DemoGuidedStep } from "@shared/demoTypes";
+import { DEMO_WALLET } from "@shared/demoFixtures";
+import { getUnifiedStoryBeats } from "@shared/demoUnifiedStoryPlayback";
+import type { UnifiedStoryBeat } from "@shared/executionStory";
 import { Activity, Brain, Cpu, Link2, MemoryStick, Radar, ReceiptText, Sparkles, Wallet } from "lucide-react";
+import { useMemo } from "react";
 import { useDemo } from "../DemoProvider";
 import { DemoPanel } from "./DemoPanel";
 
 function highlightClass(active: boolean) {
-  return active
-    ? "border-[#3bff96]/45 shadow-[0_0_20px_rgba(59,255,150,0.12)]"
-    : "border-white/10";
+  return active ? "border-[#3bff96]/45 shadow-[0_0_20px_rgba(59,255,150,0.12)]" : "border-white/10";
 }
 
-export function DemoPreviewPanel({
-  guidedStep,
-  presentationMode,
-}: {
-  guidedStep?: DemoGuidedStep | null;
-  presentationMode?: boolean;
-}) {
+export function DemoPreviewPanel({ presentationMode }: { presentationMode?: boolean }) {
   const {
     walletConnectedDemo,
     activeSkill,
@@ -31,17 +25,36 @@ export function DemoPreviewPanel({
     memory,
     receipts,
     runOutcome,
-    guidedStepIndex,
+    storyPlaybackIndex,
+    displayedExecutionRun,
+    commandReceipts,
   } = useDemo();
 
+  const guidedStep = useMemo(
+    (): UnifiedStoryBeat | null =>
+      getUnifiedStoryBeats(runOutcome)[storyPlaybackIndex] ?? null,
+    [storyPlaybackIndex, runOutcome]
+  );
+
   const hl = guidedStep?.highlight;
-  const guidedActive = (region: DemoGuidedStep["highlight"]) => (guidedStep ? hl === region : false);
+  const guidedActive = (region: UnifiedStoryBeat["highlight"]) => (guidedStep ? hl === region : false);
 
-  const activeStep = steps.find(s => s.status === "active" || s.status === "failed") ?? steps[steps.length - 1];
+  const activePlaybackStep =
+    displayedExecutionRun.steps.find(s => s.id === displayedExecutionRun.activeStepId) ?? displayedExecutionRun.steps.slice(-1)[0];
+
+  const legacyActiveStep =
+    steps.find(s => s.status === "active" || s.status === "failed") ?? steps[steps.length - 1];
   const coordinator = agents.find(a => a.role === "coordinator");
-  const primaryReceipt = receipts[receipts.length - 1];
 
-  const stepForGuided = DEMO_GUIDED_STEPS[guidedStepIndex];
+  const primaryReceipt = receipts[receipts.length - 1];
+  const primaryCommand = commandReceipts[commandReceipts.length - 1];
+
+  const proofBadgeStatus =
+    displayedExecutionRun.currentStage === "degraded" || runOutcome === "failure"
+      ? ("degraded" as const)
+      : primaryCommand?.claim.proofState === "demo_only"
+        ? ("pending" as const)
+        : ("verified" as const);
 
   return (
     <DemoPanel
@@ -56,10 +69,21 @@ export function DemoPreviewPanel({
         </div>
         <ProofVerificationBadge
           verification={{
-            status: runOutcome === "failure" ? "pending" : "verified",
-            label: runOutcome === "failure" ? "Awaiting Solana confirmation" : "Verified on Solana (demo)",
+            status: proofBadgeStatus,
+            label:
+              proofBadgeStatus === "verified"
+                ? "Demo deterministic receipt (explicitly labeled)"
+                : proofBadgeStatus === "degraded"
+                  ? "Proof degraded / pending settlement"
+                  : "Proof pending explorer confirmation",
           }}
         />
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-black/35 p-3 text-[11px] text-slate-400">
+        <p className="text-[10px] uppercase tracking-wider text-slate-500">Execution playback</p>
+        <p className="mt-1 text-[#dffefc]">{displayedExecutionRun.currentStage}</p>
+        <p className="mt-2 font-mono text-[10px] text-slate-500">{displayedExecutionRun.id}</p>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
@@ -69,9 +93,9 @@ export function DemoPreviewPanel({
             Solana wallet
           </div>
           <p className="font-mono text-sm text-white">
-            {walletConnectedDemo ? shortenAddress(DEMO_WALLET.address, 6, 6) : "Disconnected (demo)"}
+            {walletConnectedDemo ? shortenAddress(DEMO_WALLET.address, 6, 6) : "Disconnected"}
           </p>
-          <p className="mt-1 text-xs text-slate-500">Solana devnet · session scope for receipts</p>
+          <p className="mt-1 text-xs text-slate-500">{DEMO_WALLET.cluster} cluster · deterministic demo scope</p>
         </div>
 
         <div className={cn("rounded-xl border p-3 transition-colors", highlightClass(guidedActive("skills")))}>
@@ -95,18 +119,19 @@ export function DemoPreviewPanel({
         <div className={cn("rounded-xl border p-3 transition-colors", highlightClass(guidedActive("execution")))}>
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
             <Activity className="h-3.5 w-3.5 text-[#3bff96]" />
-            Execution step
+            Plan step ({displayedExecutionRun.activeStepId ?? "unknown"})
           </div>
-          <p className="text-sm text-white">{activeStep?.title}</p>
-          <p className="mt-1 text-xs text-slate-500">{activeStep?.detail}</p>
+          <p className="text-sm text-white">{activePlaybackStep?.title ?? legacyActiveStep?.title}</p>
+          <p className="mt-1 text-xs text-slate-500">{activePlaybackStep?.description ?? legacyActiveStep?.detail}</p>
         </div>
 
         <div className={cn("rounded-xl border p-3 transition-colors", highlightClass(guidedActive("coordination")))}>
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
             <Sparkles className="h-3.5 w-3.5 text-[#38d7d0]" />
-            Coordinator
+            Delegation lane
           </div>
-          <p className="text-xs text-slate-300">{coordinator?.outputSummary}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-600">Active agent · coordination</p>
+          <p className="mt-2 text-xs text-slate-300">{displayedExecutionRun.activeAgentRole ?? coordinator?.outputSummary ?? "unknown"}</p>
         </div>
 
         <div className={cn("rounded-xl border p-3 transition-colors", highlightClass(guidedActive("reputation")))}>
@@ -127,25 +152,27 @@ export function DemoPreviewPanel({
             <Brain className="h-3.5 w-3.5" />
             Reflection
           </div>
-          <p className="text-xs text-slate-300">{reflection ? reflection.id : "None on pure-success path"}</p>
+          <p className="text-xs font-mono text-slate-300">
+            {displayedExecutionRun.reflectionId ?? (reflection?.id ?? "hidden / unavailable on this scrub")}
+          </p>
         </div>
         <div className={cn("rounded-xl border p-3", highlightClass(guidedActive("memory")))}>
           <div className="mb-1 flex items-center gap-2 text-xs text-slate-400">
             <MemoryStick className="h-3.5 w-3.5" />
-            Memory
+            Memory id
           </div>
-          <p className="text-xs text-slate-300">{memory ? memory.id : "Episodic only"}</p>
+          <p className="text-xs font-mono text-slate-300">{displayedExecutionRun.memoryId ?? (memory?.id ?? "episodic only")}</p>
         </div>
         <div className={cn("rounded-xl border p-3", highlightClass(guidedActive("receipt")))}>
           <div className="mb-1 flex items-center gap-2 text-xs text-slate-400">
             <ReceiptText className="h-3.5 w-3.5" />
             Receipt
           </div>
-          <p className="text-xs font-mono text-slate-300">{primaryReceipt?.id}</p>
+          <p className="text-xs font-mono text-slate-300">{displayedExecutionRun.proofId ?? displayedExecutionRun.receiptId ?? primaryReceipt?.id}</p>
           <div className="mt-2">
             <ExplorerLinkButton
               payload={{
-                label: "Solana Explorer",
+                label: "Open on explorer",
                 url: txExplorerUrl(primaryReceipt?.txSignature),
                 signature: primaryReceipt?.txSignature,
               }}
@@ -154,9 +181,10 @@ export function DemoPreviewPanel({
         </div>
       </div>
 
-      {stepForGuided ? (
+      {guidedStep ? (
         <p className="border-t border-white/10 pt-3 text-xs text-slate-500">
-          Guided focus: <span className="text-slate-300">{stepForGuided.title}</span>
+          Playback focus · <span className="font-mono text-slate-300">{guidedStep.id}</span>:{" "}
+          <span className="text-slate-300">{guidedStep.title}</span>
         </p>
       ) : null}
     </DemoPanel>
