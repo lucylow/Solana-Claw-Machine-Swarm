@@ -1,0 +1,19 @@
+[package]
+name = "claw_nft"
+version = "0.1.0"
+edition = "2021"
+description = "CLAW MACHINE Solana NFT minting program"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "claw_nft"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+
+[dependencies]
+anchor-lang = "0.31.1"
+anchor-spl = "0.31.1"

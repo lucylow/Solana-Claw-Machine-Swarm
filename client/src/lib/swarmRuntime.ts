@@ -1,4 +1,5 @@
 import type { AutonomyLevel } from "@shared/autonomy";
+import { CLAW_MACHINE_CLUSTER, CLAW_MACHINE_ECOSYSTEM, CLAW_SKILL_SEEDS } from "@shared/clawMachineMock";
 import type {
   SwarmAgentNode,
   SwarmExecutionEvent,
@@ -14,7 +15,20 @@ import type {
 } from "@shared/swarm";
 import type { SolanaZeroGLink } from "@shared/zerog";
 
-const CLUSTER = "devnet";
+const SKILL_RESEARCH = "skill_0x9a44f2";
+const SKILL_ORCHESTRATION = "skill_multi_planner";
+const SKILL_REFLECTION = "skill_reflection_gen";
+
+const CATEGORY_AUTONOMY: Record<string, AutonomyLevel> = {
+  research: "meaningful_agency",
+  safety: "policy_gated",
+  orchestration: "near_autonomous",
+  finance: "policy_gated",
+  memory: "meaningful_agency",
+  business: "guided",
+  devtools: "policy_gated",
+  reasoning: "guided",
+};
 
 function uid(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -38,53 +52,21 @@ function shortWallet(seed: string) {
 }
 
 function createBaseSkills(): SwarmSkill[] {
-  return [
-    {
-      id: "skill-research",
-      name: "Signal Researcher",
-      category: "research",
-      description: "Finds alpha-grade context and confidence-ranked signals before planning.",
-      authorWallet: "8qFwzE9wC2vYVh2kGTH8A7fWjMc2R7qM6wQh4QYzR7uD",
-      version: "2.6.1",
-      reputation: 81,
-      usageCount: 418,
-      successRate: 88,
-      autonomyLevel: "policy_gated",
-      policyStatus: "approved",
-      proofCount: 392,
-      tags: ["retrieval", "signals", "solana-first"],
-    },
-    {
-      id: "skill-operator",
-      name: "Execution Operator",
-      category: "execution",
-      description: "Executes plan steps, retries failed calls, and emits deterministic traces.",
-      authorWallet: "G9hnKjk8YvZ2mVx3u6Bm1pqf5xg2SkRtVwVjRk4aA9yx",
-      version: "3.1.0",
-      reputation: 86,
-      usageCount: 503,
-      successRate: 92,
-      autonomyLevel: "meaningful_agency",
-      policyStatus: "approved",
-      proofCount: 481,
-      tags: ["execution", "retries", "tooling"],
-    },
-    {
-      id: "skill-critic",
-      name: "Failure Critic",
-      category: "reflection",
-      description: "Builds root-cause narratives and corrective actions after failed attempts.",
-      authorWallet: "3QjyqMdQ9fPkVb3q1Dzvt9yYynow3m4UjGJQWWY7SmTx",
-      version: "1.9.4",
-      reputation: 78,
-      usageCount: 276,
-      successRate: 84,
-      autonomyLevel: "guided",
-      policyStatus: "approved",
-      proofCount: 267,
-      tags: ["reflection", "root-cause", "learning"],
-    },
-  ];
+  return CLAW_SKILL_SEEDS.map(seed => ({
+    id: seed.id,
+    name: seed.name,
+    category: seed.category,
+    description: seed.description,
+    authorWallet: seed.authorWallet,
+    version: seed.version,
+    reputation: seed.reputation,
+    usageCount: seed.usageCount,
+    successRate: seed.successRate,
+    autonomyLevel: CATEGORY_AUTONOMY[seed.category] ?? "policy_gated",
+    policyStatus: "approved" as const,
+    proofCount: seed.proofCount,
+    tags: seed.tags,
+  }));
 }
 
 function createAgents(): SwarmAgentNode[] {
@@ -128,7 +110,8 @@ function createAgents(): SwarmAgentNode[] {
 export function createInitialRuntime(walletAddress?: string): SwarmRuntimeState {
   return {
     walletAddress,
-    cluster: CLUSTER,
+    cluster: CLAW_MACHINE_CLUSTER,
+    ecosystem: CLAW_MACHINE_ECOSYSTEM,
     autonomyLevel: "policy_gated",
     autonomyScore: 62,
     proofCompletionRate: 71,
@@ -147,13 +130,14 @@ export function createInitialRuntime(walletAddress?: string): SwarmRuntimeState 
     zeroGLinks: [],
     zeroGBridge: {
       enabled: true,
-      sourceChain: "0G",
-      destinationChain: "Solana",
+      sourceChain: "Solana",
+      destinationChain: "0G",
       tokenSymbol: "0G",
       status: "idle",
-      provider: "0G bridge sidecar",
+      provider: "XSwap (per official 0G docs)",
       mode: "mock",
-      notes: "Bridge ready",
+      notes:
+        "Bridge-aware stub toward 0G Chain (chainId 16661). No live bridge API unless mode is live. Do not trust exchange token labels as canonical.",
       version: "bridge-v1",
       lastUpdatedAt: new Date().toISOString(),
     },
@@ -213,8 +197,8 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
   const now = new Date();
   const reusedMemory = prev.memories.length > 0;
   const selectedSkills = reusedMemory
-    ? ["skill-research", "skill-operator"]
-    : ["skill-research", "skill-operator", "skill-critic"];
+    ? [SKILL_RESEARCH, SKILL_ORCHESTRATION]
+    : [SKILL_RESEARCH, SKILL_ORCHESTRATION, SKILL_REFLECTION];
   const baseConfidence = reusedMemory ? 81 : 61;
   const fails = !reusedMemory;
   const policy = createPolicyPack(fails);
@@ -233,7 +217,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
         title: "Acquire context",
         detail: "Researcher aggregates onchain/offchain signals for planning.",
         ownerAgentId: "researcher",
-        requiredSkillIds: ["skill-research"],
+        requiredSkillIds: [SKILL_RESEARCH],
         status: "success" as const,
         confidence: baseConfidence - 4,
       },
@@ -242,7 +226,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
         title: "Execute operational step",
         detail: "Operator executes action with policy-aware retries.",
         ownerAgentId: "operator",
-        requiredSkillIds: ["skill-operator"],
+        requiredSkillIds: [SKILL_ORCHESTRATION],
         status: fails ? ("failed" as const) : ("success" as const),
         confidence: baseConfidence,
       },
@@ -251,7 +235,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
         title: "Anchor receipts",
         detail: "Coordinator anchors proof chain and verifies links.",
         ownerAgentId: "coordinator",
-        requiredSkillIds: ["skill-operator"],
+        requiredSkillIds: [SKILL_ORCHESTRATION],
         status: "success" as const,
         confidence: baseConfidence + 6,
       },
@@ -272,7 +256,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     account: shortWallet(fakeSignature()),
     linkedReceiptIds: [],
     createdAt: now.toISOString(),
-    explorerUrl: `https://explorer.solana.com/tx/${fakeSignature()}?cluster=${CLUSTER}`,
+    explorerUrl: `https://explorer.solana.com/tx/${fakeSignature()}?cluster=${prev.cluster}`,
     zeroGStorageRef: storageRef,
   };
 
@@ -286,7 +270,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     account: shortWallet(fakeSignature()),
     linkedReceiptIds: [receiptDecision.id],
     createdAt: new Date(now.getTime() + 2_000).toISOString(),
-    explorerUrl: `https://explorer.solana.com/tx/${fakeSignature()}?cluster=${CLUSTER}`,
+    explorerUrl: `https://explorer.solana.com/tx/${fakeSignature()}?cluster=${prev.cluster}`,
     zeroGComputeRef: computeRef,
   };
 
@@ -300,7 +284,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     account: shortWallet(fakeSignature()),
     linkedReceiptIds: [receiptDecision.id, receiptExecution.id],
     createdAt: new Date(now.getTime() + 4_000).toISOString(),
-    explorerUrl: `https://explorer.solana.com/tx/${fakeSignature()}?cluster=${CLUSTER}`,
+    explorerUrl: `https://explorer.solana.com/tx/${fakeSignature()}?cluster=${prev.cluster}`,
     zeroGStorageRef: storageRef,
     zeroGComputeRef: computeRef,
     zeroGAvailabilityRef: daRef,
@@ -362,15 +346,17 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     status: fails ? "linked" : "verified",
     bridgeState: {
       enabled: true,
-      sourceChain: "0G",
-      destinationChain: "Solana",
+      sourceChain: "Solana",
+      destinationChain: "0G",
       tokenSymbol: "0G",
       status: fails ? "pending" : "confirmed",
       txHash: `0x${fakeHash("bridge").replaceAll("_", "").slice(0, 64)}`,
       explorerUrl: "https://explorer.demo.0g.ai/bridge/latest",
-      provider: "0G bridge sidecar",
+      provider: "XSwap (per official 0G docs)",
       lastUpdatedAt: new Date(now.getTime() + 3_700).toISOString(),
-      notes: fails ? "Bridge pending confirmation in demo mode." : "Bridge verified in demo mode.",
+      notes: fails
+        ? "Mock bridge pending — not a claim about real token custody."
+        : "Mock bridge confirmed — demo only unless live mode is configured.",
       mode: "mock",
       version: "bridge-v1",
     },

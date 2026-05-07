@@ -38,6 +38,8 @@ import {
 } from "./db";
 import { SkillRegistryService } from "./skills/skillRegistryService";
 import { getMemoryReceiptService } from "./memory/runtime";
+import { orchestrateReflectionSidecar } from "./zerog/orchestration";
+import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -113,7 +115,11 @@ export const appRouter = router({
           return { nonce, expiresAt };
         } catch (err) {
           console.error("Failed to create session:", err);
-          throw new Error("Session creation failed");
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Session creation failed",
+            cause: err,
+          });
         }
       }),
     getSession: publicProcedure
@@ -123,8 +129,17 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        const session = await getSolanaSessionByWallet(input.walletAddress);
-        return session || null;
+        try {
+          const session = await getSolanaSessionByWallet(input.walletAddress);
+          return session || null;
+        } catch (err) {
+          console.error("Failed to load Solana session:", err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load session",
+            cause: err,
+          });
+        }
       }),
   }),
 
@@ -584,6 +599,8 @@ export const appRouter = router({
         z.object({
           runId: z.string().min(4),
           agentId: z.string().min(1),
+          /** Canonical Solana wallet for proof linkage (optional; falls back to internal user id). */
+          walletAddress: z.string().min(32).max(64).optional(),
           autonomyLevel: autonomyLevelSchema,
           rootCause: z.string().min(3),
           correctiveAction: z.string().min(3),
@@ -619,28 +636,58 @@ export const appRouter = router({
 
         // Mirror every reflection into the memory chain-of-receipts service.
         // This keeps full narrative off-chain while anchoring compact proof hashes on Solana.
+        const fullText = `Root cause: ${input.rootCause}\nCorrective action: ${input.correctiveAction}\nNext action: ${input.nextAction}`;
+        const proofWallet = input.walletAddress || `user_${ctx.user.id}`;
+        const reflectionKind = input.blockedByPolicy
+          ? ("failure" as const)
+          : input.improvedLaterRuns
+            ? ("success" as const)
+            : ("lesson" as const);
+
+        let memoryReflectionId: string | undefined;
         try {
           const memoryService = await getMemoryReceiptService();
           const created = await memoryService.createReflection({
             agentId: input.agentId,
             conversationId: input.runId,
-            wallet: `user_${ctx.user.id}`,
+            wallet: proofWallet,
             sourceTurnId: input.runId,
-            kind: input.blockedByPolicy ? "failure" : input.improvedLaterRuns ? "success" : "lesson",
+            kind: reflectionKind,
             title: `Reflection for run ${input.runId}`,
             summary: input.correctiveAction,
-            fullText: `Root cause: ${input.rootCause}\nCorrective action: ${input.correctiveAction}\nNext action: ${input.nextAction}`,
+            fullText,
             rootCause: input.rootCause,
             correctiveAdvice: input.correctiveAction,
             nextAction: input.nextAction,
             tags: ["autonomy", "reflection", input.autonomyLevel],
           });
-          await memoryService.anchorReflection(created.reflection.id, `user_${ctx.user.id}`);
+          memoryReflectionId = created.reflection.id;
+          await memoryService.anchorReflection(created.reflection.id, proofWallet);
         } catch (error) {
           console.warn("[MemoryReceiptService] reflection mirror failed:", error);
         }
 
-        return { reflectionId: reflection.id };
+        let zeroG: Awaited<ReturnType<typeof orchestrateReflectionSidecar>> | null = null;
+        if (memoryReflectionId) {
+          try {
+            zeroG = await orchestrateReflectionSidecar({
+              reflectionId: memoryReflectionId,
+              agentId: input.agentId,
+              runId: input.runId,
+              wallet: proofWallet,
+              rootCause: input.rootCause,
+              correctiveAction: input.correctiveAction,
+              nextAction: input.nextAction,
+              fullText,
+              kind: reflectionKind,
+              autonomyLevel: input.autonomyLevel,
+            });
+          } catch (error) {
+            console.warn("[ZeroG] reflection sidecar failed:", error);
+          }
+        }
+
+        return { reflectionId: reflection.id, memoryReflectionId, zeroG };
       }),
     receipt: protectedProcedure
       .input(

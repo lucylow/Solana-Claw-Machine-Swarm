@@ -13,7 +13,10 @@ import { mountMemoryReceipts } from "../memory";
 import { mountPlanReceipts } from "../plans";
 import { createSolanaBridge, mountSolanaBridge } from "../solana/bridgeMount";
 import { OpenClawBridgeService, registerOpenClawBridgeRoutes } from "../openclaw/bridge";
-import { createZeroGModule, registerZeroGRoutes } from "../zerog/routes";
+import { mountNft } from "../nft/mount";
+import { registerZeroGRoutes } from "../zerog/routes";
+import { mountDao } from "../dao/mount";
+import { registerSwarmApiRoutes } from "../orchestration/registerSwarmApiRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -69,14 +72,21 @@ async function startServer() {
     },
   });
   const plans = await mountPlanReceipts(app, { solanaIdentityService: solana.service, solanaBridge: bridge });
-  const zeroG = createZeroGModule();
-  registerZeroGRoutes(app, zeroG);
+  registerZeroGRoutes(app);
+  await mountDao(app);
+  await mountNft(app);
   const openClawBridge = new OpenClawBridgeService();
   registerOpenClawBridgeRoutes(app, openClawBridge);
   await mountSolanaBridge(app, {
     bridge,
     identityService: solana.service,
     memoryService: memory.service,
+    planReceiptService: plans.receiptService,
+  });
+  await registerSwarmApiRoutes(app, {
+    bridge,
+    memoryService: memory.service,
+    identityService: solana.service,
     planReceiptService: plans.receiptService,
   });
   // tRPC API
@@ -101,9 +111,26 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, () => {
+      server.off("error", reject);
+      resolve();
+    });
   });
+
+  console.log(`Server running on http://localhost:${port}/`);
 }
 
-startServer().catch(console.error);
+function logFatalStartupError(err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error("[startup] Server failed to start:", message);
+  if (err instanceof Error && err.stack) {
+    console.error(err.stack);
+  }
+}
+
+startServer().catch(err => {
+  logFatalStartupError(err);
+  process.exitCode = 1;
+});

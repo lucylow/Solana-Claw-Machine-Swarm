@@ -1,3 +1,4 @@
+import { ZEROG_CHAIN_ID_DEFAULT } from "@shared/zerog";
 import type { ZeroGConfig, ZeroGEnvironment } from "./types";
 
 function parseEnvironment(input?: string): ZeroGEnvironment {
@@ -19,6 +20,7 @@ export function getZeroGConfig(): ZeroGConfig {
   const enabled = parseBoolean(process.env.ZEROG_ENABLED, true);
   const readOnly = parseBoolean(process.env.ZEROG_READ_ONLY, demoMode);
 
+  const ogChainId = Number(process.env.ZEROG_OG_CHAIN_ID || ZEROG_CHAIN_ID_DEFAULT);
   return {
     environment,
     storageUrl: process.env.ZEROG_STORAGE_URL || "https://storage.demo.0g.ai/v1",
@@ -26,6 +28,11 @@ export function getZeroGConfig(): ZeroGConfig {
     dataAvailabilityUrl: process.env.ZEROG_DA_URL || "https://da.demo.0g.ai/v1",
     explorerUrl: process.env.ZEROG_EXPLORER_URL || "https://explorer.demo.0g.ai",
     bridgeUrl: process.env.ZEROG_BRIDGE_URL || "https://bridge.demo.0g.ai",
+    ogChainId: Number.isFinite(ogChainId) ? ogChainId : ZEROG_CHAIN_ID_DEFAULT,
+    bridgeProvider: process.env.ZEROG_BRIDGE_PROVIDER || "XSwap (per official 0G docs)",
+    tokenMetadataDisclaimer:
+      process.env.ZEROG_TOKEN_DISCLAIMER ||
+      "Third-party exchange or tracker labels (e.g. “Solana-based token”) are untrusted metadata unless verified against your configured official 0G sources.",
     apiKey: process.env.ZEROG_API_KEY,
     timeoutMs: Number(process.env.ZEROG_TIMEOUT_MS || 12_000),
     enabled,

@@ -13,7 +13,7 @@ export default function Home() {
           <Card className="border-white/10 bg-black/40 p-4 text-slate-300">
             <div className="flex items-center gap-2">
               <Cpu className="h-4 w-4 animate-spin text-[#3bff96]" />
-              Initializing Solana autonomous agent command center...
+              Booting Solana agent command center — wallet session and PDAs loading...
             </div>
           </Card>
         </div>

@@ -1,0 +1,19 @@
+[package]
+name = "claw_dao"
+version = "0.1.0"
+description = "CLAW MACHINE DAO on Solana"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "claw_dao"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+
+[dependencies]
+anchor-lang = "0.31.1"
+anchor-spl = "0.31.1"

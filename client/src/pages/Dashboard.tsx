@@ -15,7 +15,7 @@ export default function Dashboard() {
           <Card className="border-white/10 bg-black/40 p-4">
             <div className="flex items-center gap-2">
               <Cpu className="h-4 w-4 animate-spin" />
-              Loading mission control...
+              Syncing command center — runs, skills, and receipt index...
             </div>
           </Card>
         </div>

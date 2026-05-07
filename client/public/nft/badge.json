@@ -1,0 +1,10 @@
+{
+  "name": "CLAW Badge #1",
+  "symbol": "CLAW",
+  "description": "A badge NFT for CLAW MACHINE",
+  "image": "https://example.com/claw-badge.png",
+  "attributes": [
+    { "trait_type": "type", "value": "badge" },
+    { "trait_type": "status", "value": "verified" }
+  ]
+}

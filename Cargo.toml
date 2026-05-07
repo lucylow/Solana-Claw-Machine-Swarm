@@ -1,3 +1,8 @@
 [workspace]
-members = ["programs/claw_machine", "programs/claw_onchain"]
+members = [
+  "programs/claw_machine",
+  "programs/claw_onchain",
+  "programs/claw_nft",
+  "programs/claw_dao",
+]
 resolver = "2"

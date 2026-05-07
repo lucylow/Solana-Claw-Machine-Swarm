@@ -29,3 +29,18 @@ export {
 export * from "./swarm";
 export * from "./solana/types";
 export * from "./openclaw/types";
+/** Canonical swarm / command-center model (imports may conflict with `./skills` / `./solana/types`). */
+export type {
+  ExecutionRecord,
+  ExecutionStatus,
+  MemoryKind,
+  MemoryRecord as SwarmMemoryRecord,
+  OrchestrationAgentStep,
+  ReceiptRecord,
+  ReceiptRecordType,
+  ReflectionRecord as SwarmReflectionRecord,
+  SkillIdentity,
+  SkillStatus as CanonicalSkillStatus,
+  SwarmExecuteResult,
+  WalletSessionView,
+} from "./domainModel";

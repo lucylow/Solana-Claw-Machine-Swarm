@@ -4,6 +4,8 @@ skip-lint = false
 
 [programs.localnet]
 claw_machine = "CLAWM7dNyS1k1M7vP2kNQG6vcm2g4k84s8nTRWJ8NAT"
+claw_nft = "ClAwNft1111111111111111111111111111111111111"
+claw_dao = "ClAwDAo111111111111111111111111111111111111"
 
 [registry]
 url = "https://api.apr.dev"

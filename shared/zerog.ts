@@ -13,6 +13,9 @@ export type ZeroGArtifactKind =
 
 export type ZeroGChainLabel = "Solana" | "BNB" | "EVM" | "0G" | string;
 
+/** Official 0G Chain id per public documentation (XSwap bridge target). */
+export const ZEROG_CHAIN_ID_DEFAULT = 16661;
+
 export interface ZeroGConfig {
   environment: ZeroGEnvironment;
   storageUrl: string;
@@ -20,6 +23,15 @@ export interface ZeroGConfig {
   dataAvailabilityUrl: string;
   explorerUrl: string;
   bridgeUrl?: string;
+  /** 0G L1 chain id (e.g. bridge destination). Not Solana cluster id. */
+  ogChainId: number;
+  /** Named bridge surface from official docs (e.g. XSwap); UI must not imply live txs unless mode is live. */
+  bridgeProvider: string;
+  /**
+   * Shown in UI: third-party “Solana token” labels are not canonical proof of origin.
+   * Token/asset truth comes from configured official sources only.
+   */
+  tokenMetadataDisclaimer: string;
   apiKey?: string;
   timeoutMs: number;
   enabled: boolean;
@@ -189,4 +201,6 @@ export interface ZeroGHealthStatus {
   reason?: string;
   latencyMs?: number;
   mode: "live" | "demo" | "degraded";
+  /** When set, indicates an optional HTTP reachability probe of the configured endpoint (not proof of correct API). */
+  remoteReachable?: boolean;
 }

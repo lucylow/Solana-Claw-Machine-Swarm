@@ -1,7 +1,9 @@
 import type { AutonomyLevel, PolicyGateStatus, RiskLevel } from "./autonomy";
+import type { ClawMachineEcosystemStats } from "./clawMachineMock";
 import type { SolanaZeroGLink, ZeroGBridgeState } from "./zerog";
 
 export type SwarmSectionId =
+  | "product-loop"
   | "overview"
   | "live-runs"
   | "skills"
@@ -204,6 +206,8 @@ export interface SwarmProofGraphEdge {
 export interface SwarmRuntimeState {
   walletAddress?: string;
   cluster: string;
+  /** Network-wide demo counters (pitch appendix — not wallet-scoped). */
+  ecosystem: ClawMachineEcosystemStats;
   autonomyLevel: AutonomyLevel;
   autonomyScore: number;
   proofCompletionRate: number;
