@@ -83,6 +83,6 @@ describe("solana on-chain style account records", () => {
     expect(profile.memoryCount).toBe(1);
     expect(profile.plannerRunCount).toBe(1);
     expect(profile.deploymentCount).toBe(1);
-    expect(profile.trustScoreBps).toBe(10_000);
+    expect(profile.trustScoreBps).toBe(5_080);
   });
 });

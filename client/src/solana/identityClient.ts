@@ -10,6 +10,9 @@ import { normalizeWalletAddress } from "./pda";
 import type {
   SolanaDeploymentSummary,
   SolanaChallenge,
+  SolanaDiscoveryFilter,
+  SolanaDiscoveryProfile,
+  SolanaDiscoveryRow,
   SolanaIdentityBundle,
   SolanaIdentityProfile,
   SolanaPlannerRunSummary,
@@ -145,4 +148,41 @@ export async function loadReputation(walletAddress: PublicKey | string) {
   return requestJSON<{ ok: true; data: SolanaReputationAccount }>(
     `/api/solana/identity/${address}/reputation`
   );
+}
+
+export async function loadDiscoveryProfiles() {
+  return requestJSON<{ ok: true; data: SolanaDiscoveryProfile[] }>(
+    "/api/solana/reputation/profiles"
+  );
+}
+
+export async function loadDiscoverySkills(filter?: SolanaDiscoveryFilter) {
+  const query = new URLSearchParams();
+  if (filter?.query) query.set("q", filter.query);
+  if (filter?.category) query.set("category", filter.category);
+  if (filter?.tag) query.set("tag", filter.tag);
+  if (filter?.language) query.set("language", filter.language);
+  if (typeof filter?.minTrustBps === "number") query.set("minTrustBps", String(filter.minTrustBps));
+  if (typeof filter?.minDiscoveryBps === "number") {
+    query.set("minDiscoveryBps", String(filter.minDiscoveryBps));
+  }
+  if (typeof filter?.minUsage === "number") query.set("minUsage", String(filter.minUsage));
+  if (filter?.verifiedOnly) query.set("verifiedOnly", "true");
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return requestJSON<{ ok: true; data: SolanaDiscoveryRow[] }>(
+    `/api/solana/discovery/skills${suffix}`
+  );
+}
+
+export async function loadDiscoveryWallet(walletAddress: PublicKey | string) {
+  const address = walletAddressToString(walletAddress);
+  return requestJSON<{
+    ok: true;
+    data: {
+      profile: SolanaIdentityProfile;
+      reputation: SolanaReputationAccount;
+      skills: SolanaDiscoveryRow[];
+      memories: SolanaMemorySummary[];
+    };
+  }>(`/api/solana/discovery/wallet/${address}`);
 }

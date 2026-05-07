@@ -1,0 +1,3 @@
+[workspace]
+members = ["programs/claw_machine", "programs/claw_onchain"]
+resolver = "2"

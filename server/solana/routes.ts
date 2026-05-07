@@ -1,12 +1,167 @@
 import type { Express, Request } from "express";
 import { SolanaIdentityService } from "./identityService";
 import { normalizeWalletAddress } from "./pda";
+import { SolanaSessionService } from "./session";
 
 function requestId(req: Request) {
   return (req.headers["x-request-id"] as string) || `req_${Date.now()}`;
 }
 
-export function registerSolanaIdentityRoutes(app: Express, service: SolanaIdentityService) {
+function toNumber(v: unknown, fallback?: number) {
+  if (v == null || v === "") return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function readBearerToken(req: Request) {
+  const auth = String(req.headers.authorization || "");
+  if (!auth.startsWith("Bearer ")) return undefined;
+  return auth.slice("Bearer ".length).trim();
+}
+
+export function registerSolanaIdentityRoutes(
+  app: Express,
+  service: SolanaIdentityService,
+  sessionService: SolanaSessionService
+) {
+  app.post("/api/solana/session/nonce", async (req, res) => {
+    try {
+      const walletAddress = String(req.body.walletAddress || "").trim();
+      if (!walletAddress) throw new Error("walletAddress required");
+      const data = sessionService.issueNonce(normalizeWalletAddress(walletAddress));
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "session_nonce_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.post("/api/solana/session/verify", async (req, res) => {
+    try {
+      const walletAddress = String(req.body.walletAddress || "").trim();
+      const nonceId = String(req.body.nonceId || "").trim();
+      const signature = String(req.body.signature || "").trim();
+      if (!walletAddress || !nonceId || !signature) {
+        throw new Error("walletAddress, nonceId, and signature are required");
+      }
+      const data = sessionService.verifySession({
+        walletAddress: normalizeWalletAddress(walletAddress),
+        nonceId,
+        signature,
+      });
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "session_verify_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.get("/api/solana/session", async (req, res) => {
+    try {
+      const queryWallet = String(req.query.walletAddress || "").trim();
+      const token = readBearerToken(req);
+      const profile = sessionService.getSessionFromToken(token);
+
+      if (profile) {
+        res.json({ ok: true, data: { token, profile } });
+        return;
+      }
+
+      // Compatibility mode: query by wallet still returns basic status.
+      if (queryWallet) {
+        res.json({
+          ok: true,
+          data: {
+            token: null,
+            profile: null,
+            walletAddress: normalizeWalletAddress(queryWallet),
+            active: false,
+          },
+        });
+        return;
+      }
+
+      res.status(401).json({ ok: false, error: "session_not_found" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "session_fetch_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.post("/api/solana/session/refresh", async (req, res) => {
+    try {
+      const token = String(req.body.token || readBearerToken(req) || "").trim();
+      if (!token) throw new Error("session_token_required");
+      const data = sessionService.refreshSession(token);
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "session_refresh_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.post("/api/solana/session/logout", async (req, res) => {
+    try {
+      const token = String(req.body.token || readBearerToken(req) || "").trim();
+      if (!token) throw new Error("session_token_required");
+      const data = sessionService.logoutSession(token);
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "session_logout_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.get("/api/solana/status", async (_req, res) => {
+    try {
+      const data = sessionService.getStatus();
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "status_failed";
+      res.status(500).json({ ok: false, error: message });
+    }
+  });
+
+  app.get("/api/solana/reputation/profiles", async (_req, res) => {
+    try {
+      const data = await service.listDiscoveryProfiles();
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "discovery_profiles_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.get("/api/solana/discovery/skills", async (req, res) => {
+    try {
+      const data = await service.listDiscoverySkills({
+        query: req.query.q ? String(req.query.q) : undefined,
+        category: req.query.category ? String(req.query.category) : undefined,
+        tag: req.query.tag ? String(req.query.tag) : undefined,
+        language: req.query.language ? String(req.query.language) : undefined,
+        minTrustBps: toNumber(req.query.minTrustBps),
+        minDiscoveryBps: toNumber(req.query.minDiscoveryBps),
+        minUsage: toNumber(req.query.minUsage),
+        verifiedOnly: req.query.verifiedOnly === "true",
+      });
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "discovery_skills_failed";
+      res.status(400).json({ ok: false, error: message });
+    }
+  });
+
+  app.get("/api/solana/discovery/wallet/:walletAddress", async (req, res) => {
+    try {
+      const walletAddress = String(req.params.walletAddress);
+      const data = await service.getDiscoveryByWallet(normalizeWalletAddress(walletAddress));
+      res.json({ ok: true, data });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "discovery_wallet_failed";
+      res.status(404).json({ ok: false, error: message });
+    }
+  });
+
   app.post("/api/solana/identity/challenge", async (req, res) => {
     try {
       const walletAddress = String(req.body.walletAddress || "").trim();

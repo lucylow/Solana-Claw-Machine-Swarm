@@ -17,7 +17,14 @@ export type MemoryAnchorKind =
 export type MemoryAnchorResult = "success" | "failure" | "mixed" | "unknown";
 export type PlannerOutcome = "planned" | "running" | "succeeded" | "failed" | "aborted";
 export type DeploymentStatus = "pending" | "uploaded" | "anchored" | "confirmed" | "failed";
-export type ReputationEventKind = "memory_anchor" | "planner_run" | "deployment" | "other";
+export type ReputationEventKind =
+  | "memory_anchor"
+  | "planner_run"
+  | "deployment"
+  | "skill_publish"
+  | "skill_version"
+  | "verified_authorship"
+  | "other";
 
 export interface IdentityAccountPointers {
   programId?: string;
@@ -106,13 +113,20 @@ export interface IdentitySkillRecord {
   walletAddress: string;
   slug: string;
   name: string;
+  category?: string;
+  language?: string;
   version: string;
   description: string;
   status: "active" | "inactive" | "draft";
   usageCount: number;
+  successCount?: number;
+  failureCount?: number;
+  avgReflectionQualityBps?: number;
   score: number;
   tags: string[];
   versionCount?: number;
+  publishedVersionCount?: number;
+  verifiedAuthorshipCount?: number;
   activeVersionPda?: string;
   accounts?: IdentityAccountPointers;
   versions?: IdentitySkillVersionRecord[];
@@ -197,13 +211,63 @@ export interface ReputationAccountRecord {
   memoryAnchorCount: number;
   plannerRunCount: number;
   deploymentCount: number;
+  publishedSkillCount: number;
+  publishedVersionCount: number;
+  verifiedAuthorshipCount: number;
   trustScoreBps: number;
+  discoveryScoreBps: number;
+  reflectionQualitySumBps: number;
+  avgReflectionQualityBps: number;
   totalRewardPoints: number;
   lastEventKind: ReputationEventKind;
   lastEventRef: string;
   lastEventAt: number;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface DiscoverySkillRowRecord {
+  skillAddress: string;
+  owner: string;
+  profile: string;
+  slug: string;
+  name: string;
+  category: string;
+  language: string;
+  tags: string[];
+  contentHash?: string;
+  versionCount: number;
+  latestVersionIndex: number;
+  usageCount: number;
+  successCount: number;
+  failureCount: number;
+  avgReflectionQualityBps: number;
+  trustScoreBps: number;
+  discoveryScoreBps: number;
+  signalCount: number;
+  lastRank: number;
+  updatedAt: number;
+}
+
+export interface DiscoveryProfileRecord {
+  walletAddress: string;
+  profileAddress: string;
+  usageCount: number;
+  successCount: number;
+  failureCount: number;
+  memoryAnchorCount: number;
+  plannerRunCount: number;
+  deploymentCount: number;
+  publishedSkillCount: number;
+  publishedVersionCount: number;
+  verifiedAuthorshipCount: number;
+  trustScoreBps: number;
+  discoveryScoreBps: number;
+  avgReflectionQualityBps: number;
+  totalRewardPoints: number;
+  lastEventKind: ReputationEventKind;
+  lastEventRef: string;
+  lastEventAt: number;
 }
 
 export interface IdentityBundleRecord {

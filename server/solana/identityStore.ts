@@ -95,6 +95,10 @@ export class IdentityStore {
     return this.state.profiles[walletAddress];
   }
 
+  async listProfiles() {
+    return Object.values(this.state.profiles);
+  }
+
   async saveReceipt(record: IdentityReceiptRecord) {
     const list = this.state.receipts[record.walletAddress] || [];
     const idx = list.findIndex(r => r.id === record.id);
@@ -117,6 +121,10 @@ export class IdentityStore {
 
   async listSkills(walletAddress: string) {
     return this.state.skills[walletAddress] || [];
+  }
+
+  async listAllSkills() {
+    return Object.values(this.state.skills).flat();
   }
 
   async saveMemories(walletAddress: string, memories: IdentityMemoryRecord[]) {

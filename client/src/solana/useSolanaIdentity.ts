@@ -3,6 +3,8 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { PublicKey } from "@solana/web3.js";
 import {
   createChallenge,
+  loadDiscoveryProfiles,
+  loadDiscoverySkills,
   loadDeployments,
   loadIdentity,
   loadMemories,
@@ -15,6 +17,8 @@ import {
 import { CLAW_IDENTITY_SESSION_KEY, SOLANA_CHAIN_ID } from "./constants";
 import type {
   SolanaChallenge,
+  SolanaDiscoveryProfile,
+  SolanaDiscoveryRow,
   SolanaIdentityBundle,
   SolanaIdentityProfile,
   SolanaIdentityReceipt,
@@ -66,6 +70,8 @@ export function useSolanaIdentity() {
   const [plannerRuns, setPlannerRuns] = useState<SolanaPlannerRunSummary[]>([]);
   const [deployments, setDeployments] = useState<SolanaDeploymentSummary[]>([]);
   const [reputation, setReputation] = useState<SolanaReputationAccount | null>(null);
+  const [discoveryProfiles, setDiscoveryProfiles] = useState<SolanaDiscoveryProfile[]>([]);
+  const [discoverySkills, setDiscoverySkills] = useState<SolanaDiscoveryRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<StoredSession | null>(() =>
     typeof window !== "undefined" ? readSession() : null
@@ -84,7 +90,7 @@ export function useSolanaIdentity() {
 
       const addressString = typeof target === "string" ? target : target.toBase58();
 
-      const [bundle, receiptRes, skillRes, memoryRes, plannerRes, deploymentRes, reputationRes] =
+      const [bundle, receiptRes, skillRes, memoryRes, plannerRes, deploymentRes, reputationRes, discoveryProfileRes, discoverySkillRes] =
         await Promise.all([
         loadIdentity(addressString),
         loadReceipts(addressString).catch(() => ({ ok: true as const, data: [] })),
@@ -96,6 +102,8 @@ export function useSolanaIdentity() {
           ok: true as const,
           data: null as SolanaReputationAccount | null,
         })),
+        loadDiscoveryProfiles().catch(() => ({ ok: true as const, data: [] })),
+        loadDiscoverySkills().catch(() => ({ ok: true as const, data: [] })),
       ]);
 
       const data = bundle.data as SolanaIdentityBundle;
@@ -107,6 +115,8 @@ export function useSolanaIdentity() {
       setPlannerRuns(plannerRes.data || data.plannerRuns || []);
       setDeployments(deploymentRes.data || data.deployments || []);
       setReputation(reputationRes.data || data.reputation || null);
+      setDiscoveryProfiles(discoveryProfileRes.data || []);
+      setDiscoverySkills(discoverySkillRes.data || []);
       setStatus(data.profile?.status === "verified" ? "verified" : "unverified");
       return data;
     },
@@ -158,6 +168,12 @@ export function useSolanaIdentity() {
       setPlannerRuns(bundle.plannerRuns || []);
       setDeployments(bundle.deployments || []);
       setReputation(bundle.reputation || null);
+      loadDiscoveryProfiles()
+        .then(res => setDiscoveryProfiles(res.data))
+        .catch(() => undefined);
+      loadDiscoverySkills()
+        .then(res => setDiscoverySkills(res.data))
+        .catch(() => undefined);
       setStatus("verified");
 
       const nextSession: StoredSession = {
@@ -190,6 +206,8 @@ export function useSolanaIdentity() {
     setPlannerRuns([]);
     setDeployments([]);
     setReputation(null);
+    setDiscoveryProfiles([]);
+    setDiscoverySkills([]);
     setError(null);
     setSession(null);
     writeSession(null);
@@ -208,6 +226,8 @@ export function useSolanaIdentity() {
     plannerRuns,
     deployments,
     reputation,
+    discoveryProfiles,
+    discoverySkills,
     error,
     loading,
     session,

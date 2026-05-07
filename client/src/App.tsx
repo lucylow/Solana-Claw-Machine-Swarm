@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SolanaWalletProvider } from "@/contexts/SolanaWalletContext";
 import SolanaProvider from "@/solana/SolanaProvider";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -8,9 +9,12 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import HowItWorks from "./pages/HowItWorks";
 import NotFound from "./pages/NotFound";
+import PlanDetailPage from "./pages/PlanDetailPage";
+import ProofExplorerPage from "./pages/ProofExplorerPage";
 import ReceiptsPage from "./pages/ReceiptsPage";
 import SkillDetailPage from "./pages/SkillDetailPage";
 import SkillsRegistry from "./pages/SkillsRegistry";
+import ZeroGPage from "./pages/ZeroGPage";
 
 function Router() {
   return (
@@ -21,6 +25,9 @@ function Router() {
       <Route path="/skills" component={SkillsRegistry} />
       <Route path="/skills/:id" component={SkillDetailPage} />
       <Route path="/receipts" component={ReceiptsPage} />
+      <Route path="/proofs" component={ProofExplorerPage} />
+      <Route path="/zerog" component={ZeroGPage} />
+      <Route path="/plans/:id" component={PlanDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -32,8 +39,10 @@ export default function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <SolanaProvider>
-            <Toaster />
-            <Router />
+            <SolanaWalletProvider>
+              <Toaster />
+              <Router />
+            </SolanaWalletProvider>
           </SolanaProvider>
         </TooltipProvider>
       </ThemeProvider>

@@ -14,6 +14,8 @@ import {
   validateSkillVersion,
 } from "./pda";
 import type {
+  DiscoveryProfileRecord,
+  DiscoverySkillRowRecord,
   DeploymentRecord,
   IdentityBundleRecord,
   IdentityChallengeRecord,
@@ -71,6 +73,51 @@ function normalizedBps(value?: number) {
 function bpsFromRatio(numerator: number, denominator: number) {
   if (denominator <= 0) return 0;
   return Math.min(10_000, Math.floor((numerator * 10_000) / denominator));
+}
+
+function trustScoreFromSignal(input: {
+  successCount: number;
+  failureCount: number;
+  verifiedAuthorshipCount: number;
+  deploymentCount: number;
+}) {
+  const total = input.successCount + input.failureCount;
+  const successBps = bpsFromRatio(input.successCount, Math.max(total, 1));
+  const authComponent = Math.min(25, input.verifiedAuthorshipCount) * 120;
+  const deployComponent = Math.min(25, input.deploymentCount) * 80;
+  return Math.min(10_000, Math.floor(successBps / 2 + authComponent + deployComponent));
+}
+
+function discoveryScoreFromSignal(input: {
+  trustScoreBps: number;
+  usageCount: number;
+  successCount: number;
+  versionCount: number;
+  publishedSkillCount: number;
+  verifiedAuthorshipCount: number;
+  avgReflectionQualityBps: number;
+  signalCount: number;
+}) {
+  const usageComponent = Math.min(1000, input.usageCount) * 3;
+  const successRatio = bpsFromRatio(input.successCount, Math.max(input.usageCount, 1));
+  const versionComponent = Math.min(20, input.versionCount) * 40;
+  const publishComponent = Math.min(50, input.publishedSkillCount) * 50;
+  const authorshipComponent = Math.min(50, input.verifiedAuthorshipCount) * 30;
+  const reflectionComponent = Math.floor(input.avgReflectionQualityBps / 2);
+  const signalComponent = Math.min(400, input.signalCount) * 2;
+  return Math.min(
+    10_000,
+    Math.floor(
+      input.trustScoreBps / 2 +
+        usageComponent +
+        successRatio / 2 +
+        versionComponent +
+        publishComponent +
+        authorshipComponent +
+        reflectionComponent +
+        signalComponent
+    )
+  );
 }
 
 export class SolanaIdentityService {
@@ -193,9 +240,183 @@ export class SolanaIdentityService {
     return this.store.getReputation(normalizeWalletAddress(walletAddress));
   }
 
+  async listDiscoveryProfiles() {
+    const profiles = await this.store.listProfiles();
+    const rows = await Promise.all(
+      profiles.map(async profile => {
+        const rep = await this.store.getReputation(profile.walletAddress);
+        if (rep) {
+          return {
+            walletAddress: rep.walletAddress,
+            profileAddress: profile.accounts?.profilePda || "",
+            usageCount: rep.usageCount,
+            successCount: rep.successCount,
+            failureCount: rep.failureCount,
+            memoryAnchorCount: rep.memoryAnchorCount,
+            plannerRunCount: rep.plannerRunCount,
+            deploymentCount: rep.deploymentCount,
+            publishedSkillCount: rep.publishedSkillCount,
+            publishedVersionCount: rep.publishedVersionCount,
+            verifiedAuthorshipCount: rep.verifiedAuthorshipCount,
+            trustScoreBps: rep.trustScoreBps,
+            discoveryScoreBps: rep.discoveryScoreBps,
+            avgReflectionQualityBps: rep.avgReflectionQualityBps,
+            totalRewardPoints: rep.totalRewardPoints,
+            lastEventKind: rep.lastEventKind,
+            lastEventRef: rep.lastEventRef,
+            lastEventAt: rep.lastEventAt,
+          } satisfies DiscoveryProfileRecord;
+        }
+
+        const hydrated = await this.buildWalletReputation(profile.walletAddress);
+        return {
+          walletAddress: hydrated.walletAddress,
+          profileAddress: profile.accounts?.profilePda || "",
+          usageCount: hydrated.usageCount,
+          successCount: hydrated.successCount,
+          failureCount: hydrated.failureCount,
+          memoryAnchorCount: hydrated.memoryAnchorCount,
+          plannerRunCount: hydrated.plannerRunCount,
+          deploymentCount: hydrated.deploymentCount,
+          publishedSkillCount: hydrated.publishedSkillCount,
+          publishedVersionCount: hydrated.publishedVersionCount,
+          verifiedAuthorshipCount: hydrated.verifiedAuthorshipCount,
+          trustScoreBps: hydrated.trustScoreBps,
+          discoveryScoreBps: hydrated.discoveryScoreBps,
+          avgReflectionQualityBps: hydrated.avgReflectionQualityBps,
+          totalRewardPoints: hydrated.totalRewardPoints,
+          lastEventKind: hydrated.lastEventKind,
+          lastEventRef: hydrated.lastEventRef,
+          lastEventAt: hydrated.lastEventAt,
+        } satisfies DiscoveryProfileRecord;
+      })
+    );
+
+    return rows.sort((a, b) => b.discoveryScoreBps - a.discoveryScoreBps);
+  }
+
+  async listDiscoverySkills(filter?: {
+    query?: string;
+    tag?: string;
+    category?: string;
+    language?: string;
+    minTrustBps?: number;
+    minDiscoveryBps?: number;
+    minUsage?: number;
+    verifiedOnly?: boolean;
+  }) {
+    const skills = await this.store.listAllSkills();
+    const rows: DiscoverySkillRowRecord[] = await Promise.all(
+      skills.map(async skill => {
+        const profile = await this.store.getProfile(skill.walletAddress);
+        const rep = await this.buildWalletReputation(skill.walletAddress);
+        const usageCount = skill.usageCount || 0;
+        const successCount = skill.successCount ?? Math.floor(usageCount * 0.82);
+        const failureCount = skill.failureCount ?? Math.max(0, usageCount - successCount);
+        const avgReflectionQualityBps = skill.avgReflectionQualityBps ?? rep.avgReflectionQualityBps;
+        const versionCount = Math.max(
+          1,
+          skill.versionCount || skill.publishedVersionCount || skill.versions?.length || 1
+        );
+        const trustScoreBps = trustScoreFromSignal({
+          successCount,
+          failureCount,
+          verifiedAuthorshipCount: skill.verifiedAuthorshipCount ?? rep.verifiedAuthorshipCount,
+          deploymentCount: rep.deploymentCount,
+        });
+        const signalCount =
+          usageCount + versionCount + Math.max(0, skill.verifiedAuthorshipCount ?? rep.verifiedAuthorshipCount);
+        const discoveryScoreBps = discoveryScoreFromSignal({
+          trustScoreBps,
+          usageCount,
+          successCount,
+          versionCount,
+          publishedSkillCount: rep.publishedSkillCount,
+          verifiedAuthorshipCount: skill.verifiedAuthorshipCount ?? rep.verifiedAuthorshipCount,
+          avgReflectionQualityBps,
+          signalCount,
+        });
+
+        return {
+          skillAddress: skill.id,
+          owner: skill.walletAddress,
+          profile: profile?.accounts?.profilePda || "",
+          slug: skill.slug,
+          name: skill.name,
+          category: skill.category || "general",
+          language: skill.language || "ts",
+          tags: skill.tags || [],
+          contentHash: skill.accounts?.skillPda,
+          versionCount,
+          latestVersionIndex: Math.max(0, versionCount - 1),
+          usageCount,
+          successCount,
+          failureCount,
+          avgReflectionQualityBps,
+          trustScoreBps,
+          discoveryScoreBps,
+          signalCount,
+          lastRank: 0,
+          updatedAt: skill.updatedAt,
+        };
+      })
+    );
+
+    let filtered = rows;
+    const query = filter?.query?.trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter(row =>
+        [row.slug, row.name, row.category, row.language, ...row.tags].join(" ").toLowerCase().includes(query)
+      );
+    }
+    if (filter?.category) filtered = filtered.filter(row => row.category === filter.category);
+    if (filter?.language) filtered = filtered.filter(row => row.language === filter.language);
+    if (filter?.tag) filtered = filtered.filter(row => row.tags.includes(filter.tag!));
+    if (typeof filter?.minTrustBps === "number") {
+      filtered = filtered.filter(row => row.trustScoreBps >= filter.minTrustBps!);
+    }
+    if (typeof filter?.minDiscoveryBps === "number") {
+      filtered = filtered.filter(row => row.discoveryScoreBps >= filter.minDiscoveryBps!);
+    }
+    if (typeof filter?.minUsage === "number") {
+      filtered = filtered.filter(row => row.usageCount >= filter.minUsage!);
+    }
+    if (filter?.verifiedOnly) {
+      filtered = filtered.filter(row => row.trustScoreBps >= 5000);
+    }
+
+    return filtered
+      .sort((a, b) => {
+        if (b.discoveryScoreBps !== a.discoveryScoreBps) return b.discoveryScoreBps - a.discoveryScoreBps;
+        if (b.trustScoreBps !== a.trustScoreBps) return b.trustScoreBps - a.trustScoreBps;
+        if (b.usageCount !== a.usageCount) return b.usageCount - a.usageCount;
+        return b.updatedAt - a.updatedAt;
+      })
+      .map((row, idx) => ({ ...row, lastRank: idx + 1 }));
+  }
+
+  async getDiscoveryByWallet(walletAddress: string) {
+    const normalizedWallet = normalizeWalletAddress(walletAddress);
+    const profile = await this.getProfile(normalizedWallet);
+    const reputation = await this.buildWalletReputation(normalizedWallet);
+    const skills = await this.listDiscoverySkills();
+    return {
+      profile,
+      reputation,
+      skills: skills.filter(row => row.owner === normalizedWallet),
+      memories: await this.store.listMemories(normalizedWallet),
+    };
+  }
+
   async recordSkillUse(walletAddress: string, skillName: string) {
     const normalizedWallet = normalizeWalletAddress(walletAddress);
     await this.store.bumpUsage(normalizedWallet, skillName);
+    await this.recordReputationEvent({
+      walletAddress: normalizedWallet,
+      eventKind: "other",
+      eventRef: skillName,
+      weight: 1,
+    });
     return this.store.listSkills(normalizedWallet);
   }
 
@@ -293,6 +514,7 @@ export class SolanaIdentityService {
       eventRef: input.sourceTurnId,
       success: input.result === "success",
       weight: input.pinned ? 5 : 2,
+      reflectionQualityBps: normalizedBps(input.confidenceBps),
     });
     return memory;
   }
@@ -358,6 +580,7 @@ export class SolanaIdentityService {
       eventRef: input.runId,
       success: input.outcome === "succeeded",
       weight: 3,
+      reflectionQualityBps: normalizedBps(input.confidenceBps),
     });
     return run;
   }
@@ -426,8 +649,9 @@ export class SolanaIdentityService {
     walletAddress: string;
     eventKind: ReputationEventKind;
     eventRef: string;
-    success: boolean;
+    success?: boolean;
     weight: number;
+    reflectionQualityBps?: number;
   }) {
     const normalizedWallet = normalizeWalletAddress(input.walletAddress);
     const now = Date.now();
@@ -440,7 +664,13 @@ export class SolanaIdentityService {
       memoryAnchorCount: 0,
       plannerRunCount: 0,
       deploymentCount: 0,
+      publishedSkillCount: 0,
+      publishedVersionCount: 0,
+      verifiedAuthorshipCount: 0,
       trustScoreBps: 0,
+      discoveryScoreBps: 0,
+      reflectionQualitySumBps: 0,
+      avgReflectionQualityBps: 0,
       totalRewardPoints: 0,
       lastEventKind: "other",
       lastEventRef: "",
@@ -450,17 +680,45 @@ export class SolanaIdentityService {
     };
 
     reputation.usageCount += 1;
-    if (input.success) reputation.successCount += 1;
-    else reputation.failureCount += 1;
+    if (typeof input.success === "boolean") {
+      if (input.success) reputation.successCount += 1;
+      else reputation.failureCount += 1;
+    }
     if (input.eventKind === "memory_anchor") reputation.memoryAnchorCount += 1;
     if (input.eventKind === "planner_run") reputation.plannerRunCount += 1;
     if (input.eventKind === "deployment") reputation.deploymentCount += 1;
+    if (input.eventKind === "skill_publish") reputation.publishedSkillCount += 1;
+    if (input.eventKind === "skill_version") reputation.publishedVersionCount += 1;
+    if (input.eventKind === "verified_authorship") reputation.verifiedAuthorshipCount += 1;
+    if (typeof input.reflectionQualityBps === "number" && input.reflectionQualityBps > 0) {
+      reputation.reflectionQualitySumBps += normalizedBps(input.reflectionQualityBps);
+    }
 
     reputation.totalRewardPoints += Math.max(0, Math.floor(input.weight));
-    reputation.trustScoreBps = bpsFromRatio(
-      reputation.successCount,
-      reputation.successCount + reputation.failureCount
+    reputation.avgReflectionQualityBps = bpsFromRatio(
+      reputation.reflectionQualitySumBps,
+      Math.max(reputation.memoryAnchorCount + reputation.plannerRunCount, 1)
     );
+    reputation.trustScoreBps = trustScoreFromSignal({
+      successCount: reputation.successCount,
+      failureCount: reputation.failureCount,
+      verifiedAuthorshipCount: reputation.verifiedAuthorshipCount,
+      deploymentCount: reputation.deploymentCount,
+    });
+    reputation.discoveryScoreBps = discoveryScoreFromSignal({
+      trustScoreBps: reputation.trustScoreBps,
+      usageCount: reputation.usageCount,
+      successCount: reputation.successCount,
+      versionCount: reputation.publishedVersionCount,
+      publishedSkillCount: reputation.publishedSkillCount,
+      verifiedAuthorshipCount: reputation.verifiedAuthorshipCount,
+      avgReflectionQualityBps: reputation.avgReflectionQualityBps,
+      signalCount:
+        reputation.memoryAnchorCount +
+        reputation.plannerRunCount +
+        reputation.deploymentCount +
+        reputation.publishedVersionCount,
+    });
     reputation.lastEventKind = input.eventKind;
     reputation.lastEventRef = input.eventRef;
     reputation.lastEventAt = now;
@@ -506,13 +764,20 @@ export class SolanaIdentityService {
         walletAddress: normalizedWallet,
         slug: plannerSlug,
         name: "Planner",
+        category: "workflow",
+        language: "ts",
         version: plannerVersion,
         description: "Breaks tasks into executable steps.",
         status: "active",
-        usageCount: 0,
+        usageCount: 42,
+        successCount: 36,
+        failureCount: 6,
+        avgReflectionQualityBps: 8300,
         score: 0.91,
-        tags: ["planner", "workflow"],
-        versionCount: 1,
+        tags: ["planner", "workflow", "steps"],
+        versionCount: 3,
+        publishedVersionCount: 3,
+        verifiedAuthorshipCount: 1,
         activeVersionPda: plannerVersionPda,
         accounts: {
           programId: this.opts.programId,
@@ -530,7 +795,7 @@ export class SolanaIdentityService {
             skillPda: plannerSkillPda,
             skillVersionPda: plannerVersionPda,
             status: "active",
-            usageCount: 0,
+            usageCount: 42,
             score: 0.91,
             createdAt: now,
             updatedAt: now,
@@ -544,13 +809,20 @@ export class SolanaIdentityService {
         walletAddress: normalizedWallet,
         slug: memorySlug,
         name: "Memory Recall",
+        category: "memory",
+        language: "ts",
         version: memoryVersion,
         description: "Retrieves past lessons and reflections.",
         status: "active",
-        usageCount: 0,
+        usageCount: 31,
+        successCount: 29,
+        failureCount: 2,
+        avgReflectionQualityBps: 9100,
         score: 0.89,
-        tags: ["memory", "reflection"],
-        versionCount: 1,
+        tags: ["memory", "reflection", "retrieval"],
+        versionCount: 2,
+        publishedVersionCount: 2,
+        verifiedAuthorshipCount: 1,
         activeVersionPda: memoryVersionPda,
         accounts: {
           programId: this.opts.programId,
@@ -568,7 +840,7 @@ export class SolanaIdentityService {
             skillPda: memorySkillPda,
             skillVersionPda: memoryVersionPda,
             status: "active",
-            usageCount: 0,
+            usageCount: 31,
             score: 0.89,
             createdAt: now,
             updatedAt: now,
@@ -594,6 +866,7 @@ export class SolanaIdentityService {
         sourceTurnId: `turn_${crypto.randomUUID().slice(0, 8)}`,
         rootCause: "Too broad a browser path.",
         correctiveAdvice: "Start with official docs and confirm the endpoint before summarizing.",
+        confidenceBps: 8900,
       },
       {
         id: `mem_${crypto.randomUUID().slice(0, 8)}`,
@@ -609,6 +882,7 @@ export class SolanaIdentityService {
         sourceTurnId: `turn_${crypto.randomUUID().slice(0, 8)}`,
         rootCause: "Mixed prose with JSON.",
         correctiveAdvice: "Use strict schema-first output and validate before saving.",
+        confidenceBps: 9200,
       },
     ];
 
@@ -628,6 +902,111 @@ export class SolanaIdentityService {
         profilePda: deriveProfilePda(walletAddress, this.opts.programId),
       },
     };
+  }
+
+  private async buildWalletReputation(walletAddress: string) {
+    const normalizedWallet = normalizeWalletAddress(walletAddress);
+    const now = Date.now();
+    const skills = await this.store.listSkills(normalizedWallet);
+    const memories = await this.store.listMemories(normalizedWallet);
+    const plannerRuns = await this.store.listPlannerRuns(normalizedWallet);
+    const deployments = await this.store.listDeployments(normalizedWallet);
+    const existing = await this.store.getReputation(normalizedWallet);
+
+    const usageFromSkills = skills.reduce((sum, skill) => sum + (skill.usageCount || 0), 0);
+    const successFromSkills = skills.reduce(
+      (sum, skill) => sum + (skill.successCount ?? Math.floor((skill.usageCount || 0) * 0.82)),
+      0
+    );
+    const failureFromSkills = skills.reduce(
+      (sum, skill) =>
+        sum + (skill.failureCount ?? Math.max(0, (skill.usageCount || 0) - (skill.successCount || 0))),
+      0
+    );
+    const plannerSuccess = plannerRuns.filter(run => run.outcome === "succeeded").length;
+    const plannerFailure = plannerRuns.filter(run => run.outcome === "failed" || run.outcome === "aborted").length;
+    const deploySuccess = deployments.filter(
+      deployment => deployment.status === "confirmed" || deployment.status === "anchored"
+    ).length;
+    const deployFailure = deployments.filter(deployment => deployment.status === "failed").length;
+    const publishedVersionCount = skills.reduce(
+      (sum, skill) => sum + Math.max(1, skill.publishedVersionCount || skill.versionCount || skill.versions?.length || 1),
+      0
+    );
+    const verifiedAuthorshipCount = skills.reduce(
+      (sum, skill) => sum + Math.max(1, skill.verifiedAuthorshipCount || 1),
+      0
+    );
+    const reflectionQualityFromMemories = memories.reduce((sum, memory) => sum + normalizedBps(memory.confidenceBps), 0);
+    const reflectionQualityFromSkills = skills.reduce(
+      (sum, skill) => sum + normalizedBps(skill.avgReflectionQualityBps) * Math.max(1, skill.usageCount || 1),
+      0
+    );
+    const reflectionSamples = Math.max(1, memories.length + usageFromSkills);
+    const reflectionQualitySumBps = reflectionQualityFromMemories + reflectionQualityFromSkills;
+    const avgReflectionQualityBps = bpsFromRatio(reflectionQualitySumBps, reflectionSamples);
+    const usageCount = Math.max(
+      usageFromSkills,
+      existing?.usageCount || 0,
+      memories.length + plannerRuns.length + deployments.length
+    );
+    const successCount = Math.max(
+      existing?.successCount || 0,
+      successFromSkills + plannerSuccess + deploySuccess
+    );
+    const failureCount = Math.max(
+      existing?.failureCount || 0,
+      failureFromSkills + plannerFailure + deployFailure
+    );
+    const publishedSkillCount = Math.max(skills.length, existing?.publishedSkillCount || 0);
+    const trustScoreBps = trustScoreFromSignal({
+      successCount,
+      failureCount,
+      verifiedAuthorshipCount,
+      deploymentCount: deployments.length,
+    });
+    const discoveryScoreBps = discoveryScoreFromSignal({
+      trustScoreBps,
+      usageCount,
+      successCount,
+      versionCount: publishedVersionCount,
+      publishedSkillCount,
+      verifiedAuthorshipCount,
+      avgReflectionQualityBps,
+      signalCount: memories.length + plannerRuns.length + deployments.length + publishedVersionCount,
+    });
+    const computedRewardPoints =
+      usageFromSkills +
+      memories.length * 10 +
+      plannerRuns.length * 4 +
+      deployments.length * 5 +
+      publishedVersionCount * 3;
+
+    const reputation: ReputationAccountRecord = {
+      walletAddress: normalizedWallet,
+      usageCount,
+      successCount,
+      failureCount,
+      memoryAnchorCount: memories.length,
+      plannerRunCount: plannerRuns.length,
+      deploymentCount: deployments.length,
+      publishedSkillCount,
+      publishedVersionCount,
+      verifiedAuthorshipCount,
+      trustScoreBps,
+      discoveryScoreBps,
+      reflectionQualitySumBps,
+      avgReflectionQualityBps,
+      totalRewardPoints: Math.max(existing?.totalRewardPoints || 0, computedRewardPoints),
+      lastEventKind: existing?.lastEventKind || "other",
+      lastEventRef: existing?.lastEventRef || skills[0]?.id || "",
+      lastEventAt: existing?.lastEventAt || now,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+
+    await this.store.saveReputation(normalizedWallet, reputation);
+    return reputation;
   }
 
   private async upsertProfile(walletAddress: string) {
@@ -660,7 +1039,7 @@ export class SolanaIdentityService {
     const receipts = await this.store.listReceipts(normalizedWallet);
     const plannerRuns = await this.store.listPlannerRuns(normalizedWallet);
     const deployments = await this.store.listDeployments(normalizedWallet);
-    const reputation = await this.store.getReputation(normalizedWallet);
+    const reputation = await this.buildWalletReputation(normalizedWallet);
 
     const next: IdentityProfileRecord = {
       ...profile,
@@ -672,19 +1051,8 @@ export class SolanaIdentityService {
       plannerRunCount: plannerRuns.length,
       deploymentCount: deployments.length,
       receiptCount: receipts.length,
-      reputation:
-        typeof reputation?.trustScoreBps === "number"
-          ? Math.min(1, reputation.trustScoreBps / 10_000)
-          : Math.min(
-              1,
-              0.55 +
-                skills.length * 0.04 +
-                memories.length * 0.03 +
-                receipts.length * 0.02 +
-                plannerRuns.length * 0.01 +
-                deployments.length * 0.01
-            ),
-      trustScoreBps: reputation?.trustScoreBps || 0,
+      reputation: Math.min(1, reputation.trustScoreBps / 10_000),
+      trustScoreBps: reputation.trustScoreBps,
       chainId: this.opts.chainId,
       authorityWallet: normalizedWallet,
       accounts: {
@@ -702,7 +1070,8 @@ export class SolanaIdentityService {
             plannerRunCount: plannerRuns.length,
             deploymentCount: deployments.length,
             receiptCount: receipts.length,
-            trustScoreBps: reputation?.trustScoreBps || 0,
+            trustScoreBps: reputation.trustScoreBps,
+            discoveryScoreBps: reputation.discoveryScoreBps,
           })
         )
         .digest("hex"),

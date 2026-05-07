@@ -1,0 +1,20 @@
+[package]
+name = "claw_onchain"
+version = "0.1.0"
+description = "CLAW MACHINE on-chain registry, memory, planner, deployment, reputation, and discovery"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "claw_onchain"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+
+[dependencies]
+anchor-lang = "0.31.1"
+anchor-spl = "0.31.1"

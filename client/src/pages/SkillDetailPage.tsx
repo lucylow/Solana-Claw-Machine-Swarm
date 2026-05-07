@@ -1,4 +1,10 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  LoadingSkeleton,
+  SkillAssetTimeline,
+  SolanaStatusBadge,
+  StoryLoopStrip,
+} from "@/components/command-center";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,8 +34,10 @@ export default function SkillDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-cyan-300">Loading skill provenance...</p>
+      <div className="min-h-screen bg-black p-6">
+        <div className="mx-auto max-w-5xl">
+          <LoadingSkeleton label="Loading skill provenance..." />
+        </div>
       </div>
     );
   }
@@ -51,9 +59,9 @@ export default function SkillDetailPage() {
     : versions?.find(version => version.versionAccount === skill.previousVersionAccount);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#020408] text-white">
       <header className="border-b border-cyan-500/30 bg-black/80">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="container flex items-center justify-between py-4">
           <Button
             variant="outline"
             className="border-cyan-500 text-cyan-300"
@@ -69,11 +77,13 @@ export default function SkillDetailPage() {
             <Badge className="border border-[#3bff96]/60 text-[#86ffc1] bg-[#3bff96]/10">
               {skill.status}
             </Badge>
+            <SolanaStatusBadge label="Published asset" active />
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-6">
+      <main className="container space-y-6 py-8">
+        <StoryLoopStrip activeStep={1} />
         <Card className="bg-[#0a0a0d] border border-cyan-500/40 p-6">
           <h1 className="text-2xl font-bold text-cyan-200">{skill.name}</h1>
           <p className="text-gray-400 mt-2">{skill.description || "No description."}</p>
@@ -160,40 +170,19 @@ export default function SkillDetailPage() {
 
         <Card className="bg-[#09090c] border border-cyan-500/30 p-6">
           <h2 className="text-xl font-semibold text-cyan-200 mb-4">Version history</h2>
-          <div className="space-y-3">
-            {versions?.map((version) => (
-              <div key={version.id} className="border border-white/10 rounded p-3 bg-black/30">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-white font-medium">
-                      v{version.version}{" "}
-                      {version.version === skill.currentVersion ? (
-                        <span className="text-xs text-[#86ffc1]">(current)</span>
-                      ) : null}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(version.publishedAt).toLocaleString()} by {version.authorWallet}
-                    </p>
-                    <p className="text-xs text-cyan-300 mt-1 break-all">
-                      {version.hash.slice(0, 12)}...{version.hash.slice(-12)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-cyan-700/70 text-cyan-300"
-                      onClick={() => setCompareVersionId(version.id)}
-                    >
-                      <GitCompare className="w-3 h-3 mr-1" />
-                      Compare
-                    </Button>
-                  </div>
-                </div>
-                {version.changelog ? (
-                  <p className="text-xs text-gray-300 mt-2">Change: {version.changelog}</p>
-                ) : null}
-              </div>
+          <SkillAssetTimeline versions={versions ?? []} />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {versions?.map(version => (
+              <Button
+                key={version.id}
+                size="sm"
+                variant="outline"
+                className="border-cyan-700/70 text-cyan-300"
+                onClick={() => setCompareVersionId(version.id)}
+              >
+                <GitCompare className="w-3 h-3 mr-1" />
+                Compare v{version.version}
+              </Button>
             ))}
           </div>
         </Card>

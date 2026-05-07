@@ -11,6 +11,9 @@ import { serveStatic, setupVite } from "./vite";
 import { mountSolanaIdentity } from "../solana";
 import { mountMemoryReceipts } from "../memory";
 import { mountPlanReceipts } from "../plans";
+import { createSolanaBridge, mountSolanaBridge } from "../solana/bridgeMount";
+import { OpenClawBridgeService, registerOpenClawBridgeRoutes } from "../openclaw/bridge";
+import { createZeroGModule, registerZeroGRoutes } from "../zerog/routes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,9 +42,43 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
-  const solana = await mountSolanaIdentity(app);
-  await mountMemoryReceipts(app);
-  await mountPlanReceipts(app, { solanaIdentityService: solana.service });
+  const { bridge } = await createSolanaBridge();
+  const solana = await mountSolanaIdentity(app, { solanaBridge: bridge });
+  const memory = await mountMemoryReceipts(app, {
+    onchain: {
+      createMemoryReceipt: async input => {
+        const tx = await bridge.sendInstruction({
+          walletAddress: input.wallet,
+          action: "create_memory_receipt",
+          subjectId: input.receiptId,
+          payloadHash: input.reflectionHash,
+          receiptId: input.receiptId,
+          metadata: {
+            summaryHash: input.summaryHash,
+            nextActionHash: input.nextActionHash,
+            storageRefHash: input.storageRefHash,
+            sourceTurnIdHash: input.sourceTurnIdHash,
+            parentReceiptIdHash: input.parentReceiptIdHash,
+          },
+        });
+        if (tx.status === "failed" || !tx.txSignature) {
+          throw new Error(tx.error || "memory_anchor_bridge_failed");
+        }
+        return { txSig: tx.txSignature, receiptAccount: tx.accountAddress };
+      },
+    },
+  });
+  const plans = await mountPlanReceipts(app, { solanaIdentityService: solana.service, solanaBridge: bridge });
+  const zeroG = createZeroGModule();
+  registerZeroGRoutes(app, zeroG);
+  const openClawBridge = new OpenClawBridgeService();
+  registerOpenClawBridgeRoutes(app, openClawBridge);
+  await mountSolanaBridge(app, {
+    bridge,
+    identityService: solana.service,
+    memoryService: memory.service,
+    planReceiptService: plans.receiptService,
+  });
   // tRPC API
   app.use(
     "/api/trpc",

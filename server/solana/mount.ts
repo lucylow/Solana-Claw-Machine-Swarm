@@ -3,8 +3,15 @@ import path from "path";
 import { IdentityStore } from "./identityStore";
 import { SolanaIdentityService } from "./identityService";
 import { registerSolanaIdentityRoutes } from "./routes";
+import { SolanaSessionService } from "./session";
+import type { SolanaBridgeService } from "./bridgeService";
 
-export async function mountSolanaIdentity(app: express.Express) {
+export async function mountSolanaIdentity(
+  app: express.Express,
+  options?: {
+    solanaBridge?: SolanaBridgeService;
+  }
+) {
   const store = new IdentityStore(path.join(process.cwd(), "data", "solana-identity.json"));
   await store.init();
 
@@ -16,8 +23,41 @@ export async function mountSolanaIdentity(app: express.Express) {
     statement:
       process.env.CLAW_IDENTITY_STATEMENT ||
       "Sign this message to bind your Solana wallet to CLAW MACHINE.",
+    onchain: options?.solanaBridge
+      ? {
+          anchorReceipt: async input => {
+            const tx = await options.solanaBridge!.sendInstruction({
+              walletAddress: input.walletAddress,
+              action: "anchor_receipt",
+              subjectId: input.receiptId,
+              payloadHash: input.receiptHash,
+              receiptId: input.receiptId,
+              metadata: {
+                profileHash: input.profileHash,
+                challengeHash: input.challengeHash,
+                signatureHash: input.signatureHash,
+                chainId: input.chainId,
+                labels: input.labels,
+                summary: input.summary,
+              },
+            });
+            if (tx.status === "failed" || !tx.txSignature) {
+              throw new Error(tx.error || "solana_bridge_anchor_failed");
+            }
+            return {
+              txHash: tx.txSignature,
+              receiptPda: tx.accountAddress,
+            };
+          },
+        }
+      : undefined,
   });
 
-  registerSolanaIdentityRoutes(app, service);
-  return { store, service };
+  const sessionService = new SolanaSessionService({
+    cluster: (process.env.SOLANA_CLUSTER as "mainnet-beta" | "devnet" | "testnet" | "localnet") || "devnet",
+    productName: process.env.CLAW_IDENTITY_APP_NAME || "CLAW MACHINE",
+  });
+
+  registerSolanaIdentityRoutes(app, service, sessionService);
+  return { store, service, sessionService };
 }

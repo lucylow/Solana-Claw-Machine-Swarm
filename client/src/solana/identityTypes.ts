@@ -85,13 +85,20 @@ export interface SolanaSkillSummary {
   walletAddress?: string;
   slug?: string;
   name: string;
+  category?: string;
+  language?: string;
   version: string;
   description: string;
   status: "active" | "inactive" | "draft";
   usageCount: number;
+  successCount?: number;
+  failureCount?: number;
+  avgReflectionQualityBps?: number;
   score: number;
   tags: string[];
   versionCount?: number;
+  publishedVersionCount?: number;
+  verifiedAuthorshipCount?: number;
   activeVersionPda?: string;
   accounts?: SolanaAccountPointers;
   versions?: SolanaSkillVersionSummary[];
@@ -153,13 +160,81 @@ export interface SolanaReputationAccount {
   memoryAnchorCount: number;
   plannerRunCount: number;
   deploymentCount: number;
+  publishedSkillCount: number;
+  publishedVersionCount: number;
+  verifiedAuthorshipCount: number;
   trustScoreBps: number;
+  discoveryScoreBps: number;
+  reflectionQualitySumBps: number;
+  avgReflectionQualityBps: number;
   totalRewardPoints: number;
-  lastEventKind: "memory_anchor" | "planner_run" | "deployment" | "other";
+  lastEventKind:
+    | "memory_anchor"
+    | "planner_run"
+    | "deployment"
+    | "skill_publish"
+    | "skill_version"
+    | "verified_authorship"
+    | "other";
   lastEventRef: string;
   lastEventAt: number;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface SolanaDiscoveryRow {
+  skillAddress: string;
+  owner: string;
+  profile: string;
+  slug: string;
+  name: string;
+  category: string;
+  language: string;
+  tags: string[];
+  contentHash?: string;
+  versionCount: number;
+  latestVersionIndex: number;
+  usageCount: number;
+  successCount: number;
+  failureCount: number;
+  avgReflectionQualityBps: number;
+  trustScoreBps: number;
+  discoveryScoreBps: number;
+  signalCount: number;
+  lastRank: number;
+  updatedAt: number;
+}
+
+export interface SolanaDiscoveryProfile {
+  walletAddress: string;
+  profileAddress: string;
+  usageCount: number;
+  successCount: number;
+  failureCount: number;
+  memoryAnchorCount: number;
+  plannerRunCount: number;
+  deploymentCount: number;
+  publishedSkillCount: number;
+  publishedVersionCount: number;
+  verifiedAuthorshipCount: number;
+  trustScoreBps: number;
+  discoveryScoreBps: number;
+  avgReflectionQualityBps: number;
+  totalRewardPoints: number;
+  lastEventKind: SolanaReputationAccount["lastEventKind"];
+  lastEventRef: string;
+  lastEventAt: number;
+}
+
+export interface SolanaDiscoveryFilter {
+  query?: string;
+  tag?: string;
+  category?: string;
+  language?: string;
+  minTrustBps?: number;
+  minDiscoveryBps?: number;
+  minUsage?: number;
+  verifiedOnly?: boolean;
 }
 
 export interface SolanaIdentityBundle {
