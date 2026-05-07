@@ -1,4 +1,9 @@
-import type { OpenClawBridgeReceipt, OpenClawBridgeStatus, OpenClawSkillManifest } from "@shared/openclaw/types";
+import type {
+  OpenClawBridgeReceipt,
+  OpenClawBridgeSession,
+  OpenClawReceiptBridgeTier,
+  OpenClawSkillManifest,
+} from "@shared/openclaw/types";
 
 export interface ClawSkillAsset {
   skillId: string;
@@ -11,7 +16,11 @@ export interface ClawSkillAsset {
 }
 
 export interface OpenClawBridgeState {
-  status: OpenClawBridgeStatus;
+  tier: OpenClawReceiptBridgeTier;
+  mode: OpenClawBridgeSession["mode"];
+  connected: boolean;
+  lastSyncAt?: number;
+  lastError?: string;
   manifests: OpenClawSkillManifest[];
   receipts: OpenClawBridgeReceipt[];
 }

@@ -1,4 +1,5 @@
 import { StoryLoopRail } from "@/components/command-center/StoryLoopRail";
+import { SolanaWalletPanel } from "@/components/solana/SolanaWalletPanel";
 import { Button } from "@/components/ui/button";
 import { ZeroGBridgeCard } from "@/components/zerog/ZeroGBridgeCard";
 import { ZeroGHealthBanner } from "@/components/zerog/ZeroGHealthBanner";
@@ -42,6 +43,7 @@ import {
   ChevronRight,
   Cpu,
   Database,
+  Home,
   FileCode2,
   Globe,
   Link2,
@@ -59,6 +61,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
+import { Link } from "wouter";
 
 const SIDEBAR: Array<{ id: SwarmSectionId; label: string; icon: ComponentType<{ className?: string }> }> = [
   { id: "product-loop", label: "Solana loop", icon: Orbit },
@@ -283,47 +286,60 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_16%_2%,rgba(59,255,150,0.12),transparent_32%),radial-gradient(circle_at_96%_26%,rgba(59,205,255,0.08),transparent_32%)]" />
 
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/75 backdrop-blur">
-        <div className="container flex flex-wrap items-center justify-between gap-3 py-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#3bff96]" />
-            <div>
-              <h1 className="text-lg font-semibold md:text-xl">Solana agent command center</h1>
-              <p className="text-[11px] text-slate-500">
-                Backend orchestration · Solana proof layer · off-chain narrative — wallet → skill → run → reflection → memory → receipt
-              </p>
+        <div className="container flex flex-col gap-3 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-2">
+              <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#3bff96]" aria-hidden />
+              <div className="min-w-0">
+                <h1 className="text-lg font-semibold md:text-xl">Solana agent command center</h1>
+                <p className="text-[11px] text-slate-500">
+                  Backend orchestration · Solana proof layer · off-chain narrative — wallet → skill → run → reflection → memory → receipt
+                </p>
+              </div>
             </div>
+            <Link
+              href="/"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/15 bg-black/35 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3bff96]/50"
+            >
+              <Home className="h-3.5 w-3.5 text-[#6ae8c9]" aria-hidden />
+              Back to landing
+            </Link>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+          <div
+            className="-mx-1 flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overflow-y-hidden pb-1 text-xs [scrollbar-color:rgba(59,255,150,0.35)_transparent] [scrollbar-width:thin]"
+            role="status"
+            aria-label="Runtime status"
+          >
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               wallet: {walletAddress ? `${walletAddress.slice(0, 5)}...${walletAddress.slice(-5)}` : "preview"}
             </span>
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               session: {wallet.state}
             </span>
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               expires: {formatSessionExpiry(session.sessionProfile?.expiresAt)}
             </span>
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               network: {runtime.cluster} · epoch {runtime.ecosystem.currentEpoch}
             </span>
-            <span className="rounded-md border border-[#3bff96]/40 bg-[#3bff96]/10 px-2 py-1 text-[#c7ffdf]">
+            <span className="shrink-0 rounded-md border border-[#3bff96]/40 bg-[#3bff96]/10 px-2 py-1 text-[#c7ffdf]">
               autonomy: {runtime.autonomyLevel.replaceAll("_", " ")}
             </span>
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               active agents: {runtime.activeAgents}
             </span>
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               proof status: {runtime.proofCompletionRate}%
             </span>
-            <span className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
+            <span className="shrink-0 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-slate-300">
               memory growth: +{runtime.memoryGrowth}
             </span>
-            <span className="rounded-md border border-[#78f4e1]/40 bg-[#78f4e1]/10 px-2 py-1 text-[#ccfff9]">
+            <span className="shrink-0 rounded-md border border-[#78f4e1]/40 bg-[#78f4e1]/10 px-2 py-1 text-[#ccfff9]">
               0G: {liveZeroGHealth?.statusLabel || `${runtime.zeroGStatus.mode} / ${runtime.zeroGStatus.storageStatus}`}
             </span>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-md border px-2 py-1",
+                "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1",
                 liveIndicator
                   ? "border-[#3bff96]/40 bg-[#3bff96]/10 text-[#c7ffdf]"
                   : "border-white/10 bg-black/40 text-slate-300"
@@ -335,7 +351,7 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
             <Button
               size="sm"
               variant="outline"
-              className="border-[#3bff96]/60 text-[#c7ffdf]"
+              className="shrink-0 border-[#3bff96]/60 text-[#c7ffdf]"
               onClick={() => wallet.connectAndVerify().catch(() => undefined)}
             >
               {session.isVerified ? "Refresh session" : "Connect + verify"}
@@ -346,12 +362,13 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
 
       <div className="container py-6">
         <div className="grid gap-4 lg:grid-cols-[250px_1fr]">
-          <aside className="space-y-2 lg:sticky lg:top-24 lg:h-fit">
+          <aside className="space-y-2 lg:sticky lg:top-32 lg:h-fit">
             {SIDEBAR.map(item => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setSection(item.id)}
+                aria-current={section === item.id ? "true" : undefined}
                 className={cn(
                   "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition",
                   section === item.id
@@ -372,6 +389,7 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
             {section === "product-loop" ? (
               <>
                 <StoryLoopRail activeIndex={loopStep} labels={STORY_LOOP_LABELS} />
+                <SolanaWalletPanel />
                 <Panel className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>

@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { formatSessionExpiry, formatSolBalance, shortenAddress } from "./format";
+import { formatSessionExpiry, formatSol, formatSolBalance, shortenAddress } from "./format";
 
 describe("solana format helpers", () => {
   it("shortens addresses predictably", () => {
-    expect(shortenAddress("ABCDE12345FGHIJ", 4, 4)).toBe("ABCD...GHIJ");
+    expect(shortenAddress("ABCDE12345FGHIJ", 4, 4)).toBe("ABCD…GHIJ");
   });
 
   it("formats balance values", () => {
     expect(formatSolBalance(1.234567)).toBe("1.2346 SOL");
     expect(formatSolBalance(null)).toBe("-- SOL");
+  });
+
+  it("formats lamports to SOL string", () => {
+    expect(formatSol(1_000_000_000n)).toBe("1.0000 SOL");
+    expect(formatSol("1500000000")).toBe("1.5000 SOL");
   });
 
   it("formats session expiry labels", () => {

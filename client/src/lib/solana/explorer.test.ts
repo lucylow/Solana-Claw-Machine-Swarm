@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { addressExplorerUrl, createSolanaExplorerUrl, txExplorerUrl } from "./explorer";
+import {
+  addressExplorerUrl,
+  buildExplorerTxUrl,
+  createSolanaExplorerUrl,
+  txExplorerUrl,
+} from "./explorer";
 
 describe("solana explorer helpers", () => {
   it("builds transaction explorer urls", () => {
     const url = txExplorerUrl("5w7Xsig");
     expect(url).toContain("/tx/5w7Xsig");
     expect(url).toContain("cluster=devnet");
+  });
+
+  it("buildExplorerTxUrl mirrors tx helper", () => {
+    expect(buildExplorerTxUrl("sig123", "testnet")).toContain("cluster=testnet");
   });
 
   it("builds address explorer urls with cluster override", () => {

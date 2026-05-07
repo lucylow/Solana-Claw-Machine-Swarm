@@ -9,3 +9,9 @@ export async function loadWalletBalance(connection: Connection, walletAddress?: 
   const lamports = await connection.getBalance(walletAddress);
   return lamports / 1_000_000_000;
 }
+
+export async function loadWalletBalanceLamports(connection: Connection, walletAddress?: PublicKey | null) {
+  if (!walletAddress) return 0n;
+  const lamports = await connection.getBalance(walletAddress);
+  return BigInt(lamports);
+}

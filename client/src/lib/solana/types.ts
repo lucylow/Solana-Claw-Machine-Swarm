@@ -1,45 +1,34 @@
-export type SolanaCluster = "mainnet-beta" | "devnet" | "testnet" | "localnet";
+/**
+ * Client-side re-exports of canonical Solana types + narrow UI aliases.
+ */
+export type {
+  AgentOrchestrationPlanReceipt,
+  SessionNonceResponse,
+  SessionVerifyRequest,
+  SessionVerifyResponse,
+  SkillAsset,
+  SolanaCluster,
+  SolanaSessionPermissions,
+  SolanaSessionProfile,
+  SolanaTxRecord,
+  SolanaWalletState,
+  WalletConnectionStatus,
+} from "@shared/solana/types";
 
-export type SolanaWalletMachineState =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "signing"
-  | "session_verifying"
-  | "session_verified"
-  | "wrong_cluster"
-  | "balance_loading"
-  | "ready"
-  | "error";
+export type { MemoryRecord, ReflectionRecord } from "@shared/domainModel";
 
-export interface SolanaSessionPermissions {
-  canPublishSkills: boolean;
-  canRunTasks: boolean;
-  canWriteMemory: boolean;
-  canAnchorProofs: boolean;
-  canBridgeOpenClaw: boolean;
-}
-
-export interface SolanaSessionProfile {
-  walletAddress: string;
-  cluster: SolanaCluster;
-  displayName: string;
-  verifiedAt: number;
-  expiresAt: number;
-  nonceId: string;
-  sessionId: string;
-  permissions: SolanaSessionPermissions;
-}
+/** Same as WalletConnectionStatus — legacy name used by wallet context */
+export type SolanaWalletMachineState = import("@shared/solana/types").WalletConnectionStatus;
 
 export interface SolanaSessionNonce {
   nonceId: string;
   nonce: string;
   message: string;
   expiresAt: number;
-  cluster: SolanaCluster;
+  cluster: import("@shared/solana/types").SolanaCluster;
 }
 
 export interface SolanaSessionStatus {
   token: string | null;
-  profile: SolanaSessionProfile | null;
+  profile: import("@shared/solana/types").SolanaSessionProfile | null;
 }

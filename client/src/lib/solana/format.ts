@@ -1,7 +1,21 @@
+export function shortAddress(address: string, left = 4, right = 4) {
+  return shortenAddress(address, left, right);
+}
+
 export function shortenAddress(address?: string | null, left = 4, right = 4) {
   if (!address) return "n/a";
   if (address.length <= left + right + 3) return address;
-  return `${address.slice(0, left)}...${address.slice(-right)}`;
+  return `${address.slice(0, left)}…${address.slice(-right)}`;
+}
+
+export function formatSol(balanceLamports: string | number | bigint, precision = 4): string {
+  const lamports =
+    typeof balanceLamports === "bigint"
+      ? balanceLamports
+      : BigInt(Math.floor(Number(balanceLamports)));
+  const sol = Number(lamports) / 1e9;
+  if (!Number.isFinite(sol)) return "0 SOL";
+  return `${sol.toFixed(precision)} SOL`;
 }
 
 export function formatSolBalance(value?: number | null) {

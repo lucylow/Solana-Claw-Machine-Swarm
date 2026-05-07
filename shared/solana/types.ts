@@ -1,6 +1,7 @@
 export type SolanaCluster = "mainnet-beta" | "devnet" | "testnet" | "localnet";
 
-export type SolanaWalletState =
+/** Wallet ↔ RPC session machine states (canonical). */
+export type SolanaConnectionStatus =
   | "disconnected"
   | "connecting"
   | "connected"
@@ -12,6 +13,9 @@ export type SolanaWalletState =
   | "ready"
   | "error";
 
+/** @deprecated Use SolanaConnectionStatus — preserved for incremental migration */
+export type SolanaWalletMachineState = SolanaConnectionStatus;
+
 export interface SolanaTxRecord {
   signature: string;
   slot?: number;
@@ -19,6 +23,37 @@ export interface SolanaTxRecord {
   cluster: SolanaCluster;
   explorerUrl?: string;
   createdAt: number;
+}
+
+/** Wallet-derived snapshot for UI + RPC alignment (canonical). */
+export interface SolanaWalletState {
+  connected: boolean;
+  connectionStatus: SolanaConnectionStatus;
+  publicKey: string | null;
+  walletName: string | null;
+  cluster: SolanaCluster;
+  rpcUrl: string;
+  explorerBaseUrl: string;
+  balanceLamports: string | null;
+  balanceSol: string | null;
+  isBalanceLoading: boolean;
+  isSessionLoading: boolean;
+  isSessionVerified: boolean;
+  sessionStatus: "none" | "pending" | "verified" | "expired" | "rejected" | "error";
+  sessionToken?: string;
+  sessionNonce?: string;
+  lastTxSignature?: string;
+  lastSignatureAt?: string;
+  lastSessionAt?: string;
+  permissions: {
+    canPublishSkill: boolean;
+    canExecuteTask: boolean;
+    canAnchorReceipt: boolean;
+    canSignSession: boolean;
+    canViewChainData: boolean;
+  };
+  txHistory: SolanaTxRecord[];
+  diagnostics: Record<string, unknown>;
 }
 
 export interface SolanaSessionPermissions {
@@ -57,6 +92,32 @@ export interface SessionVerifyRequest {
 export interface SessionVerifyResponse {
   token: string;
   profile: SolanaSessionProfile;
+}
+
+/** Canonical mirrored receipt row shown across explorer surfaces */
+export interface SolanaReceiptRecord {
+  id: string;
+  type:
+    | "skill"
+    | "plan"
+    | "execution"
+    | "reflection"
+    | "memory"
+    | "proof"
+    | "zerog_upload"
+    | "zerog_da_batch";
+  subjectId: string;
+  wallet: string;
+  cluster: SolanaCluster;
+  txSignature?: string;
+  account?: string;
+  summaryHash: string;
+  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
+  createdAt: string;
+  explorerUrl?: string;
+  storageRef?: string;
+  proofRef?: string;
+  daRoot?: string;
 }
 
 export interface ReceiptRecordBase {

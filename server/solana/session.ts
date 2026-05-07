@@ -38,11 +38,11 @@ function randomId(prefix: string, size = 12) {
 
 function defaultPermissions(): SolanaSessionPermissions {
   return {
-    canPublishSkills: true,
-    canRunTasks: true,
-    canWriteMemory: true,
-    canAnchorProofs: true,
-    canBridgeOpenClaw: true,
+    canPublishSkill: true,
+    canExecuteTask: true,
+    canAnchorReceipt: true,
+    canSignSession: true,
+    canViewChainData: true,
   };
 }
 
@@ -74,13 +74,12 @@ export class SolanaSessionService {
     const nonce = crypto.randomBytes(16).toString("hex");
     const issuedAtIso = new Date(issuedAt).toISOString();
     const message = [
-      `${this.productName} Solana Session`,
+      `${this.productName.toUpperCase()} Solana session verification`,
       `Wallet: ${normalizedWallet}`,
       `Cluster: ${this.cluster}`,
-      "Purpose: Session verification for command center access",
+      "Purpose: authorize skill publishing, agent execution, and receipt anchoring",
       `Nonce: ${nonce}`,
       `Timestamp: ${issuedAtIso}`,
-      `URI: /api/solana/session/verify`,
     ].join("\n");
 
     this.nonceStore.set(nonceId, {

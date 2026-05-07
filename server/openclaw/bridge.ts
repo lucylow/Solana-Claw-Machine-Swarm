@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import type { Express } from "express";
-import type { OpenClawBridgeReceipt, OpenClawSkillManifest } from "@shared/openclaw/types";
+import type { OpenClawBridgeReceipt, OpenClawBridgeSession, OpenClawSkillManifest } from "@shared/openclaw/types";
 import type { ClawSkillAsset, OpenClawBridgeState } from "./types";
 
 function hashJson(value: unknown) {
@@ -13,7 +13,9 @@ function receiptId() {
 
 export class OpenClawBridgeService {
   private readonly state: OpenClawBridgeState = {
-    status: "verified",
+    tier: "verified",
+    mode: "idle",
+    connected: true,
     manifests: [],
     receipts: [],
   };
@@ -26,15 +28,36 @@ export class OpenClawBridgeService {
     return [...this.state.receipts].sort((a, b) => b.timestamp - a.timestamp);
   }
 
+  /** Compact counters for health checks */
   getStatus() {
     return {
-      status: this.state.status,
+      tier: this.state.tier,
+      mode: this.state.mode,
+      connected: this.state.connected,
       manifestCount: this.state.manifests.length,
       receiptCount: this.state.receipts.length,
+      lastSyncAt: this.state.lastSyncAt,
+      lastError: this.state.lastError,
+    };
+  }
+
+  /** Command-center bridge panel */
+  getBridgeSession(): OpenClawBridgeSession {
+    const imported = this.state.receipts.filter(r => r.direction === "import").length;
+    const exported = this.state.receipts.filter(r => r.direction === "export").length;
+    return {
+      connected: this.state.connected && this.state.tier !== "unavailable",
+      mode: this.state.mode,
+      lastSyncAt: this.state.lastSyncAt ? new Date(this.state.lastSyncAt).toISOString() : undefined,
+      lastError: this.state.lastError,
+      importedCount: imported,
+      exportedCount: exported,
     };
   }
 
   importManifest(manifest: OpenClawSkillManifest, wallet: string) {
+    this.state.mode = "import";
+    this.state.lastError = undefined;
     const manifestHash = hashJson(manifest);
     const next = {
       ...manifest,
@@ -48,7 +71,7 @@ export class OpenClawBridgeService {
     const receipt: OpenClawBridgeReceipt = {
       id: receiptId(),
       direction: "import",
-      bridgeStatus: this.state.status,
+      bridgeStatus: this.state.tier,
       sourceFormat: "openclaw",
       targetFormat: "claw",
       skillId: next.skillId,
@@ -57,10 +80,14 @@ export class OpenClawBridgeService {
       timestamp: Date.now(),
     };
     this.state.receipts.unshift(receipt);
+    this.state.lastSyncAt = Date.now();
+    this.state.mode = "idle";
     return { manifest: next, receipt };
   }
 
   exportSkill(skill: ClawSkillAsset): { manifest: OpenClawSkillManifest; receipt: OpenClawBridgeReceipt } {
+    this.state.mode = "export";
+    this.state.lastError = undefined;
     const manifest: OpenClawSkillManifest = {
       manifestVersion: "1.0",
       skillId: skill.skillId,
@@ -79,7 +106,7 @@ export class OpenClawBridgeService {
     const receipt: OpenClawBridgeReceipt = {
       id: receiptId(),
       direction: "export",
-      bridgeStatus: this.state.status,
+      bridgeStatus: this.state.tier,
       sourceFormat: "claw",
       targetFormat: "openclaw",
       skillId: skill.skillId,
@@ -88,13 +115,27 @@ export class OpenClawBridgeService {
       timestamp: Date.now(),
     };
     this.state.receipts.unshift(receipt);
+    this.state.lastSyncAt = Date.now();
+    this.state.mode = "idle";
     return { manifest, receipt };
+  }
+
+  /** Demo / degraded simulation */
+  setBridgeHealth(input: Partial<Pick<OpenClawBridgeState, "tier" | "connected" | "mode" | "lastError">>) {
+    if (input.tier !== undefined) this.state.tier = input.tier;
+    if (input.connected !== undefined) this.state.connected = input.connected;
+    if (input.mode !== undefined) this.state.mode = input.mode;
+    if (input.lastError !== undefined) this.state.lastError = input.lastError;
   }
 }
 
 export function registerOpenClawBridgeRoutes(app: Express, service: OpenClawBridgeService) {
   app.get("/api/openclaw/status", (_req, res) => {
     res.json({ ok: true, data: service.getStatus() });
+  });
+
+  app.get("/api/openclaw/bridge", (_req, res) => {
+    res.json({ ok: true, data: service.getBridgeSession() });
   });
 
   app.get("/api/openclaw/manifests", (_req, res) => {
@@ -130,4 +171,3 @@ export function registerOpenClawBridgeRoutes(app: Express, service: OpenClawBrid
     }
   });
 }
-

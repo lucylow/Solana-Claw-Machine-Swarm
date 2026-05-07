@@ -1,5 +1,18 @@
-import { SOLANA_SESSION_STORAGE_KEY } from "./config";
+import { CLAW_PRODUCT_NAME, SOLANA_SESSION_STORAGE_KEY } from "./config";
+import type { SolanaCluster } from "./types";
 import type { SolanaSessionNonce, SolanaSessionStatus } from "./types";
+
+/** Human-readable preview matching server `SolanaSessionService.issueNonce` format */
+export function buildSessionSignPreview(wallet: string, cluster: SolanaCluster, nonce: string, isoTimestamp: string) {
+  return [
+    `${CLAW_PRODUCT_NAME.toUpperCase()} Solana session verification`,
+    `Wallet: ${wallet}`,
+    `Cluster: ${cluster}`,
+    "Purpose: authorize skill publishing, agent execution, and receipt anchoring",
+    `Nonce: ${nonce}`,
+    `Timestamp: ${isoTimestamp}`,
+  ].join("\n");
+}
 
 type SessionResponse = { ok: boolean; data?: SolanaSessionStatus; error?: string };
 

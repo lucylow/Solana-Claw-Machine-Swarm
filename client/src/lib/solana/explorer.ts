@@ -12,6 +12,14 @@ export function createSolanaExplorerUrl(
   return `${SOLANA_EXPLORER_BASE}/${path}/${safe}?cluster=${cluster}`;
 }
 
+export function buildExplorerTxUrl(signature: string, cluster: SolanaCluster): string {
+  return createSolanaExplorerUrl("tx", signature, cluster);
+}
+
+export function buildExplorerAddressUrl(address: string, cluster: SolanaCluster): string {
+  return createSolanaExplorerUrl("address", address, cluster);
+}
+
 export function txExplorerUrl(signature?: string | null, cluster: SolanaCluster = SOLANA_CLUSTER) {
   if (!signature) return "";
   return createSolanaExplorerUrl("tx", signature, cluster);

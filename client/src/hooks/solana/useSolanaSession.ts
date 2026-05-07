@@ -11,8 +11,11 @@ export function useSolanaSession() {
       hasSession: Boolean(wallet.sessionProfile && wallet.sessionToken),
       sessionExpiresLabel: formatSessionExpiry(wallet.sessionProfile?.expiresAt),
       permissions: wallet.sessionProfile?.permissions,
-      isVerified: wallet.state === "session_verified" || wallet.state === "ready",
+      isVerified:
+        wallet.walletState.isSessionVerified ||
+        wallet.state === "session_verified" ||
+        wallet.state === "ready",
     }),
-    [wallet.sessionProfile, wallet.sessionToken, wallet.state]
+    [wallet.sessionProfile, wallet.sessionToken, wallet.state, wallet.walletState.isSessionVerified]
   );
 }

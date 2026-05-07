@@ -1,13 +1,32 @@
+import { SolanaReceiptPanel } from "@/components/solana/SolanaReceiptPanel";
+import { SolanaTxLifecycleCard } from "@/components/solana/SolanaTxLifecycleCard";
+import { SolanaWalletPanel } from "@/components/solana/SolanaWalletPanel";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSolanaSession } from "@/hooks/solana/useSolanaSession";
 import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
 import { addressExplorerUrl } from "@/lib/solana/explorer";
 import { formatSessionExpiry, shortenAddress } from "@/lib/solana/format";
 import { cn } from "@/lib/utils";
 import {
+  DEMO_AGENT_PLAN,
+  DEMO_CHAIN_RECEIPT,
+  DEMO_REFLECTION,
+  DEMO_SKILLS,
+  DEMO_WALLET_SNAPSHOT,
+} from "@shared/solana/demoCanonical";
+import {
   CLAW_AGENT_FLEET_ROLES,
-  CLAW_DEPLOYED_PROGRAMS,
   CLAW_DEMO_SCENARIOS,
+  CLAW_DEPLOYED_PROGRAMS,
   CLAW_EXECUTIVE_WEEKLY,
   CLAW_MARKETPLACE_ACTIVITY,
   CLAW_NARRATIVE,
@@ -18,31 +37,38 @@ import {
 } from "@shared/clawMachineMock";
 import {
   ArrowRight,
+  BookOpen,
   Bot,
   CheckCircle2,
+  ChevronDown,
   Cpu,
   Database,
   Gauge,
   GitBranch,
+  Image,
+  Landmark,
+  LayoutGrid,
   Link2,
   PlayCircle,
+  ReceiptText,
   ShieldCheck,
   Sparkles,
   Wallet,
 } from "lucide-react";
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const LOOP_STEPS = [
-  "Connect wallet",
-  "Discover skill (registry + reputation)",
-  "Choose skill",
-  "Run task (planner → fleet → coordinator)",
-  "Structured reflection",
-  "Memory off-chain",
-  "Anchor receipt on Solana",
-  "Reputation visible on next run",
+  "Connect Solana wallet",
+  "Discover skill in registry",
+  "Choose skill & verify autonomy band",
+  "Planner generates receipt-linked plan",
+  "Execute with policy gates",
+  "Reflect on failure",
+  "Write durable memory",
+  "Anchor compact receipt on Solana",
+  "Verify on explorer & compound reputation",
 ];
 
 const SWARM_RFB_ROWS = [
@@ -83,7 +109,12 @@ const AGENT_LANES = [
 
 function Panel({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={cn("rounded-2xl border border-white/10 bg-[#070b11]/90 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.45)]", className)}>
+    <div
+      className={cn(
+        "rounded-2xl border border-white/10 bg-[#070b11]/90 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] motion-safe:transition-shadow motion-safe:hover:shadow-[0_16px_48px_rgba(0,0,0,0.5)]",
+        className
+      )}
+    >
       {children}
     </div>
   );
@@ -99,52 +130,133 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
     <div className="min-h-screen bg-[#030507] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(36,208,170,0.17),transparent_35%),radial-gradient(circle_at_90%_20%,rgba(20,120,160,0.15),transparent_35%)]" />
 
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-black/70 backdrop-blur">
-        <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#3bff96]" />
+      <a
+        href="#main-content"
+        className="fixed left-4 top-4 z-[100] -translate-y-20 rounded-lg bg-[#3bff96] px-4 py-2 text-sm font-medium text-black opacity-0 shadow-lg transition focus:translate-y-0 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      >
+        Skip to main content
+      </a>
+
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-black/70 backdrop-blur-md supports-[backdrop-filter]:bg-black/55">
+        <div className="container flex min-h-14 flex-wrap items-center justify-between gap-3 py-3">
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2 rounded-lg text-left transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3bff96]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030507]"
+            aria-label="Claw Machine Swarm, scroll to top"
+          >
+            <Sparkles className="h-5 w-5 shrink-0 text-[#3bff96]" aria-hidden />
             <span className="font-semibold tracking-wide text-[#ddffe8]">CLAW_MACHINE · SWARM</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          </button>
+
+          <nav className="flex flex-wrap items-center justify-end gap-2" aria-label="Primary">
             <Button className="bg-[#3bff96] text-black hover:bg-[#6bffbc]" onClick={() => setLocation("/dashboard")}>
-              Open command center
+              Command center
             </Button>
             <Button
               variant="outline"
               className="border-[#3bff96]/60 text-[#b8ffe0]"
               onClick={() => wallet.connectAndVerify().catch(() => undefined)}
             >
-              {session.isVerified ? "Session verified" : "Connect Solana wallet"}
+              {session.isVerified ? "Solana session verified" : "Connect Solana wallet"}
             </Button>
-            <Button variant="outline" className="border-[#38d7d0]/40 text-[#9dfbf5]" onClick={() => setLocation("/demo/hub")}>
-              Mock demo hub
-            </Button>
-            <Button variant="outline" className="border-[#38d7d0]/40 text-[#9dfbf5]" onClick={() => setLocation("/dashboard")}>
-              Live demo loop
-            </Button>
-            <Button variant="outline" className="border-[#8ae8ff]/50 text-[#d4f7ff]" onClick={() => setLocation("/dao")}>
-              DAO
-            </Button>
-            <Button variant="outline" className="border-[#c49dff]/50 text-[#e8d9ff]" onClick={() => setLocation("/nft")}>
-              Solana NFTs
-            </Button>
-          </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1.5 border-white/25 text-slate-200">
+                  Explore
+                  <ChevronDown className="h-4 w-4 opacity-70" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="z-50 min-w-[14rem] rounded-xl border border-white/12 bg-[#0a1018] p-1 text-slate-100 shadow-xl"
+              >
+                <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-normal uppercase tracking-wider text-slate-500">
+                  Product
+                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/how-it-works")}
+                  >
+                    <BookOpen className="h-4 w-4 text-[#5ee4c7]" />
+                    How it works
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/skills")}
+                  >
+                    <LayoutGrid className="h-4 w-4 text-[#5ee4c7]" />
+                    Skills registry
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/receipts")}
+                  >
+                    <ReceiptText className="h-4 w-4 text-[#5ee4c7]" />
+                    Receipts
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/proofs")}
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#5ee4c7]" />
+                    Proof explorer
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/zerog")}
+                  >
+                    <Database className="h-4 w-4 text-[#5ee4c7]" />
+                    0G sidecar
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-normal uppercase tracking-wider text-slate-500">
+                  Demos &amp; apps
+                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/demo/hub")}
+                  >
+                    <PlayCircle className="h-4 w-4 text-[#5ee4c7]" />
+                    Mock demo hub
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/dao")}
+                  >
+                    <Landmark className="h-4 w-4 text-[#5ee4c7]" />
+                    DAO
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10 focus:text-white"
+                    onSelect={() => setLocation("/nft")}
+                  >
+                    <Image className="h-4 w-4 text-[#5ee4c7]" />
+                    Solana NFTs
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </nav>
         </div>
       </header>
 
-      <main className="container space-y-10 py-10 md:space-y-14 md:py-14">
+      <main id="main-content" className="container space-y-10 py-10 md:space-y-14 md:py-14">
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <Panel className="relative overflow-hidden">
             <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-[#30f7a2]/10 blur-3xl" />
-            <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">
-              Canteen × Colosseum Frontier · SWARM hackathon build
-            </p>
+            <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">Solana-first · OpenClaw-interoperable agent platform</p>
             <h1 className="mt-3 text-4xl font-semibold leading-tight md:text-6xl">
-              CLAW_MACHINE: Solana-native agent memory & coordination
+              Connect Solana wallet → choose skill → run task → reflect → write memory → anchor receipt → verify on explorer
             </h1>
             <p className="mt-4 max-w-2xl text-sm text-slate-300 md:text-base">
-              Every failure becomes structured reflection, durable memory, and a compact on-chain receipt. Skills are discoverable PDAs with
-              reputation—agents coordinate and prove work on Solana.
+              CLAW_MACHINE is a command center where the wallet is identity, skills are published assets with hashes and reputation, execution emits
+              receipts, reflections become durable memory (0G-ready), and compact proofs settle on Solana. Import and export OpenClaw manifests without
+              losing provenance.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {CLAW_TRACTION_PILLS.map(pill => (
@@ -156,13 +268,29 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
                 </span>
               ))}
             </div>
-            <div className="mt-4 rounded-xl border border-[#3bff96]/30 bg-[#08130f] p-3 text-xs text-[#d1ffe8]">
-              Wallet: {wallet.walletAddress ? shortenAddress(wallet.walletAddress, 8, 8) : "Not connected"} | Session:{" "}
-              {wallet.state} | {formatSessionExpiry(wallet.sessionProfile?.expiresAt)}
+            <div className="mt-4 rounded-xl border border-[#3bff96]/25 bg-[#08130f] p-4 text-[#d1ffe8]">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#87f7d0]/90">Session status</p>
+              <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+                <div>
+                  <dt className="text-slate-500">Wallet</dt>
+                  <dd className="mt-0.5 font-mono text-[11px] text-slate-100 tabular-nums sm:text-xs">
+                    {wallet.walletAddress ? shortenAddress(wallet.walletAddress, 6, 6) : "Not connected"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Session</dt>
+                  <dd className="mt-0.5 capitalize text-slate-100">{wallet.walletState.connectionStatus}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Expires</dt>
+                  <dd className="mt-0.5 text-slate-100">{formatSessionExpiry(wallet.sessionProfile?.expiresAt)}</dd>
+                </div>
+              </dl>
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Button className="bg-[#3bff96] text-black hover:bg-[#6bffbc]" onClick={() => setLocation("/dashboard")}>
-                Connect &amp; run command center
+                <PlayCircle className="mr-2 h-4 w-4" aria-hidden />
+                Run the live demo
               </Button>
               <Button
                 variant="outline"
@@ -171,13 +299,15 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
               >
                 {session.isVerified ? "Refresh signed session" : "Connect wallet + sign session"}
               </Button>
-              <Button variant="outline" className="border-white/20 text-white" onClick={() => setLocation("/dashboard")}>
-                <PlayCircle className="mr-1.5 h-4 w-4 text-[#40e9d8]" />
-                SWARM demo: full loop
-              </Button>
+              <Link
+                href="/demo/hub"
+                className="text-center text-sm text-[#7dccb8] underline-offset-4 hover:text-[#b8ffe0] hover:underline sm:text-left"
+              >
+                Prefer fixtures? Open mock demo hub →
+              </Link>
             </div>
             {!isAuthenticated ? (
-              <p className="mt-4 text-xs text-amber-200">
+              <p className="mt-4 text-xs text-amber-200/95">
                 Sign in to bind runs to your wallet, stream memory writes, and surface Solana-anchored receipts in the inspector.
               </p>
             ) : null}
@@ -185,8 +315,9 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
               <div className="mt-3">
                 <Button
                   variant="outline"
+                  size="sm"
                   className="border-cyan-500/40 text-cyan-200"
-                  onClick={() => window.open(addressExplorerUrl(wallet.walletAddress), "_blank")}
+                  onClick={() => window.open(addressExplorerUrl(wallet.walletAddress), "_blank", "noopener,noreferrer")}
                 >
                   View wallet on Solana Explorer
                 </Button>
@@ -197,13 +328,14 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
           <Panel className="space-y-3">
             <p className="text-xs uppercase tracking-[0.16em] text-[#8ceada]">One loop, one story for judges</p>
             {[
-              { id: "wallet", label: "Wallet", hint: "identity + session" },
-              { id: "skill", label: "Skill discovery", hint: "PDA sort by rep" },
-              { id: "plan", label: "Plan", hint: "planner → workers" },
-              { id: "execution", label: "Execute", hint: "cluster time" },
-              { id: "reflection", label: "Reflect", hint: "on failure" },
-              { id: "memory", label: "Memory", hint: "off-chain + link" },
-              { id: "receipt", label: "Receipt", hint: "Solana anchor" },
+              { id: "wallet", label: "Solana wallet", hint: "identity + session" },
+              { id: "skill", label: "Skill registry", hint: "published asset" },
+              { id: "plan", label: "Plan receipt", hint: "hashes + linkage" },
+              { id: "execution", label: "Execute", hint: "agent timeline" },
+              { id: "reflection", label: "Reflect", hint: "structured critique" },
+              { id: "memory", label: "Memory", hint: "off-chain / 0G" },
+              { id: "receipt", label: "Solana receipt", hint: "explorer proof" },
+              { id: "openclaw", label: "OpenClaw bridge", hint: "import / export" },
             ].map((node, idx) => (
               <div key={node.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm">
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#3bff96]/60 text-[10px] text-[#adffd6]">
@@ -217,6 +349,68 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
               Autonomy score after memory reuse: 62 → 66 → 74 (mock progression)
             </div>
           </Panel>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold md:text-3xl">Solana wallet command surface</h2>
+          <p className="max-w-3xl text-sm text-slate-400">
+            Connect with Phantom or Solflare, sign the human-readable session message, refresh balances against your RPC, and watch receipts accumulate.
+            Fixtures below show the fully-articulated demo arc before live anchoring.
+          </p>
+          <SolanaWalletPanel />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <SolanaTxLifecycleCard status={wallet.walletState.connectionStatus} />
+            <SolanaReceiptPanel receipts={[DEMO_CHAIN_RECEIPT, ...wallet.txHistory]} />
+            <Panel className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">OpenClaw interoperability</p>
+              <p className="text-sm text-slate-200">
+                Import OpenClaw manifests as CLAW skills with author wallets and hashes preserved; export CLAW skills back to OpenClaw-compatible JSON.
+                Bridge receipts land beside Solana proof rows.
+              </p>
+              <Button className="bg-[#3bff96] text-black hover:bg-[#6bffbc]" onClick={() => setLocation("/dashboard")}>
+                Open command center bridge
+              </Button>
+            </Panel>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Fixture · registry skill asset</p>
+              <p className="text-lg font-semibold text-white">{DEMO_SKILLS[0]?.name}</p>
+              <p className="text-sm text-slate-400">{DEMO_SKILLS[0]?.description}</p>
+              <div className="flex flex-wrap gap-2 text-[11px] text-[#9cf6d8]">
+                <span>author {shortenAddress(DEMO_SKILLS[0]!.authorWallet, 4, 4)}</span>
+                <span>{DEMO_SKILLS[0]?.contentHash}</span>
+                <span>OpenClaw compatible</span>
+              </div>
+            </Panel>
+            <Panel className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Fixture · orchestration plan receipt</p>
+              <p className="text-sm text-slate-200">{DEMO_AGENT_PLAN.summary}</p>
+              <p className="text-[11px] text-slate-500">
+                Plan hash {DEMO_AGENT_PLAN.planHash} ·{" "}
+                <a
+                  className="text-[#7fe9cf] underline-offset-4 hover:underline"
+                  href={`https://explorer.solana.com/tx/${DEMO_AGENT_PLAN.solana?.txSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  verify anchor tx
+                </a>
+              </p>
+            </Panel>
+            <Panel className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Fixture · reflection</p>
+              <p className="text-sm text-slate-200">{DEMO_REFLECTION.summary}</p>
+              <p className="text-[11px] text-slate-500">Next action · {DEMO_REFLECTION.nextAction}</p>
+            </Panel>
+            <Panel className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Fixture · demo signer</p>
+              <p className="font-mono text-sm text-[#c9ffe8]">{shortenAddress(DEMO_WALLET_SNAPSHOT.publicKey, 6, 6)}</p>
+              <p className="text-[11px] text-slate-500">
+                {DEMO_WALLET_SNAPSHOT.balanceSol} SOL · {DEMO_WALLET_SNAPSHOT.cluster}
+              </p>
+            </Panel>
+          </div>
         </section>
 
         <section className="space-y-4">
