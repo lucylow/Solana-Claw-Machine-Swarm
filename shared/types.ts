@@ -28,6 +28,9 @@ export {
 } from "./autonomy";
 export * from "./swarm";
 export * from "./commandCenterTimeline";
+export * from "./executionStory";
+export * from "./buildDemoExecutionRun";
+export * from "./demoUnifiedStoryPlayback";
 export * from "./solana/types";
 export * from "./openclaw/types";
 /** Canonical swarm / command-center model (imports may conflict with `./skills` / `./solana/types`). */
@@ -45,3 +48,25 @@ export type {
   SwarmExecuteResult,
   WalletSessionView,
 } from "./domainModel";
+export * from "./structuredReceipt";
+export * from "./proofTruth";
+export * from "./proof/integrity";
+export type {
+  DemoMode,
+  DemoNarrativeMode,
+  CommandReceiptRecord,
+  ExecutionRun,
+  ExecutionStage,
+  ExecutionStep,
+  ExecutionStoryPlaybackPatch,
+  StoryReflectionRecord,
+  TraceableMemoryRecord,
+  UnifiedStoryBeat,
+} from "./executionStory";
+export {
+  applyStoryPlayback,
+  getUnifiedStoryBeats,
+  RECOVERY_BEATS,
+  FAILURE_BEATS,
+  SUCCESS_BEATS,
+} from "./demoUnifiedStoryPlayback";

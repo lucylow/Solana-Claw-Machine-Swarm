@@ -12,6 +12,8 @@ import { ZeroGStorageService } from "./storage";
 import type { ZeroGStorageArtifact } from "./types";
 import { buildZeroGIntegrationStatus } from "./integrationSummary";
 import { createSidecarOrchestrator } from "./sidecarOrchestrator";
+import { createCanonicalBlobAdapter } from "./canonicalBlobAdapter";
+import { canonicalDaService } from "./canonicalDa";
 
 function ok(res: Response, data: unknown) {
   res.json({ ok: true, data });
@@ -202,7 +204,142 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
 
+  app.get("/api/zerog/status", async (_req, res) => {
+    try {
+      ok(res, await buildZeroGIntegrationStatus(module));
+    } catch (error) {
+      fail(res, error, 500);
+    }
+  });
+
+  const storageUploadSchema = z.object({
+    namespace: z.string().min(1),
+    contentType: z.string().default("application/json"),
+    payloadB64: z.string().min(1),
+    metadata: z.record(z.string(), z.string()).optional(),
+  });
+
+  const blobRefVerifySchema = z.object({
+    blobId: z.string(),
+    namespace: z.string(),
+    checksum: z.string(),
+    uri: z.string(),
+    sizeBytes: z.number(),
+    contentType: z.string(),
+    createdAt: z.string(),
+    status: z.enum(["not_stored", "stored", "retrieved", "failed", "degraded"]),
+  });
+
+  app.post("/api/zerog/storage/upload", async (req, res) => {
+    try {
+      const input = storageUploadSchema.parse(req.body ?? {});
+      const blobAdapter = createCanonicalBlobAdapter(module.store);
+      const data = Buffer.from(input.payloadB64, "base64");
+      ok(
+        res,
+        await blobAdapter.putBlob({
+          namespace: input.namespace,
+          contentType: input.contentType,
+          data: new Uint8Array(data),
+          metadata: input.metadata,
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+
+  app.post("/api/zerog/storage/verify", async (req, res) => {
+    try {
+      const ref = blobRefVerifySchema.parse(req.body?.ref ?? req.body ?? {});
+      const blobAdapter = createCanonicalBlobAdapter(module.store);
+      const verified = await blobAdapter.verifyBlob(ref);
+      ok(res, { verified, ref });
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+
   app.get("/api/zerog/storage/health", async (_req, res) => ok(res, await module.storage.getHealth()));
+
+  app.get("/api/zerog/storage/blob/:storageId", async (req, res) => {
+    try {
+      const id = decodeURIComponent(String(req.params.storageId));
+      const blobAdapter = createCanonicalBlobAdapter(module.store);
+      const bytes = await blobAdapter.getBlob(id);
+      ok(res, { bytesB64: Buffer.from(bytes).toString("base64"), ref: id });
+    } catch (error) {
+      fail(res, error, 404);
+    }
+  });
+
+  const daAppendSchema = z.object({
+    subjectType: z.string().min(1),
+    subjectId: z.string().min(1),
+    kind: z.string().min(1),
+    payloadHash: z.string().min(8),
+    blobRef: z.string().optional(),
+    wallet: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  });
+
+  const daBatchSchema = z.object({
+    batchType: z.string().min(1),
+    subjectType: z.string().min(1),
+    subjectId: z.string().optional(),
+    records: z.array(z.any()),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  });
+
+  app.post("/api/zerog/da/append", async (req, res) => {
+    try {
+      const input = daAppendSchema.parse(req.body ?? {});
+      ok(
+        res,
+        await canonicalDaService.appendRecord({
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          kind: input.kind,
+          payloadHash: input.payloadHash,
+          blobRef: input.blobRef,
+          wallet: input.wallet,
+          metadata: input.metadata,
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+
+  app.post("/api/zerog/da/batch", async (req, res) => {
+    try {
+      const input = daBatchSchema.parse(req.body ?? {});
+      ok(
+        res,
+        await canonicalDaService.appendBatch({
+          batchType: input.batchType,
+          subjectType: input.subjectType,
+          subjectId: input.subjectId,
+          records: input.records as import("@shared/zerog").ZeroGDaRecord[],
+          metadata: input.metadata,
+        })
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+
+  app.post("/api/zerog/da/verify", async (req, res) => {
+    try {
+      const rootHash = String(req.body?.rootHash ?? "").trim();
+      if (!rootHash) throw new Error("rootHash_required");
+      const verified = await canonicalDaService.verifyBatch(rootHash);
+      ok(res, { verified, rootHash });
+    } catch (error) {
+      fail(res, error);
+    }
+  });
+
   app.get("/api/zerog/compute/health", async (_req, res) => ok(res, await module.compute.getHealth()));
   app.get("/api/zerog/da/health", async (_req, res) => ok(res, await module.da.getHealth()));
   app.get("/api/zerog/bridge/health", async (_req, res) => ok(res, await module.bridge.getHealth()));
@@ -324,6 +461,18 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
   app.get("/api/zerog/da/records", (_req, res) => ok(res, module.store.listAvailability()));
+
+  /** Lookup append-only lineage row — path avoids shadowing `/api/zerog/da/records` and `/health`. */
+  app.get("/api/zerog/da/root/:rootHash", async (req, res) => {
+    try {
+      const rootHash = decodeURIComponent(String(req.params.rootHash));
+      const hit = canonicalDaService.listRecords().find(r => r.rootHash === rootHash);
+      if (!hit) return fail(res, "da_record_not_found", 404);
+      ok(res, hit);
+    } catch (error) {
+      fail(res, error, 404);
+    }
+  });
 
   app.get("/api/zerog/links", (_req, res) => ok(res, module.store.listLinks()));
   app.get("/api/zerog/receipts", (_req, res) => ok(res, module.store.listReceipts()));

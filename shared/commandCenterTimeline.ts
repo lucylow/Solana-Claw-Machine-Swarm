@@ -15,6 +15,8 @@ export interface CommandTimelineEvent {
     | "outcome"
     | "reflection"
     | "memory"
+    | "zerog_storage"
+    | "zerog_da"
     | "receipt"
     | "reputation"
     | "next";
@@ -35,8 +37,160 @@ export interface BuildCommandTimelineInput {
   lastExecutionStatus?: string;
   hasReflection: boolean;
   hasMemory: boolean;
+  zerogStored: boolean;
+  zerogDaCommitted: boolean;
   receiptAnchored: boolean;
   degraded?: boolean;
+}
+
+/** Outcome when using {@link buildCommandTimelineSafe}; `error` is set only if the primary build path threw. */
+export interface CommandTimelineSafeResult {
+  events: CommandTimelineEvent[];
+  error?: string;
+}
+
+function safeIsoTimestamp(): string {
+  try {
+    return new Date().toISOString();
+  } catch {
+    return "";
+  }
+}
+
+function clampNonNegativeInt(value: unknown, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.floor(n));
+}
+
+function safeOptionalTrimmedString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  try {
+    const s = typeof value === "string" ? value : String(value);
+    const t = s.trim();
+    return t.length > 0 ? t : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function truncateGoalSummary(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars) + "…";
+}
+
+/**
+ * Coerces partial or malformed runtime input (e.g. from React state) into a stable shape
+ * before building the timeline.
+ */
+export function normalizeBuildCommandTimelineInput(input: BuildCommandTimelineInput): BuildCommandTimelineInput {
+  return {
+    walletConnected: Boolean(input?.walletConnected),
+    sessionVerified: Boolean(input?.sessionVerified),
+    loopStep: clampNonNegativeInt(input?.loopStep, 0),
+    loopBusy: Boolean(input?.loopBusy),
+    hasReflection: Boolean(input?.hasReflection),
+    hasMemory: Boolean(input?.hasMemory),
+    zerogStored: Boolean(input?.zerogStored),
+    zerogDaCommitted: Boolean(input?.zerogDaCommitted),
+    receiptAnchored: Boolean(input?.receiptAnchored),
+    degraded: Boolean(input?.degraded),
+    activeSkillName: safeOptionalTrimmedString(input?.activeSkillName),
+    goalSummary: safeOptionalTrimmedString(input?.goalSummary),
+    lastExecutionStatus: safeOptionalTrimmedString(input?.lastExecutionStatus),
+  };
+}
+
+function fallbackTimelineEvents(errorDetail: string): CommandTimelineEvent[] {
+  const at = safeIsoTimestamp() || undefined;
+  const detail = errorDetail.length > 160 ? errorDetail.slice(0, 160) + "…" : errorDetail;
+  return [
+    {
+      id: "tl-wallet",
+      phase: "wallet",
+      label: "Solana wallet",
+      detail: "Timeline unavailable — invalid or unexpected input",
+      at,
+      status: "failed",
+    },
+    {
+      id: "tl-skill",
+      phase: "skill",
+      label: "Published skill",
+      detail: detail,
+      status: "pending",
+    },
+    {
+      id: "tl-plan",
+      phase: "plan",
+      label: "Plan",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-exec",
+      phase: "execute",
+      label: "Execute",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-outcome",
+      phase: "outcome",
+      label: "Outcome",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-reflection",
+      phase: "reflection",
+      label: "Reflection",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-memory",
+      phase: "memory",
+      label: "Memory",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-zg-storage",
+      phase: "zerog_storage",
+      label: "0G Storage",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-zg-da",
+      phase: "zerog_da",
+      label: "0G DA",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-receipt",
+      phase: "receipt",
+      label: "Solana receipt",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-reputation",
+      phase: "reputation",
+      label: "Trust",
+      detail: "—",
+      status: "pending",
+    },
+    {
+      id: "tl-next",
+      phase: "next",
+      label: "Verify",
+      detail: "Recover and reload",
+      status: "failed",
+    },
+  ];
 }
 
 function stepToStatuses(
@@ -49,57 +203,68 @@ function stepToStatuses(
   return busy ? "active" : "complete";
 }
 
-/** Maps StoryLoopRail step index (0–5) + execution outcome into a 10-stage chronology. */
+/** Maps StoryLoopRail step index + execution outcome into chronology incl. explicit 0G lanes. */
 export function buildCommandTimeline(input: BuildCommandTimelineInput): CommandTimelineEvent[] {
-  const now = new Date().toISOString();
-  const walletOk = input.walletConnected;
-  const s0 = !walletOk ? ("pending" as const) : input.sessionVerified ? ("complete" as const) : ("active" as const);
+  const normalized = normalizeBuildCommandTimelineInput(input);
+  const now = safeIsoTimestamp();
+  const walletOk = normalized.walletConnected;
+  const s0 = !walletOk ? ("pending" as const) : normalized.sessionVerified ? ("complete" as const) : ("active" as const);
 
-  const hasSkill = Boolean(input.activeSkillName);
+  const hasSkill = Boolean(normalized.activeSkillName);
   const skillStatus =
-    !walletOk || !input.sessionVerified
+    !walletOk || !normalized.sessionVerified
       ? ("pending" as const)
       : hasSkill
-        ? stepToStatuses(1, Math.max(input.loopStep, 1), input.loopBusy && input.loopStep === 1)
-        : input.loopStep >= 1
+        ? stepToStatuses(1, Math.max(normalized.loopStep, 1), normalized.loopBusy && normalized.loopStep === 1)
+        : normalized.loopStep >= 1
           ? ("active" as const)
           : ("pending" as const);
 
   const planStatus =
-    input.loopBusy && input.loopStep >= 2
+    normalized.loopBusy && normalized.loopStep >= 2
       ? ("active" as const)
-      : input.loopStep >= 3
+      : normalized.loopStep >= 3
         ? ("complete" as const)
-        : input.loopStep === 2 && !input.loopBusy
+        : normalized.loopStep === 2 && !normalized.loopBusy
           ? ("complete" as const)
           : ("pending" as const);
 
   const execStatus =
-    input.loopBusy && input.loopStep >= 3
+    normalized.loopBusy && normalized.loopStep >= 3
       ? ("active" as const)
-      : input.lastExecutionStatus && input.lastExecutionStatus !== "planning"
+      : normalized.lastExecutionStatus && normalized.lastExecutionStatus !== "planning"
         ? ("complete" as const)
         : ("pending" as const);
 
-  const outcomeFail = input.lastExecutionStatus === "failed";
-  const outcomeStatus = !input.lastExecutionStatus
+  const outcomeFail = normalized.lastExecutionStatus === "failed";
+  const outcomeStatus = !normalized.lastExecutionStatus
     ? ("pending" as const)
     : outcomeFail
       ? ("failed" as const)
       : ("complete" as const);
 
-  const reflStatus = input.hasReflection ? ("complete" as const) : outcomeFail ? ("pending" as const) : ("pending" as const);
-  const memStatus = input.hasMemory ? ("complete" as const) : input.hasReflection ? ("active" as const) : ("pending" as const);
-  const receiptStatus = input.receiptAnchored
+  const reflStatus = normalized.hasReflection ? ("complete" as const) : outcomeFail ? ("pending" as const) : ("pending" as const);
+  const memStatus = normalized.hasMemory ? ("complete" as const) : normalized.hasReflection ? ("active" as const) : ("pending" as const);
+  const zgStorageStatus =
+    normalized.zerogStored ? ("complete" as const) : normalized.hasMemory ? ("active" as const) : ("pending" as const);
+  const zgDaStatus =
+    normalized.zerogDaCommitted ? ("complete" as const) : normalized.zerogStored ? ("active" as const) : ("pending" as const);
+  const receiptStatus = normalized.receiptAnchored
     ? ("complete" as const)
-    : input.lastExecutionStatus === "verified" || input.lastExecutionStatus === "anchored"
+    : normalized.lastExecutionStatus === "verified" || normalized.lastExecutionStatus === "anchored"
       ? ("complete" as const)
-      : input.lastExecutionStatus
+      : normalized.lastExecutionStatus && normalized.loopStep >= 8
         ? ("active" as const)
         : ("pending" as const);
 
-  const repStatus = input.receiptAnchored || input.lastExecutionStatus === "verified" ? ("complete" as const) : ("pending" as const);
-  const nextStatus = input.degraded ? ("failed" as const) : repStatus === "complete" ? ("active" as const) : ("pending" as const);
+  const repStatus =
+    normalized.receiptAnchored || normalized.lastExecutionStatus === "verified" ? ("complete" as const) : ("pending" as const);
+  const nextStatus =
+    normalized.degraded ? ("failed" as const) : repStatus === "complete" && normalized.loopStep >= 9 ? ("active" as const) : ("pending" as const);
+
+  const goalSummaryDetail = normalized.goalSummary
+    ? truncateGoalSummary(normalized.goalSummary, 72)
+    : "Planner builds Solana-linked steps";
 
   return [
     {
@@ -107,18 +272,18 @@ export function buildCommandTimeline(input: BuildCommandTimelineInput): CommandT
       phase: "wallet",
       label: "Solana wallet",
       detail: walletOk
-        ? input.sessionVerified
+        ? normalized.sessionVerified
           ? "Verified Solana session"
           : "Awaiting Solana session verification"
         : "Connect Solana wallet",
-      at: now,
+      at: now || undefined,
       status: s0,
     },
     {
       id: "tl-skill",
       phase: "skill",
       label: "Published skill",
-      detail: input.activeSkillName ? `Active skill · ${input.activeSkillName}` : "Choose published skill asset",
+      detail: normalized.activeSkillName ? `Active skill · ${normalized.activeSkillName}` : "Choose published skill asset",
       status: skillStatus,
       proofRef: hasSkill ? "registry" : undefined,
     },
@@ -126,57 +291,95 @@ export function buildCommandTimeline(input: BuildCommandTimelineInput): CommandT
       id: "tl-plan",
       phase: "plan",
       label: "Plan",
-      detail: input.goalSummary ? input.goalSummary.slice(0, 72) + (input.goalSummary.length > 72 ? "…" : "") : "Planner builds Solana-linked steps",
+      detail: goalSummaryDetail,
       status: planStatus,
     },
     {
       id: "tl-exec",
       phase: "execute",
       label: "Execute",
-      detail: input.loopBusy ? "Solana execution timeline live" : input.lastExecutionStatus ? `Status · ${input.lastExecutionStatus}` : "Idle",
+      detail: normalized.loopBusy
+        ? "Solana execution timeline live"
+        : normalized.lastExecutionStatus
+          ? `Status · ${normalized.lastExecutionStatus}`
+          : "Idle",
       status: execStatus,
     },
     {
       id: "tl-outcome",
       phase: "outcome",
       label: "Outcome",
-      detail: outcomeFail ? "Recoverable failure (reflection path)" : input.lastExecutionStatus ? "Turn closed" : "—",
+      detail: outcomeFail
+        ? "Recoverable failure (reflection path)"
+        : normalized.lastExecutionStatus
+          ? "Turn closed"
+          : "—",
       status: outcomeStatus,
     },
     {
       id: "tl-reflection",
       phase: "reflection",
       label: "Reflection",
-      detail: input.hasReflection ? "Reflection created" : outcomeFail ? "Reflection pending" : "—",
+      detail: normalized.hasReflection ? "Reflection created" : outcomeFail ? "Reflection pending" : "—",
       status: reflStatus,
     },
     {
       id: "tl-memory",
       phase: "memory",
       label: "Memory",
-      detail: input.hasMemory ? "Memory written (offchain); proof refs on Solana" : "—",
+      detail: normalized.hasMemory ? "Memory written · narrative bound for sidecar persistence" : "—",
       status: memStatus,
+    },
+    {
+      id: "tl-zg-storage",
+      phase: "zerog_storage",
+      label: "0G Storage",
+      detail: normalized.zerogStored ? "Stored in 0G Storage (artifact body)" : "Awaiting canonical blob PUT",
+      status: zgStorageStatus,
+      proofRef: normalized.zerogStored ? "zerog://storage" : undefined,
+    },
+    {
+      id: "tl-zg-da",
+      phase: "zerog_da",
+      label: "0G DA",
+      detail: normalized.zerogDaCommitted ? "Committed to 0G DA (batch / lineage)" : "DA append pending",
+      status: zgDaStatus,
+      proofRef: normalized.zerogDaCommitted ? "zerog://da" : undefined,
     },
     {
       id: "tl-receipt",
       phase: "receipt",
       label: "Solana receipt",
-      detail: input.receiptAnchored ? "Anchored on Solana" : "Awaiting Solana anchor / signature",
+      detail: normalized.receiptAnchored ? "Anchored on Solana · compact receipt" : "Awaiting Solana anchor / signature",
       status: receiptStatus,
     },
     {
       id: "tl-reputation",
       phase: "reputation",
       label: "Trust",
-      detail: repStatus === "complete" ? "Solana-verified reputation signal" : "—",
+      detail: repStatus === "complete" ? "Indexer + reputation mirrored to session" : "—",
       status: repStatus,
     },
     {
       id: "tl-next",
       phase: "next",
-      label: "Next",
-      detail: input.degraded ? "Recover RPC / Solana session" : "Suggested follow-up run",
+      label: "Verify",
+      detail: normalized.degraded ? "Recover RPC / Solana session" : "Verify on explorer + replay from 0G",
       status: nextStatus,
     },
   ];
+}
+
+/**
+ * Same as {@link buildCommandTimeline} but never throws: returns a degraded strip plus `error` if something went wrong.
+ * Prefer this at UI boundaries when input may not be fully trusted.
+ */
+export function buildCommandTimelineSafe(input: BuildCommandTimelineInput): CommandTimelineSafeResult {
+  try {
+    const events = buildCommandTimeline(input);
+    return { events };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : typeof err === "string" ? err : "Unknown timeline error";
+    return { events: fallbackTimelineEvents(message), error: message };
+  }
 }

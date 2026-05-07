@@ -89,11 +89,11 @@ export const CLAW_PRODUCT_OUTCOMES = {
 } as const;
 
 export const CLAW_NARRATIVE = {
-  mission: "Build self-improving AI agents on Solana",
-  targetUser: "Builders, startups, research teams",
-  differentiator: "Provenance, receipts, persistent memory",
+  mission: "Wallet-signed agents on Solana with compact receipts, reflection lineage, and verifiable storage pointers",
+  targetUser: "Builders shipping policy-gated orchestration with explorer-ready proof",
+  differentiator: "Structured receipts, PDAs, and off-chain payloads tied to Solana signatures — not opaque chat logs",
   monetization: "Skill fees, premium orchestration, enterprise nodes",
-  expansionPath: "Agent marketplace, reputation layer, coordination market",
+  expansionPath: "Skill marketplace, reputation signals anchored to receipts, coordination markets",
 } as const;
 
 export const CLAW_DEPLOYED_PROGRAMS: ClawDeployedProgram[] = [

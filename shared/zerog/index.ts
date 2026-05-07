@@ -216,6 +216,21 @@ export interface ZeroGHealthStatus {
   remoteReachable?: boolean;
 }
 
+/** Lifecycle of a blob inside 0G Storage (shown in receipts + wallets). */
+export type StorageStatus = "not_stored" | "stored" | "retrieved" | "failed" | "degraded";
+
+/** Lifecycle of DA lineage commitments (shown in explorers + timelines). */
+export type DaStatus = "not_batched" | "batched" | "rooted" | "verified" | "failed" | "degraded";
+
+/** Proof posture for mirrored receipts / UI badges (never inflate beyond evidence). */
+export type ProofIntegrityStatus =
+  | "unverified"
+  | "pending"
+  | "verified"
+  | "degraded"
+  | "cached_only"
+  | "demo_only";
+
 /** Durable blob reference returned by 0G Storage adapters (canonical). */
 export interface ZeroGBlobRef {
   blobId: string;
@@ -225,6 +240,7 @@ export interface ZeroGBlobRef {
   contentType: string;
   uri: string;
   createdAt: string;
+  status: StorageStatus;
 }
 
 /** Append-only DA lineage row (canonical). */
@@ -238,6 +254,7 @@ export interface ZeroGDaRecord {
   subjectId: string;
   createdAt: string;
   uri?: string;
+  status: DaStatus;
 }
 
 /** Unified integration health for UI + orchestrator (canonical). */
@@ -313,6 +330,8 @@ export interface ZeroGOrchestrationResult {
     batchUri?: string;
   };
   receipt?: SolanaReceiptRecord;
+  /** Honest proof surface: demo SIM sigs, missing DA, etc. */
+  proofStatus?: ProofIntegrityStatus;
   status: "success" | "partial" | "failed" | "degraded";
   errors?: Array<{
     code: string;

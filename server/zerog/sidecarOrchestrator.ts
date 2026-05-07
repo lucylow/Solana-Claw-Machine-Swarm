@@ -1,17 +1,17 @@
+import { inferProofIntegrity } from "@shared/proof/integrity";
 import crypto from "crypto";
 import type { SolanaCluster } from "@shared/solana/types";
 import type { ZeroGOrchestrationResult } from "@shared/zerog";
 import { hashValue } from "./artifacts";
 import type { ZeroGOrchestratorStore } from "./artifacts";
 import { createCanonicalBlobAdapter } from "./canonicalBlobAdapter";
-import { CanonicalDaService } from "./canonicalDa";
+import { canonicalDaService } from "./canonicalDa";
+import { getZeroGConfig } from "./config";
 import { solanaProofToReceiptRecord } from "../solana/receipts";
 
 type ZeroGModuleCore = {
   store: ZeroGOrchestratorStore;
 };
-
-const daLane = new CanonicalDaService();
 
 export function createSidecarOrchestrator(module: ZeroGModuleCore) {
   const blobs = createCanonicalBlobAdapter(module.store);
@@ -55,7 +55,7 @@ export function createSidecarOrchestrator(module: ZeroGModuleCore) {
       const payloadHash = crypto.createHash("sha256").update(Buffer.from(input.payload)).digest("hex");
 
       try {
-        daRecord = await daLane.appendRecord({
+        daRecord = await canonicalDaService.appendRecord({
           subjectType: input.receiptType,
           subjectId: input.subjectId,
           kind: "artifact_lineage",
@@ -64,7 +64,7 @@ export function createSidecarOrchestrator(module: ZeroGModuleCore) {
           wallet: input.wallet,
           metadata: { namespace: input.namespace },
         });
-        daBatch = await daLane.appendBatch({
+        daBatch = await canonicalDaService.appendBatch({
           batchType: "solana_sidecar",
           subjectType: input.receiptType,
           subjectId: input.subjectId,
@@ -120,7 +120,26 @@ export function createSidecarOrchestrator(module: ZeroGModuleCore) {
       const status: ZeroGOrchestrationResult["status"] =
         blobRef && daRecord && receipt ? "success" : blobRef || daRecord || receipt ? "partial" : errors.length ? "failed" : "degraded";
 
-      return { blobRef, daRecord, daBatch, receipt, status, errors: errors.length ? errors : undefined };
+      const zerogCfg = getZeroGConfig();
+      const zerogMode =
+        zerogCfg.mode === "live" ? "live" : zerogCfg.mode === "degraded" ? "degraded" : ("mock" as const);
+      const proofStatus = inferProofIntegrity({
+        txSignature: receipt?.txSignature,
+        zerogMode,
+        storageStatus: blobRef?.status,
+        daStatus: daRecord?.status,
+        degradedFlags: status === "failed" || zerogCfg.mode === "degraded",
+      });
+
+      return {
+        blobRef,
+        daRecord,
+        daBatch,
+        receipt,
+        proofStatus,
+        status,
+        errors: errors.length ? errors : undefined,
+      };
     },
   };
 }

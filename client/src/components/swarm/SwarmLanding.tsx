@@ -304,6 +304,12 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
               >
                 Prefer fixtures? Open mock demo hub →
               </Link>
+              <Link
+                href="/demo/full-story"
+                className="text-center text-sm text-[#7dccb8] underline-offset-4 hover:text-[#b8ffe0] hover:underline sm:text-left"
+              >
+                Replayable story engine · execution beats + traceable memory →
+              </Link>
             </div>
             {!isAuthenticated ? (
               <p className="mt-4 text-xs text-amber-200/95">
@@ -345,7 +351,7 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
               </div>
             ))}
             <div className="rounded-xl border border-[#3bff96]/30 bg-[#3bff96]/5 px-3 py-2 text-xs text-[#b8ffe0]">
-              Autonomy score after memory reuse: 62 → 66 → 74 (mock progression)
+              Autonomy score (mock fixture): 62 → 66 → 72 · cite receipt IDs when promoting in production
             </div>
           </Panel>
         </section>
@@ -359,7 +365,10 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
           <SolanaWalletPanel />
           <div className="grid gap-4 lg:grid-cols-3">
             <SolanaTxLifecycleCard status={wallet.walletState.connectionStatus} />
-            <SolanaReceiptPanel receipts={[DEMO_CHAIN_RECEIPT, ...wallet.txHistory]} />
+            <SolanaReceiptPanel
+              receipts={[DEMO_CHAIN_RECEIPT, ...wallet.txHistory]}
+              demoReceiptIds={[DEMO_CHAIN_RECEIPT.id]}
+            />
             <Panel className="space-y-3">
               <p className="text-xs uppercase tracking-[0.14em] text-slate-500">OpenClaw interoperability</p>
               <p className="text-sm text-slate-200">
@@ -415,8 +424,8 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold md:text-3xl">The core agent loop</h2>
           <p className="max-w-3xl text-sm text-slate-400">
-            Built to demo in under a minute: connect, discover a high-reputation skill, run the swarm, watch a failure turn into memory, then
-            glow the Solana receipt.
+            Built to demo quickly: connect, pick a high-reputation skill, run the swarm, record a failure as structured memory, then
+            anchor the compact Solana receipt.
           </p>
           <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
             {loop.map((step, idx) => (
@@ -497,9 +506,9 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold">Agentic sophistication (judging lens)</h3>
+          <h3 className="text-xl font-semibold">Autonomy bands · policy + receipts</h3>
           <p className="max-w-3xl text-sm text-slate-400">
-            Seven autonomy bands map how much agency the fleet earns—every promotion is policy-gated and backed by receipts, not vibes.
+            Seven bands describe how much execution latitude the fleet earns. Promotions require policy checks and receipt-backed runs — not narrative alone.
           </p>
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             {AUTONOMY_BANDS.map((item, idx) => (
@@ -705,8 +714,7 @@ export default function SwarmLanding({ isAuthenticated }: { isAuthenticated: boo
         <section className="space-y-4">
           <h3 className="text-xl font-semibold">SWARM request-for-build alignment</h3>
           <p className="max-w-3xl text-sm text-slate-400">
-            Map each demo beat to what judges score: innovation in the loop design, agentic depth in orchestration, traction in verifiable
-            counters.
+            Map each demo beat to what judges score: receipt clarity, orchestration depth, and counters you can trace to signatures or storage refs.
           </p>
           <Panel className="overflow-x-auto p-0">
             <table className="w-full min-w-[600px] text-left text-sm">

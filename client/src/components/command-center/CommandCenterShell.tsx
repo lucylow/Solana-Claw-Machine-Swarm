@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
-import { buildCommandTimeline, type CommandTimelineEvent, type CommandTimelineStatus } from "@shared/commandCenterTimeline";
+import {
+  buildCommandTimelineSafe,
+  type CommandTimelineEvent,
+  type CommandTimelineStatus,
+} from "@shared/commandCenterTimeline";
 import type { SwarmSectionId } from "@shared/swarm";
 import { COMMAND_SIDE_NAV_ITEMS, SOLANA_COPY } from "@shared/copy";
 import { motion } from "framer-motion";
@@ -102,7 +106,9 @@ export function CommandTopRail({
         <div className="mx-auto flex max-w-[1920px] flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#14f195]/90">Solana · autonomous agents</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#14f195]/90">
+                Solana · wallet-signed agents
+              </p>
               <h1 className="mt-1 text-lg font-semibold tracking-tight text-slate-50 sm:text-xl">{title}</h1>
                     <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">{subtitle}</p>
             </motion.div>
@@ -253,11 +259,11 @@ export function CommandCenterShell({
   children: ReactNode;
   top: ReactNode;
   right: ReactNode;
-  timelineInput: Parameters<typeof buildCommandTimeline>[0];
+  timelineInput: Parameters<typeof buildCommandTimelineSafe>[0];
   section: SwarmSectionId;
   onSection: (id: SwarmSectionId) => void;
 }) {
-  const events = buildCommandTimeline(timelineInput);
+  const { events } = buildCommandTimelineSafe(timelineInput);
   return (
     <div
       className="relative flex min-h-screen flex-col bg-[#050607] text-slate-100"

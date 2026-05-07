@@ -9,6 +9,7 @@ import type {
   ReflectionRecord,
   SwarmExecuteResult,
 } from "@shared/domainModel";
+import { domainReceiptsToStructured } from "@shared/proofTruth";
 import type { MemoryReceiptService } from "../memory";
 import type { PlanReceiptService } from "../plans/PlanReceiptService";
 import type { SolanaBridgeService } from "../solana/bridgeService";
@@ -461,6 +462,7 @@ export class ExecutionOrchestratorService {
       reflection,
       memoryReflectionId,
       receipts,
+      structuredReceipts: domainReceiptsToStructured(receipts),
       planReceiptId,
       planId,
       degraded,

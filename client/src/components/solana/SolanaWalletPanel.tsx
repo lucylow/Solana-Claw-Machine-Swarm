@@ -4,15 +4,33 @@ import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
 import { addressExplorerUrl, txExplorerUrl } from "@/lib/solana/explorer";
 import { shortenAddress } from "@/lib/solana/format";
 import { SOLANA_COPY } from "@shared/copy";
+import type { ZeroGIntegrationStatus } from "@shared/zerog";
 import { ChevronDown, ChevronUp, Copy, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function SolanaWalletPanel({ compact = false }: { compact?: boolean }) {
   const wallet = useSolanaWallet();
   const snap = wallet.walletState;
+  const [zgIntegration, setZgIntegration] = useState<ZeroGIntegrationStatus | null>(null);
 
   const [debugOpen, setDebugOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/zerog/integration");
+        const body = (await res.json()) as { ok: boolean; data?: ZeroGIntegrationStatus };
+        if (!cancelled && body.ok && body.data) setZgIntegration(body.data);
+      } catch {
+        if (!cancelled) setZgIntegration(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function copyAddress() {
     if (!snap.publicKey) return;
@@ -57,7 +75,7 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
         </div>
       </div>
 
-      <dl className={`mt-4 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+      <dl className={`mt-4 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
         <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
           <dt className="text-slate-500">{SOLANA_COPY.wallet.connectionState}</dt>
           <dd className="mt-0.5 capitalize text-slate-100">{snap.connectionStatus.replaceAll("_", " ")}</dd>
@@ -73,6 +91,26 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
           <dd className="mt-0.5 truncate font-mono text-[11px] text-slate-300">
             {snap.lastTxSignature ? shortenAddress(snap.lastTxSignature, 8, 6) : "—"}
           </dd>
+        </div>
+        <div className="rounded-lg border border-violet-500/20 bg-black/35 px-3 py-2">
+          <dt className="text-slate-500">0G Storage + DA</dt>
+          <dd className="mt-0.5 text-[11px] leading-snug text-slate-100">
+            <span className="font-semibold capitalize text-[#c4b5fd]">{zgIntegration?.mode ?? "loading…"}</span>
+            <span className="mx-1.5 text-slate-600">·</span>
+            <span>{zgIntegration?.storage.available ? "Storage path up" : "Storage path down"}</span>
+            <span className="mx-1.5 text-slate-600">·</span>
+            <span>{zgIntegration?.da.available ? "DA path up" : "DA path down"}</span>
+          </dd>
+          {zgIntegration?.storage.lastUploadAt ? (
+            <p className="mt-1 truncate font-mono text-[10px] text-slate-500">
+              Upload {zgIntegration.storage.lastUploadAt.slice(0, 19)}Z
+            </p>
+          ) : null}
+          {zgIntegration?.da.lastRootHash ? (
+            <p className="mt-0.5 truncate font-mono text-[10px] text-slate-500">
+              DA root {zgIntegration.da.lastRootHash.slice(0, 28)}…
+            </p>
+          ) : null}
         </div>
       </dl>
 

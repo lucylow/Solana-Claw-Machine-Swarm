@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import type { ZeroGDaAdapter, ZeroGDaRecord } from "@shared/zerog";
+import type { DaStatus, ZeroGDaAdapter, ZeroGDaRecord } from "@shared/zerog";
 
 function randomId(prefix: string) {
   return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
@@ -16,7 +16,7 @@ function combineRoot(hashes: string[]) {
 /** Append-only DA log + batch roots (demo/mock-safe). */
 export class CanonicalDaService implements ZeroGDaAdapter {
   private readonly records: ZeroGDaRecord[] = [];
-  private readonly roots = new Map<string, { batchId: string; createdAt: string }>();
+  private readonly roots = new Map<string, { batchId: string; createdAt: string; status: DaStatus }>();
 
   async appendRecord(input: {
     subjectType: string;
@@ -41,6 +41,7 @@ export class CanonicalDaService implements ZeroGDaAdapter {
       subjectId: input.subjectId,
       createdAt,
       uri: input.blobRef ? `zg://da/leaves/${lh.slice(0, 16)}` : undefined,
+      status: "rooted",
     };
     this.records.unshift(rec);
     return rec;
@@ -57,7 +58,7 @@ export class CanonicalDaService implements ZeroGDaAdapter {
     const createdAt = new Date().toISOString();
     const hashes = input.records.map(r => r.leafHash);
     const rootHash = hashes.length ? combineRoot(hashes) : crypto.randomBytes(32).toString("hex");
-    this.roots.set(rootHash, { batchId, createdAt });
+    this.roots.set(rootHash, { batchId, createdAt, status: "batched" });
     return {
       batchId,
       rootHash,
@@ -67,10 +68,16 @@ export class CanonicalDaService implements ZeroGDaAdapter {
   }
 
   async verifyBatch(rootHash: string): Promise<boolean> {
-    return this.roots.has(rootHash);
+    const row = this.roots.get(rootHash);
+    if (!row) return false;
+    this.roots.set(rootHash, { ...row, status: "verified" });
+    return true;
   }
 
   listRecords() {
     return [...this.records];
   }
 }
+
+/** Shared append-only lane for sidecar orchestration + HTTP DA routes. */
+export const canonicalDaService = new CanonicalDaService();

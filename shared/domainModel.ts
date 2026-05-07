@@ -3,6 +3,8 @@
  * Maps cleanly onto discovery rows, plan receipts, memory reflections, and bridge memos.
  */
 
+import type { StructuredReceipt } from "./structuredReceipt";
+
 export type SkillStatus =
   | "draft"
   | "published"
@@ -170,6 +172,8 @@ export interface SwarmExecuteResult {
   reflection?: ReflectionRecord;
   memoryReflectionId?: string;
   receipts: ReceiptRecord[];
+  /** Canonical structured receipts (same semantics as `receipts`, proof-normalized). */
+  structuredReceipts?: StructuredReceipt[];
   planReceiptId?: string;
   planId?: string;
   degraded: boolean;

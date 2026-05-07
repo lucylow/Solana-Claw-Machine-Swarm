@@ -1,6 +1,14 @@
-import type { ZeroGArtifactKind, ZeroGBlobRef, ZeroGStorageAdapter } from "@shared/zerog";
+import type { StorageStatus, ZeroGArtifactKind, ZeroGBlobRef, ZeroGStorageAdapter } from "@shared/zerog";
 import { hashValue, ZeroGOrchestratorStore } from "./artifacts";
+import { getZeroGConfig } from "./config";
 import { ZeroGStorageService } from "./storage";
+
+function blobStorageStatus(): StorageStatus {
+  const cfg = getZeroGConfig();
+  if (!cfg.enabled) return "failed";
+  if (cfg.mode === "degraded") return "degraded";
+  return "stored";
+}
 
 async function loadBlobBytes(inner: ZeroGStorageService, uri: string): Promise<Uint8Array> {
   const artifact = await inner.getArtifact(uri);
@@ -48,6 +56,7 @@ export function createCanonicalBlobAdapter(store: ZeroGOrchestratorStore): ZeroG
         contentType: input.contentType,
         uri: artifact.storageRef || `zg://storage/artifacts/${artifact.id}`,
         createdAt: artifact.createdAt,
+        status: blobStorageStatus(),
       };
       return ref;
     },
@@ -82,6 +91,7 @@ export function createCanonicalBlobAdapter(store: ZeroGOrchestratorStore): ZeroG
             contentType: a.contentType,
             uri: a.storageRef || `zg://storage/artifacts/${a.id}`,
             createdAt: a.createdAt,
+            status: blobStorageStatus(),
           })
         );
     },

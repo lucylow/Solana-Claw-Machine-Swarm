@@ -4,6 +4,7 @@ import {
   ProofBadge,
   StatusChip,
 } from "@/components/command-center/CommandCenterShell";
+import { ProofStateBadge } from "@/components/solana/ProofStateBadge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import SolanaWalletPanel from "@/components/solana/SolanaWalletPanel";
@@ -13,20 +14,21 @@ import type { ZeroGHealthResponse, ZeroGProofGraphResponse } from "@/lib/zerog/t
 import { getClientZeroGConfig } from "@/lib/zerog/config";
 import { SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
 import { cn } from "@/lib/utils";
+import { buildDemoExecutionArtifacts } from "@shared/buildDemoExecutionRun";
 import {
   buildAgentsForScenario,
   buildExecutionSteps,
-  buildMemory,
   buildMemoryTimeline,
   buildPlan,
   buildReceipts,
-  buildReflection,
   DEMO_SKILLS,
   DEMO_WALLET,
   getSkillById,
 } from "@shared/demoFixtures";
 import type { DemoExecutionStepFixture, DemoReflectionFixture } from "@shared/demoTypes";
 import type { SwarmExecuteResult } from "@shared/domainModel";
+import { getClaimText, getReceiptTruthLine } from "@shared/proofTruth";
+import type { ProofStatus } from "@shared/structuredReceipt";
 import { AUTONOMY_SPECTRUM, autonomyLabel } from "@shared/autonomy";
 import type { OpenClawBridgeStatus } from "@shared/openclaw/types";
 import type {
@@ -43,7 +45,7 @@ import {
 
   formatClawInteger,
 } from "@shared/clawMachineMock";
-import { AlertTriangle, ArrowRight, Cpu, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, Cpu, ReceiptText } from "lucide-react";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
@@ -136,6 +138,7 @@ export function OverviewMissionBlock({
   lastResult,
   demoSteps,
   demoMode,
+  demoExecutionRun,
 }: {
   goal: string;
   onGoalChange: (g: string) => void;
@@ -152,6 +155,7 @@ export function OverviewMissionBlock({
   lastResult: SwarmExecuteResult | null;
   demoSteps: DemoExecutionStepFixture[] | null;
   demoMode: boolean;
+  demoExecutionRun: import("@shared/executionStory").ExecutionRun | null;
 }) {
   const activeLabel = executionStageLabel(lastResult?.execution.status, loopBusy);
 
@@ -163,9 +167,7 @@ export function OverviewMissionBlock({
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Solana mission control</p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">
-              Solana Autonomous Agent Command Center
-            </h2>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">Solana-native agent command center</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{SOLANA_COPY.dashboard.heroSubtitle}</p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -189,6 +191,40 @@ export function OverviewMissionBlock({
           </Button>
         </div>
       </MissionPanel>
+
+      {demoExecutionRun ? (
+        <MissionPanel className="border-[#38d7d0]/35 bg-[#050c10]/95 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#87f7d0]">
+            Replayable demo execution record
+          </p>
+          <p className="mt-2 text-xl font-semibold text-white">{demoExecutionRun.currentStage}</p>
+          <p className="mt-2 font-mono text-[11px] text-slate-500">{demoExecutionRun.id}</p>
+          <p className="mt-2 text-[11px] text-slate-400">
+            Goal ·{" "}
+            <span className="text-[#dfefff]/90">
+              {demoExecutionRun.goal.slice(0, 160)}
+              {demoExecutionRun.goal.length > 160 ? "…" : ""}
+            </span>
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-[10px] text-slate-300">
+            <StatusChip tone="proof" label={`skill · ${demoExecutionRun.skillName}`} className="!normal-case !tracking-normal" />
+            <StatusChip
+              tone={demoExecutionRun.failureReason ? "warn" : "live"}
+              label={demoExecutionRun.failureReason ? "recoverable fault captured" : "nominal sequencing"}
+            />
+            <StatusChip
+              tone="neutral"
+              label={`reflection · ${demoExecutionRun.reflectionId ?? "none"}`}
+              className="!normal-case font-mono"
+            />
+            <StatusChip
+              tone="neutral"
+              label={`memory · ${demoExecutionRun.memoryId ?? "hidden"}`}
+              className="!normal-case font-mono"
+            />
+          </div>
+        </MissionPanel>
+      ) : null}
 
       <StoryLoopRail activeIndex={loopStep} labels={STORY_LOOP_LABELS} className="border-[#14f195]/10 bg-[#060a0e]/95" />
 
@@ -257,12 +293,9 @@ export function OverviewMissionBlock({
         </MissionPanel>
       </div>
 
-      <LiveExecutionStrip
-        lastResult={lastResult}
-        demoSteps={demoSteps}
-        loopBusy={loopBusy}
-        demoMode={demoMode}
-      />
+      {demoExecutionRun ? null : (
+        <LiveExecutionStrip lastResult={lastResult} demoSteps={demoSteps} loopBusy={loopBusy} demoMode={demoMode} />
+      )}
 
       {lastResult ? (
         <MissionPanel className="border-[#14f195]/20 bg-[#08120f]/95 p-5">
@@ -350,27 +383,53 @@ function LiveExecutionStrip({
   );
 }
 
+function swarmReceiptProofStatus(r: SwarmReceipt): ProofStatus {
+  if (r.txSignature?.length && r.explorerUrl?.length) return "pending";
+  return "unverified";
+}
+
 function OutcomeNarrative({ result }: { result: SwarmExecuteResult }) {
+  const structured = result.structuredReceipts?.[result.structuredReceipts.length - 1];
+  const truth = structured ? getReceiptTruthLine(structured) : null;
+  const claim = structured ? getClaimText(structured) : null;
   return (
     <div className="space-y-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <Sparkles className="h-4 w-4 text-[#14f195]" />
-        <span className="font-medium text-[#b8ffd9]">Last run · {result.execution.id}</span>
+        <ReceiptText className="h-4 w-4 text-[#14f195]" />
+        <span className="font-medium text-[#b8ffd9]">Execution record · {result.execution.id}</span>
         <StatusChip label={`status · ${result.execution.status}`} tone={result.degraded ? "warn" : "neutral"} />
       </div>
       {result.reflection ? (
         <div className="rounded-xl border border-[#38d7d0]/25 bg-black/40 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#38d7d0]">Reflection created</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#38d7d0]">Reflection record (off-chain narrative)</p>
           <p className="mt-2 text-slate-300">{result.reflection.summary}</p>
-          <p className="mt-2 text-xs text-slate-500">Next action: {result.reflection.nextAction}</p>
+          <p className="mt-2 text-xs text-slate-500">Root cause: {result.reflection.rootCause}</p>
+          <p className="mt-2 text-xs text-slate-500">Corrective note: {result.reflection.correctiveAdvice}</p>
+          <p className="mt-2 text-xs text-[#14f195]">Next action · {result.reflection.nextAction}</p>
+          <p className="mt-2 text-[11px] text-slate-600">
+            Evidence: turn {result.reflection.sourceTurnId}
+            {result.reflection.offchainStorageRef
+              ? ` · storage ref ${result.reflection.offchainStorageRef.slice(0, 24)}…`
+              : " · storage ref pending"}
+            {result.reflection.proofHash ? ` · payload hash ${result.reflection.proofHash.slice(0, 18)}…` : ""}
+          </p>
+        </div>
+      ) : null}
+      {structured ? (
+        <div className="rounded-xl border border-white/10 bg-black/35 p-3 text-[11px] text-slate-400">
+          <p className="font-medium text-slate-200">{structured.title}</p>
+          <p className="mt-1 text-slate-500">{truth}</p>
+          <p className="mt-1">{claim}</p>
         </div>
       ) : null}
       <div className="flex flex-wrap gap-2 text-xs">
         {result.execution.explorerUrl ? (
           <a href={result.execution.explorerUrl} target="_blank" rel="noreferrer" className="text-[#38d7d0] underline-offset-4 hover:underline">
-            Solana explorer
+            Solana explorer (execution)
           </a>
-        ) : null}
+        ) : (
+          <span className="text-slate-600">Explorer URL pending for this run.</span>
+        )}
         {result.receipts?.[0]?.txSignature ? (
           <span className="font-mono text-[10px] text-slate-500">tx {result.receipts[0].txSignature.slice(0, 12)}…</span>
         ) : null}
@@ -426,7 +485,8 @@ export function SkillsAssetGallery({ skills }: { skills: SwarmSkill[] }) {
       <div className="pointer-events-none absolute left-0 top-0 hidden h-full w-px bg-gradient-to-b from-[#14f195]/50 via-[#38d7d0]/30 to-transparent md:block" />
       {skills.map(skill => (
         <MissionPanel key={skill.id} className="md:ml-6 border-white/[0.07] p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#14f195]/80">Published skill asset</p>
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-white">{skill.name}</h3>
               <p className="font-mono text-[10px] text-slate-500">{skill.authorWallet}</p>
@@ -461,32 +521,73 @@ export function SkillsAssetGallery({ skills }: { skills: SwarmSkill[] }) {
   );
 }
 
-export function MemoryIntelligenceColumn({
+export function MemoryLineageColumn({
   memories,
   demoTimeline,
+  demoTraceable,
 }: {
   memories: SwarmMemoryRecord[];
   demoTimeline: ReturnType<typeof buildMemoryTimeline> | null;
+  demoTraceable: import("@shared/executionStory").TraceableMemoryRecord | null;
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
       <div className="space-y-3">
+        {demoTraceable ? (
+          <MissionPanel className="border-emerald-500/30 p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
+              Traceable memory (demo lineage)
+            </p>
+            <p className="mt-2 font-mono text-xs text-emerald-50">{demoTraceable.id}</p>
+            <p className="mt-2 text-sm text-slate-200">{demoTraceable.summary}</p>
+            <dl className="mt-4 grid gap-2 text-[11px] text-slate-300 sm:grid-cols-2">
+              <div>
+                <dt className="text-slate-600">Source execution</dt>
+                <dd className="font-mono">{demoTraceable.sourceExecutionId}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-600">Source turn</dt>
+                <dd className="font-mono">{demoTraceable.sourceTurnId}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-600">Reflection linkage</dt>
+                <dd className="font-mono">{demoTraceable.sourceReflectionId ?? "unknown"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-600">Next turn</dt>
+                <dd className="font-mono">{demoTraceable.linkedNextTurnId ?? "unknown"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-slate-600">Storage ref</dt>
+                <dd className="break-all font-mono text-[11px]">{demoTraceable.storageRef ?? "unknown"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-slate-600">Proof state</dt>
+                <dd className="font-mono">{demoTraceable.proofStatus}</dd>
+              </div>
+            </dl>
+          </MissionPanel>
+        ) : null}
+
         {memories.length ? (
           memories.map(m => (
             <MissionPanel key={m.id} className="border-cyan-500/15 p-4">
-              <p className="text-xs font-medium text-slate-200">{m.sourceFailure}</p>
-              <p className="mt-2 text-[11px] text-slate-400">Advice · {m.correctiveAdvice}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-500/80">Reflection-linked memory</p>
+              <p className="mt-1 text-xs font-medium text-slate-200">Lesson source · {m.sourceFailure}</p>
+              <p className="mt-2 text-[11px] text-slate-400">Corrective note · {m.correctiveAdvice}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-slate-500">
                 <span>influence {m.memoryInfluence}%</span>
                 <span>
-                  confidence {m.confidenceBefore} → {m.confidenceAfter}
+                  policy confidence {m.confidenceBefore} → {m.confidenceAfter}
                 </span>
-                <span className="font-mono">receipt {m.proofReceiptId.slice(0, 12)}…</span>
+                <span className="font-mono">proof receipt {m.proofReceiptId.slice(0, 12)}…</span>
               </div>
             </MissionPanel>
           ))
         ) : (
-          <MissionPanel className="p-6 text-sm text-slate-500">No durable memory rows yet — fail gracefully once to populate the lesson path.</MissionPanel>
+          <MissionPanel className="p-6 text-sm text-slate-500">
+            No memory writes yet. After a failed or partial run, reflections mint a memory row with a linked proof receipt id.
+          </MissionPanel>
         )}
       </div>
       {demoTimeline?.length ? (
@@ -506,16 +607,23 @@ export function MemoryIntelligenceColumn({
   );
 }
 
+/** @deprecated Use MemoryLineageColumn */
+export const MemoryIntelligenceColumn = MemoryLineageColumn;
+
 export function ReflectionStack({ reflections }: { reflections: SwarmReflection[] }) {
   return (
     <div className="space-y-3">
       {reflections.length ? (
         reflections.map(r => (
           <MissionPanel key={r.id} className="border-[#38d7d0]/20 p-4">
-            <p className="text-[10px] uppercase tracking-wider text-[#38d7d0]">Reflection</p>
-            <p className="mt-2 text-sm text-slate-200">{r.rootCause}</p>
-            <p className="mt-2 text-xs text-slate-400">{r.correctiveAdvice}</p>
-            <p className="mt-2 text-xs text-[#14f195]">Next · {r.nextAction}</p>
+            <p className="text-[10px] uppercase tracking-wider text-[#38d7d0]">Reflection record</p>
+            <p className="mt-2 text-sm text-slate-200">Root cause · {r.rootCause}</p>
+            <p className="mt-2 text-xs text-slate-400">Corrective note · {r.correctiveAdvice}</p>
+            <p className="mt-2 text-xs text-[#14f195]">Next action (injected) · {r.nextAction}</p>
+            <p className="mt-3 text-[10px] uppercase tracking-wider text-slate-600">Why believe this?</p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Tie-break using the on-chain receipt row for this run; full narrative should list storage ref + Solana tx when anchored.
+            </p>
           </MissionPanel>
         ))
       ) : (
@@ -528,35 +636,50 @@ export function ReflectionStack({ reflections }: { reflections: SwarmReflection[
 export function ReceiptVault({ receipts }: { receipts: SwarmReceipt[] }) {
   return (
     <div className="space-y-3">
-      {receipts.map(r => (
-        <MissionPanel key={r.id} className="border-[#14f195]/15 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-medium text-white">{r.label}</span>
-            <ProofBadge verified />
-          </div>
-          <dl className="mt-3 grid gap-2 text-[11px] text-slate-400 sm:grid-cols-2">
-            <div>
-              <dt className="text-slate-600">Kind</dt>
-              <dd className="font-mono text-slate-300">{r.kind}</dd>
+      {receipts.map(r => {
+        const proofStatus = swarmReceiptProofStatus(r);
+        return (
+          <MissionPanel key={r.id} className="border-[#14f195]/15 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium text-white">{r.label}</span>
+              <ProofStateBadge status={proofStatus} />
             </div>
-            <div>
-              <dt className="text-slate-600">TX</dt>
-              <dd className="truncate font-mono">{r.txSignature.slice(0, 20)}…</dd>
-            </div>
-            <div>
-              <dt className="text-slate-600">Summary hash</dt>
-              <dd className="truncate font-mono">{r.receiptHash.slice(0, 24)}…</dd>
-            </div>
-            <div>
-              <dt className="text-slate-600">Account</dt>
-              <dd className="font-mono text-xs">{r.account}</dd>
-            </div>
-          </dl>
-          <a href={r.explorerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs text-[#38d7d0] hover:underline">
-            Open in Solana explorer
-          </a>
-        </MissionPanel>
-      ))}
+            <dl className="mt-3 grid gap-2 text-[11px] text-slate-400 sm:grid-cols-2">
+              <div>
+                <dt className="text-slate-600">Receipt kind</dt>
+                <dd className="font-mono text-slate-300">{r.kind}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-600">TX signature</dt>
+                <dd className="truncate font-mono">{r.txSignature.slice(0, 20)}…</dd>
+              </div>
+              <div>
+                <dt className="text-slate-600">Summary hash</dt>
+                <dd className="truncate font-mono">{r.receiptHash.slice(0, 24)}…</dd>
+              </div>
+              <div>
+                <dt className="text-slate-600">Account</dt>
+                <dd className="font-mono text-xs">{r.account}</dd>
+              </div>
+              {r.zeroGStorageRef ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-600">0G storage ref</dt>
+                  <dd className="truncate font-mono text-slate-300">{r.zeroGStorageRef}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <p className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Evidence</p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              {proofStatus === "pending"
+                ? "Tx + explorer URL present; confirm finality in Solana Explorer before treating as verified."
+                : "Incomplete proof bundle — connect wallet, rerun loop, or inspect degraded banner."}
+            </p>
+            <a href={r.explorerUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-[#38d7d0] hover:underline">
+              Open in Solana explorer
+            </a>
+          </MissionPanel>
+        );
+      })}
       {!receipts.length ? <MissionPanel className="p-6 text-sm text-slate-500">No receipts in-session yet.</MissionPanel> : null}
     </div>
   );
@@ -829,16 +952,55 @@ export function CommandRightRail({
 export function buildDemoBundle(skillId: string | null) {
   const sk = getSkillById(skillId ?? "skill-support-triage") ?? DEMO_SKILLS[0]!;
   const outcome = "recovery" as const;
-  const reflection = buildReflection(outcome);
+  const plan = buildPlan(sk, outcome);
+  const stepFixtures = buildExecutionSteps(outcome);
+  const receipts = buildReceipts(sk, outcome);
+  const artifact = buildDemoExecutionArtifacts({
+    wallet: DEMO_WALLET,
+    skill: sk,
+    plan,
+    stepFixtures,
+    receipts,
+    outcome,
+  });
   return {
     skill: sk,
-    plan: buildPlan(sk, outcome),
-    steps: buildExecutionSteps(outcome),
-    reflection,
-    memory: buildMemory(reflection),
-    receipts: buildReceipts(sk, outcome),
+    plan,
+    steps: stepFixtures,
+    reflection: artifact.reflection
+      ? {
+          id: artifact.reflection.id,
+          sourceTurnId: artifact.reflection.sourceTurnId,
+          outcome: outcome === "recovery" ? ("lesson" as const) : ("failure" as const),
+          rootCause: artifact.reflection.rootCause,
+          correctiveAdvice: artifact.reflection.correctiveAdvice,
+          nextAction: artifact.reflection.nextAction,
+          confidence: outcome === "recovery" ? 91 : 74,
+          linkedMemoryId: artifact.traceableMemory?.id ?? "",
+          linkedReceiptId: artifact.reflection.proofRef ?? "",
+          proofStatus: "verified" as const,
+        }
+      : null,
+    memory: artifact.traceableMemory
+      ? {
+          id: artifact.traceableMemory.id,
+          memoryType: artifact.traceableMemory.kind,
+          source: artifact.reflection ? `Reflection ${artifact.reflection.id}` : "live",
+          summary: artifact.traceableMemory.summary,
+          storageReference: artifact.traceableMemory.storageRef ?? "",
+          proofReference: artifact.traceableMemory.proofReceiptId ?? "",
+          linkedNextTurnId: artifact.traceableMemory.linkedNextTurnId ?? "",
+          verification: artifact.traceableMemory.proofStatus === "verified" ? ("verified" as const) : ("pending" as const),
+          timestampIso: artifact.traceableMemory.createdAt,
+        }
+      : null,
+    receipts,
     agents: buildAgentsForScenario("full-e2e", outcome),
     wallet: DEMO_WALLET,
     memoryTimeline: buildMemoryTimeline(true),
+    executionRun: artifact.executionRun,
+    traceableMemory: artifact.traceableMemory,
+    storyReflection: artifact.reflection,
+    commandReceipts: artifact.commandReceipts,
   };
 }

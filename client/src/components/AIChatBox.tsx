@@ -28,7 +28,7 @@ export type AIChatBoxProps = {
   onSendMessage: (content: string) => void;
 
   /**
-   * Whether the AI is currently generating a response
+   * Whether the assistant response stream is still loading
    */
   isLoading?: boolean;
 
@@ -63,7 +63,7 @@ export type AIChatBoxProps = {
  * A ready-to-use AI chat box component that integrates with the LLM system.
  *
  * Features:
- * - Matches server-side Message interface for seamless integration
+ * - Matches server-side Message interface for invokeLLM payloads
  * - Markdown rendering with Streamdown
  * - Auto-scrolls to latest message
  * - Loading states

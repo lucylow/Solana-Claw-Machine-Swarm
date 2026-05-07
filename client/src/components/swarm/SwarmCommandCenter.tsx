@@ -6,7 +6,7 @@ import {
   DemoModeToggle,
   DegradedStateBanner,
   LiveRunsBoard,
-  MemoryIntelligenceColumn,
+  MemoryLineageColumn,
   OpenClawBridgeBoard,
   OverviewMissionBlock,
   ProofExplorerList,
@@ -27,7 +27,7 @@ import { formatSessionExpiry } from "@/lib/solana/format";
 import { executeSwarm, fetchSkillsList, fetchSolanaStatus, selectSkill } from "@/lib/swarmApi";
 import { createInitialRuntime, executeAutonomousCycle } from "@/lib/swarmRuntime";
 import { DEMO_SKILLS } from "@shared/demoFixtures";
-import { SOLANA_COPY } from "@shared/copy";
+import { SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
 import type { SkillIdentity, SwarmExecuteResult } from "@shared/domainModel";
 import type { OpenClawBridgeStatus } from "@shared/openclaw/types";
 import type { SwarmRuntimeState, SwarmSectionId } from "@shared/swarm";
@@ -72,8 +72,8 @@ function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
     artifacts: runtime.zeroGLinks.map(link => ({
       id: link.subjectId,
       kind: "reflection",
-      title: "Reflection artifact",
-      summary: "Off-chain reflection payload (0G DA path)",
+      title: `Off-chain artifact · ${link.subjectId}`,
+      summary: `0G storage ref: ${link.zeroGStorageRef || "n/a"} · DA root: ${link.zeroGAvailabilityRef || "n/a"} · checksum ${link.summaryHash?.slice(0, 12) || "n/a"}…`,
       content: {},
       contentHash: link.contentHash,
       checksum: link.summaryHash,
@@ -118,7 +118,7 @@ function toProofGraph(runtime: SwarmRuntimeState): ZeroGProofGraphResponse {
       zeroGComputeRef: receipt.zeroGComputeRef,
       zeroGAvailabilityRef: receipt.zeroGAvailabilityRef,
       createdAt: receipt.createdAt,
-      status: "verified",
+      status: receipt.txSignature ? "submitted" : "draft",
     })),
   };
 }
@@ -280,6 +280,8 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
     return h;
   }, [effectiveWallet, session.isVerified, demoMode]);
 
+  const storyFinalIdx = STORY_LOOP_LABELS.length - 1;
+
   const timelineInput = useMemo(
     () => ({
       walletConnected: Boolean(effectiveWallet),
@@ -291,6 +293,17 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       lastExecutionStatus: lastResult?.execution.status,
       hasReflection: Boolean(lastResult?.reflection ?? demoBundle?.reflection),
       hasMemory: Boolean(lastResult?.memoryReflectionId ?? demoBundle?.memory),
+      zerogStored: Boolean(
+        demoBundle ||
+          lastResult?.reflection?.offchainStorageRef ||
+          liveProofGraph?.artifacts?.length
+      ),
+      zerogDaCommitted: Boolean(
+        demoBundle ||
+          lastResult?.execution.status === "anchored" ||
+          lastResult?.execution.status === "verified" ||
+          liveProofGraph?.availability?.length
+      ),
       receiptAnchored:
         lastResult?.execution.status === "verified" ||
         lastResult?.execution.status === "anchored" ||
@@ -313,6 +326,9 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
       demoBundle?.memory,
       demoBundle?.receipts,
       degradedMessages.length,
+      liveProofGraph?.artifacts?.length,
+      liveProofGraph?.availability?.length,
+      demoBundle,
     ]
   );
 
@@ -333,14 +349,17 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
         skillName: skill?.name ?? demoBundle?.skill.name,
       });
       setLastResult(result);
-      setLoopStep(result.execution.status === "verified" ? 5 : 4);
+      const st = result.execution.status;
+      if (st === "verified" || st === "anchored") setLoopStep(storyFinalIdx);
+      else if (st === "failed") setLoopStep(Math.min(6, storyFinalIdx));
+      else setLoopStep(Math.min(5, storyFinalIdx));
     } catch (e) {
       setLoopError(e instanceof Error ? e.message : "loop_failed");
       setLoopStep(0);
     } finally {
       setLoopBusy(false);
     }
-  }, [effectiveWallet, selectedSkillId, chainSkills, goal, demoBundle?.skill.name]);
+  }, [effectiveWallet, selectedSkillId, chainSkills, goal, demoBundle?.skill.name, storyFinalIdx]);
 
   const top = (
     <CommandTopRail
@@ -410,7 +429,7 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
           onConnect={() => wallet.connectAndVerify().catch(() => undefined)}
           onRunLoop={() => void runLinkedLoop()}
           onDemoComplete={() => {
-            setLoopStep(5);
+            setLoopStep(storyFinalIdx);
             setLoopError(null);
           }}
           selectedSkillId={selectedSkillId}
@@ -419,13 +438,18 @@ export default function SwarmCommandCenter({ walletAddress }: { walletAddress?: 
           lastResult={lastResult}
           demoSteps={demoMode ? demoBundle?.steps ?? null : null}
           demoMode={demoMode}
+          demoExecutionRun={demoMode ? demoBundle?.executionRun ?? null : null}
         />
       ) : null}
 
       {section === "live-run" ? <LiveRunsBoard runs={runtime.runs} /> : null}
       {section === "skills" ? <SkillsAssetGallery skills={runtime.skills} /> : null}
       {section === "memory" ? (
-        <MemoryIntelligenceColumn memories={runtime.memories} demoTimeline={demoMode ? demoBundle?.memoryTimeline ?? null : null} />
+        <MemoryLineageColumn
+          memories={runtime.memories}
+          demoTimeline={demoMode ? demoBundle?.memoryTimeline ?? null : null}
+          demoTraceable={demoMode ? demoBundle?.traceableMemory ?? null : null}
+        />
       ) : null}
       {section === "reflections" ? <ReflectionStack reflections={runtime.reflections} /> : null}
       {section === "receipts" || section === "proof-explorer" ? <ProofExplorerList receipts={runtime.receipts} /> : null}
