@@ -10,7 +10,9 @@ export type DemoScenarioId =
   | "receipt-anchor"
   | "reputation-update"
   | "multi-agent"
-  | "full-e2e";
+  | "full-e2e"
+  | "proof-degraded"
+  | "openclaw-bridge";
 
 export type DemoAgentRole =
   | "planner"

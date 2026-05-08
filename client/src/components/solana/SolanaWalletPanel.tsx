@@ -75,7 +75,9 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
         </div>
       </div>
 
-      <dl className={`mt-4 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
+      <p className="mt-3 text-[10px] leading-snug text-slate-500">{SOLANA_COPY.wallet.identityLayerNote}</p>
+
+      <dl className={`mt-3 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-5"}`}>
         <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
           <dt className="text-slate-500">{SOLANA_COPY.wallet.connectionState}</dt>
           <dd className="mt-0.5 capitalize text-slate-100">{snap.connectionStatus.replaceAll("_", " ")}</dd>
@@ -90,6 +92,26 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
           <dt className="text-slate-500">{SOLANA_COPY.wallet.latestSignature}</dt>
           <dd className="mt-0.5 truncate font-mono text-[11px] text-slate-300">
             {snap.lastTxSignature ? shortenAddress(snap.lastTxSignature, 8, 6) : "—"}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-cyan-500/25 bg-black/35 px-3 py-2">
+          <dt className="text-slate-500">{SOLANA_COPY.wallet.clusterRpcTitle}</dt>
+          <dd className="mt-0.5 text-[11px] text-slate-100">
+            {snap.rpcReachable == null ? (
+              <span className="text-slate-400">Probing…</span>
+            ) : snap.rpcReachable ? (
+              <span>
+                <span className="text-[#8cf8d4]">Reachable</span>
+                {snap.rpcSlot ? (
+                  <span className="mt-0.5 block font-mono text-[10px] text-slate-400">slot {snap.rpcSlot}</span>
+                ) : null}
+                {snap.rpcLatencyMs != null ? (
+                  <span className="block font-mono text-[10px] text-slate-500">{snap.rpcLatencyMs} ms</span>
+                ) : null}
+              </span>
+            ) : (
+              <span className="text-amber-200">{snap.rpcError ?? "Unreachable"}</span>
+            )}
           </dd>
         </div>
         <div className="rounded-lg border border-violet-500/20 bg-black/35 px-3 py-2">

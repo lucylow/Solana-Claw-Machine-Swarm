@@ -17,7 +17,7 @@ export default function HowItWorks() {
             <h1 className="text-2xl font-bold text-[#d2ffe8]">How It Works on Solana</h1>
           </div>
           <Button
-            onClick={() => setLocation("/dashboard")}
+            onClick={() => setLocation("/dashboard?section=overview")}
             variant="outline"
             className="border-cyan-500 text-cyan-300"
           >

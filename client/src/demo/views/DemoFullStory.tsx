@@ -1,5 +1,4 @@
 import { getSkillById } from "@shared/demoFixtures";
-import { getUnifiedStoryBeats } from "@shared/demoUnifiedStoryPlayback";
 import type { DemoExecutionStepFixture, DemoReceiptFixture } from "@shared/demoTypes";
 import type { ExecutionStep } from "@shared/executionStory";
 import { useMemo } from "react";
@@ -19,7 +18,7 @@ import { DemoReceiptCard } from "../components/DemoReceiptCard";
 import { DemoReceiptChain } from "../components/DemoReceiptChain";
 import { DemoReflectionCard } from "../components/DemoReflectionCard";
 import { DemoReputationPanel } from "../components/DemoReputationPanel";
-import { DemoStoryStepper } from "../components/DemoStoryStepper";
+import { DemoPlaybackController } from "../components/DemoPlaybackController";
 import { DemoTraceableMemoryPanel } from "../components/DemoTraceableMemoryPanel";
 import { DemoWalletCard } from "../components/DemoWalletCard";
 import { useDemo } from "../DemoProvider";
@@ -46,8 +45,6 @@ function executionStepsToTimelineFixtures(execSteps: ExecutionStep[]): DemoExecu
 
 export function DemoFullStory() {
   const {
-    storyPlaybackIndex,
-    runOutcome,
     presentationMode,
     setPresentationMode,
     plan,
@@ -60,24 +57,20 @@ export function DemoFullStory() {
     displayedExecutionRun,
     traceableMemory,
     commandReceipts,
+    activeUnifiedBeat,
   } = useDemo();
 
-  const currentBeat = useMemo(
-    () => getUnifiedStoryBeats(runOutcome)[storyPlaybackIndex] ?? null,
-    [storyPlaybackIndex, runOutcome]
-  );
+  const currentBeat = activeUnifiedBeat;
 
   const visibleReceipts = useMemo(() => {
-    const beat = getUnifiedStoryBeats(runOutcome)[storyPlaybackIndex];
-    if (!beat?.patch.hideProofReceiptIds) return receipts;
+    if (!currentBeat.patch.hideProofReceiptIds) return receipts;
     return receipts.filter(r => r.kind !== "proof_anchor");
-  }, [receipts, runOutcome, storyPlaybackIndex]);
+  }, [receipts, currentBeat.patch.hideProofReceiptIds]);
 
   const visibleCommandReceipts = useMemo(() => {
-    const beat = getUnifiedStoryBeats(runOutcome)[storyPlaybackIndex];
-    if (!beat?.patch.hideProofReceiptIds) return commandReceipts;
+    if (!currentBeat.patch.hideProofReceiptIds) return commandReceipts;
     return commandReceipts.filter(c => c.type !== "proof");
-  }, [commandReceipts, runOutcome, storyPlaybackIndex]);
+  }, [commandReceipts, currentBeat.patch.hideProofReceiptIds]);
 
   const timelineSteps = useMemo(
     () => executionStepsToTimelineFixtures(displayedExecutionRun.steps),
@@ -86,8 +79,7 @@ export function DemoFullStory() {
 
   const compareSkill = getSkillById("skill-proof-publisher");
 
-  const glow = (region: NonNullable<typeof currentBeat>["highlight"]) =>
-    currentBeat?.highlight === region;
+  const glow = (region: typeof currentBeat["highlight"]) => currentBeat.highlight === region;
 
   return (
     <div className="space-y-6">
@@ -100,7 +92,9 @@ export function DemoFullStory() {
           <p className="text-sm text-slate-400">
             Wallet connect → skill choose → plan → execute → reflection → memory → receipt → verified next-turn reuse.
           </p>
-          <p className="mt-2 text-[11px] font-mono text-[#8ceada]/80">{currentBeat?.patch.currentStage} · beat id {currentBeat?.id}</p>
+          <p className="mt-2 text-[11px] font-mono text-[#8ceada]/80">
+            {currentBeat.patch.currentStage} · beat {currentBeat.id}
+          </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-2 py-1">
           <span className="text-xs text-slate-400">Presentation mode</span>
@@ -108,7 +102,7 @@ export function DemoFullStory() {
         </div>
       </div>
 
-      <DemoStoryStepper presentationMode={presentationMode} />
+      <DemoPlaybackController presentationMode={presentationMode} />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-4">
@@ -116,8 +110,8 @@ export function DemoFullStory() {
           <DemoWalletCard presentationMode={presentationMode} glow={glow("wallet")} />
           <DemoPanel className="border-[#38d7d0]/20 p-4 text-sm text-slate-300">
             <p className="text-xs uppercase tracking-wide text-[#87f7d0]">Story beat spotlight</p>
-            <p className="mt-2 font-medium text-white">{currentBeat?.title}</p>
-            <p className="mt-1 text-slate-400">{currentBeat?.detail}</p>
+            <p className="mt-2 font-medium text-white">{currentBeat.title}</p>
+            <p className="mt-1 text-slate-400">{currentBeat.detail}</p>
           </DemoPanel>
           <DemoPlanCard plan={plan} presentationMode={presentationMode} glow={glow("plan")} />
           <DemoExecutionTimeline steps={timelineSteps} presentationMode={presentationMode} glow={glow("execution")} />
@@ -131,7 +125,7 @@ export function DemoFullStory() {
             <DemoMemoryCard memory={displayedExecutionRun.memoryId ? memory : null} presentationMode={presentationMode} glow={glow("memory")} />
           </div>
           {traceableMemory && displayedExecutionRun.memoryId ? (
-            <DemoTraceableMemoryPanel memory={traceableMemory} presentationMode={presentationMode} beatHighlight={currentBeat?.highlight} />
+            <DemoTraceableMemoryPanel memory={traceableMemory} presentationMode={presentationMode} beatHighlight={currentBeat.highlight} />
           ) : null}
           <DemoMemoryTimeline stages={memoryTimeline} />
           <DemoReceiptChain receipts={visibleReceipts} />

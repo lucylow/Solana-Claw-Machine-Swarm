@@ -2,8 +2,6 @@ import { ExplorerLinkButton, ProofVerificationBadge } from "@/components/command
 import { txExplorerUrl } from "@/lib/solana/explorer";
 import { shortenAddress } from "@/lib/solana/format";
 import { cn } from "@/lib/utils";
-import { DEMO_WALLET } from "@shared/demoFixtures";
-import { getUnifiedStoryBeats } from "@shared/demoUnifiedStoryPlayback";
 import type { UnifiedStoryBeat } from "@shared/executionStory";
 import { Activity, Brain, Cpu, Link2, MemoryStick, Radar, ReceiptText, Sparkles, Wallet } from "lucide-react";
 import { useMemo } from "react";
@@ -24,20 +22,15 @@ export function DemoPreviewPanel({ presentationMode }: { presentationMode?: bool
     reflection,
     memory,
     receipts,
-    runOutcome,
-    storyPlaybackIndex,
     displayedExecutionRun,
     commandReceipts,
+    activeUnifiedBeat,
+    demoSnapshot,
   } = useDemo();
 
-  const guidedStep = useMemo(
-    (): UnifiedStoryBeat | null =>
-      getUnifiedStoryBeats(runOutcome)[storyPlaybackIndex] ?? null,
-    [storyPlaybackIndex, runOutcome]
-  );
-
-  const hl = guidedStep?.highlight;
-  const guidedActive = (region: UnifiedStoryBeat["highlight"]) => (guidedStep ? hl === region : false);
+  const guidedStep = activeUnifiedBeat;
+  const hl = guidedStep.highlight;
+  const guidedActive = (region: UnifiedStoryBeat["highlight"]) => hl === region;
 
   const activePlaybackStep =
     displayedExecutionRun.steps.find(s => s.id === displayedExecutionRun.activeStepId) ?? displayedExecutionRun.steps.slice(-1)[0];
@@ -50,11 +43,13 @@ export function DemoPreviewPanel({ presentationMode }: { presentationMode?: bool
   const primaryCommand = commandReceipts[commandReceipts.length - 1];
 
   const proofBadgeStatus =
-    displayedExecutionRun.currentStage === "degraded" || runOutcome === "failure"
+    demoSnapshot.derived.dataPosture === "degraded"
       ? ("degraded" as const)
-      : primaryCommand?.claim.proofState === "demo_only"
+      : demoSnapshot.derived.dataPosture === "pending"
         ? ("pending" as const)
-        : ("verified" as const);
+        : primaryCommand?.claim.proofState === "demo_only"
+          ? ("pending" as const)
+          : ("verified" as const);
 
   return (
     <DemoPanel
@@ -72,10 +67,10 @@ export function DemoPreviewPanel({ presentationMode }: { presentationMode?: bool
             status: proofBadgeStatus,
             label:
               proofBadgeStatus === "verified"
-                ? "Demo deterministic receipt (explicitly labeled)"
+                ? "Demo receipt — explorer link is illustrative unless live"
                 : proofBadgeStatus === "degraded"
-                  ? "Proof degraded / pending settlement"
-                  : "Proof pending explorer confirmation",
+                  ? "Proof degraded / pending verification"
+                  : "Pending verification (demo)",
           }}
         />
       </div>
@@ -93,9 +88,13 @@ export function DemoPreviewPanel({ presentationMode }: { presentationMode?: bool
             Solana wallet
           </div>
           <p className="font-mono text-sm text-white">
-            {walletConnectedDemo ? shortenAddress(DEMO_WALLET.address, 6, 6) : "Disconnected"}
+            {walletConnectedDemo && demoSnapshot.wallet.publicKey
+              ? shortenAddress(demoSnapshot.wallet.publicKey, 6, 6)
+              : "Disconnected"}
           </p>
-          <p className="mt-1 text-xs text-slate-500">{DEMO_WALLET.cluster} cluster · deterministic demo scope</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {demoSnapshot.wallet.cluster} cluster · {demoSnapshot.derived.dataPosture.replace(/_/g, " ")}
+          </p>
         </div>
 
         <div className={cn("rounded-xl border p-3 transition-colors", highlightClass(guidedActive("skills")))}>

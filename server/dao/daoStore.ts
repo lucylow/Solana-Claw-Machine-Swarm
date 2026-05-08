@@ -1,10 +1,16 @@
 import fs from "fs/promises";
 import path from "path";
 import type {
+  DaoAgentRecommendationRecord,
   DaoConfigRecord,
+  DaoDelegationRecord,
   DaoDiscoveryRecord,
+  DaoExecutionReceiptPersist,
+  DaoGovernanceMemoryPersist,
   DaoMemberRecord,
   DaoProposalRecord,
+  DaoTreasurySnapshotPersist,
+  DaoVoteLedgerRecord,
 } from "./daoTypes";
 
 type State = {
@@ -12,9 +18,41 @@ type State = {
   members: DaoMemberRecord[];
   proposals: DaoProposalRecord[];
   discovery: DaoDiscoveryRecord[];
+  delegations: DaoDelegationRecord[];
+  voteLedger: DaoVoteLedgerRecord[];
+  agentRecommendations: DaoAgentRecommendationRecord[];
+  governanceMemory: DaoGovernanceMemoryPersist[];
+  executionReceipts: DaoExecutionReceiptPersist[];
+  treasurySnapshots: DaoTreasurySnapshotPersist[];
 };
 
-const EMPTY: State = { members: [], proposals: [], discovery: [] };
+const EMPTY: State = {
+  members: [],
+  proposals: [],
+  discovery: [],
+  delegations: [],
+  voteLedger: [],
+  agentRecommendations: [],
+  governanceMemory: [],
+  executionReceipts: [],
+  treasurySnapshots: [],
+};
+
+function normalizeState(raw: Partial<State>): State {
+  return {
+    ...EMPTY,
+    ...raw,
+    members: raw.members ?? [],
+    proposals: raw.proposals ?? [],
+    discovery: raw.discovery ?? [],
+    delegations: raw.delegations ?? [],
+    voteLedger: raw.voteLedger ?? [],
+    agentRecommendations: raw.agentRecommendations ?? [],
+    governanceMemory: raw.governanceMemory ?? [],
+    executionReceipts: raw.executionReceipts ?? [],
+    treasurySnapshots: raw.treasurySnapshots ?? [],
+  };
+}
 
 export class DaoStore {
   private state: State = structuredClone(EMPTY);
@@ -25,7 +63,7 @@ export class DaoStore {
     if (!this.filePath) return;
     try {
       const raw = await fs.readFile(this.filePath, "utf8");
-      this.state = JSON.parse(raw) as State;
+      this.state = normalizeState(JSON.parse(raw) as Partial<State>);
     } catch {
       this.state = structuredClone(EMPTY);
     }
@@ -96,5 +134,90 @@ export class DaoStore {
 
   getProposal(proposalId: number) {
     return this.state.proposals.find(p => p.proposalId === proposalId);
+  }
+
+  listDelegations() {
+    return [...this.state.delegations];
+  }
+
+  async appendDelegation(row: DaoDelegationRecord) {
+    const now = Date.now();
+    this.state.delegations = this.state.delegations.map(d => {
+      if (d.fromWallet === row.fromWallet && d.status === "active") {
+        return { ...d, status: "revoked" as const, revokedAt: now };
+      }
+      return d;
+    });
+    this.state.delegations.unshift(row);
+    await this.persist();
+    return row;
+  }
+
+  async revokeDelegation(fromWallet: string) {
+    const now = Date.now();
+    let changed = false;
+    this.state.delegations = this.state.delegations.map(d => {
+      if (d.fromWallet === fromWallet && d.status === "active") {
+        changed = true;
+        return { ...d, status: "revoked" as const, revokedAt: now };
+      }
+      return d;
+    });
+    if (changed) await this.persist();
+  }
+
+  listVoteLedger(proposalId?: number) {
+    const rows = [...this.state.voteLedger];
+    if (proposalId === undefined) return rows;
+    return rows.filter(v => v.proposalId === proposalId);
+  }
+
+  async appendVoteLedger(row: DaoVoteLedgerRecord) {
+    this.state.voteLedger.unshift(row);
+    await this.persist();
+    return row;
+  }
+
+  listAgentRecommendations(proposalId?: number) {
+    const rows = [...this.state.agentRecommendations];
+    if (proposalId === undefined) return rows;
+    return rows.filter(a => a.proposalId === proposalId);
+  }
+
+  async appendAgentRecommendations(rows: DaoAgentRecommendationRecord[]) {
+    this.state.agentRecommendations = [...rows, ...this.state.agentRecommendations];
+    await this.persist();
+  }
+
+  listGovernanceMemory() {
+    return [...this.state.governanceMemory];
+  }
+
+  async appendGovernanceMemory(row: DaoGovernanceMemoryPersist) {
+    this.state.governanceMemory.unshift(row);
+    await this.persist();
+    return row;
+  }
+
+  listExecutionReceipts() {
+    return [...this.state.executionReceipts];
+  }
+
+  async appendExecutionReceipt(row: DaoExecutionReceiptPersist) {
+    this.state.executionReceipts.unshift(row);
+    await this.persist();
+    return row;
+  }
+
+  listTreasurySnapshots() {
+    return [...this.state.treasurySnapshots];
+  }
+
+  async upsertTreasurySnapshot(row: DaoTreasurySnapshotPersist) {
+    const idx = this.state.treasurySnapshots.findIndex(t => t.id === row.id);
+    if (idx >= 0) this.state.treasurySnapshots[idx] = row;
+    else this.state.treasurySnapshots.unshift(row);
+    await this.persist();
+    return row;
   }
 }

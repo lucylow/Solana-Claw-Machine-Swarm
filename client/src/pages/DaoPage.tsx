@@ -20,7 +20,7 @@ export default function DaoPage() {
             </Button>
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">CLAW MACHINE</p>
-              <h1 className="text-lg font-semibold">Solana DAO</h1>
+              <h1 className="text-lg font-semibold">Governance command center</h1>
             </div>
           </div>
           <WalletMultiButton />

@@ -76,7 +76,7 @@ export default function ZeroGPage() {
       <div className="container relative space-y-5 py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <Link href="/dashboard">
+            <Link href="/dashboard?section=zerog-sidecar">
               <Button variant="ghost" size="sm" className="mb-3 -ml-2 gap-1 text-slate-400 hover:text-white">
                 <ArrowLeft className="h-4 w-4" />
                 Solana command center

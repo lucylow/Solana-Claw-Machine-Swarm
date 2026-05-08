@@ -3,7 +3,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SolanaWalletProvider } from "@/contexts/SolanaWalletContext";
 import SolanaProvider from "@/solana/SolanaProvider";
 import { Route, Switch } from "wouter";
-import ErrorBoundary from "./components/ErrorBoundary";
+import { AppErrorBoundary } from "./errors/AppErrorBoundary";
+import { ErrorSurfaceProvider } from "./errors/ErrorSurfaceContext";
+import { GlobalErrorBanner } from "./errors/ErrorUiKit";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import DemoCenterPage from "./pages/DemoCenterPage";
@@ -17,6 +19,7 @@ import SkillDetailPage from "./pages/SkillDetailPage";
 import SkillsRegistry from "./pages/SkillsRegistry";
 import NftPage from "./pages/NftPage";
 import DaoPage from "./pages/DaoPage";
+import DaoProposalPage from "./pages/DaoProposalPage";
 import ZeroGPage from "./pages/ZeroGPage";
 import OnchainPage from "./pages/OnchainPage";
 
@@ -33,6 +36,7 @@ function Router() {
       <Route path="/proofs" component={ProofExplorerPage} />
       <Route path="/zerog" component={ZeroGPage} />
       <Route path="/nft" component={NftPage} />
+      <Route path="/dao/proposals/:id" component={DaoProposalPage} />
       <Route path="/dao" component={DaoPage} />
       <Route path="/demo/*?" component={DemoCenterPage} />
       <Route path="/plans/:id" component={PlanDetailPage} />
@@ -43,17 +47,20 @@ function Router() {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <SolanaProvider>
-            <SolanaWalletProvider>
-              <Toaster />
-              <Router />
-            </SolanaWalletProvider>
-          </SolanaProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <AppErrorBoundary>
+      <ErrorSurfaceProvider>
+        <ThemeProvider defaultTheme="light">
+          <TooltipProvider>
+            <SolanaProvider>
+              <SolanaWalletProvider>
+                <Toaster />
+                <GlobalErrorBanner />
+                <Router />
+              </SolanaWalletProvider>
+            </SolanaProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </ErrorSurfaceProvider>
+    </AppErrorBoundary>
   );
 }

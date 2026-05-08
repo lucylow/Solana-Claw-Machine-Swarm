@@ -47,7 +47,7 @@ export interface SolanaReceiptRecord {
   txSignature?: string;
   account?: string;
   summaryHash: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
+  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded" | "cached";
   createdAt: string;
   explorerUrl?: string;
   storageRef?: string;
@@ -58,10 +58,30 @@ export interface SolanaReceiptRecord {
 /** Alias for backwards compatibility with older imports */
 export type SolanaTxRecord = SolanaReceiptRecord;
 
+/** Last probe of the cluster RPC the app is configured to use (server-authoritative when fetched via `/api/solana/status`). */
+export interface SolanaRpcProbe {
+  ok: boolean;
+  slot?: number;
+  latencyMs?: number;
+  error?: string;
+}
+
+/** `/api/solana/status` payload — orchestration + cluster + RPC reachability */
+export interface SolanaBackendStatus {
+  cluster: SolanaCluster;
+  rpcUrl: string;
+  explorerBaseUrl: string;
+  product: string;
+  activeSessions: number;
+  outstandingNonces: number;
+  rpc: SolanaRpcProbe;
+}
+
 /** Aggregate wallet snapshot rendered across panels */
 export interface SolanaWalletState {
   connected: boolean;
   connectionStatus: WalletConnectionStatus;
+  /** Public key always comes from the wallet adapter — never from session storage alone */
   publicKey: string | null;
   walletName: string | null;
   cluster: SolanaCluster;
@@ -78,6 +98,12 @@ export interface SolanaWalletState {
   lastTxSignature?: string;
   lastSignatureAt?: string;
   lastSessionAt?: string;
+  /** Result of the last RPC health check against the app cluster */
+  rpcReachable: boolean | null;
+  rpcSlot: string | null;
+  rpcLatencyMs: number | null;
+  rpcError: string | null;
+  rpcCheckedAt: string | null;
   permissions: {
     canPublishSkill: boolean;
     canExecuteTask: boolean;

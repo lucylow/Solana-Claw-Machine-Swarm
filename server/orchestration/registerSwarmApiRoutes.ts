@@ -1,7 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { createAppError } from "@shared/appErrorFactory";
 import type { SkillIdentity } from "@shared/domainModel";
 import { sdk } from "../_core/sdk";
+import {
+  circuitBreakerAllowOrThrow,
+  recordCircuitFailure,
+  recordCircuitSuccess,
+} from "../errors/circuitBreaker";
+import { sendAppError, sendAppOk } from "../errors/httpRespond";
+import { logStructuredError } from "../errors/logStructuredError";
+import { normalizeServerError } from "../errors/normalizeServerError";
 import type { MemoryReceiptService } from "../memory";
 import type { PlanReceiptService } from "../plans/PlanReceiptService";
 import type { SolanaBridgeService } from "../solana/bridgeService";
@@ -11,12 +20,30 @@ import { ExecutionOrchestratorService } from "./ExecutionOrchestratorService";
 import { SwarmMirrorStore } from "./swarmMirrorStore";
 
 function ok(res: Response, data: unknown) {
-  res.json({ ok: true, data });
+  sendAppOk(res, data);
 }
 
-function fail(res: Response, error: unknown, status = 400) {
-  const message = error instanceof Error ? error.message : "swarm_api_error";
-  res.status(status).json({ ok: false, error: message });
+function fail(res: Response, error: unknown, status = 400, req?: Request) {
+  const appError = normalizeServerError(error, {
+    route: req?.path,
+    requestId: requestId(req ?? ({} as Request)),
+  });
+  const outStatus = appError.statusCode && appError.statusCode >= 400 ? appError.statusCode : status;
+  logStructuredError(appError, {
+    route: req?.path,
+    requestId: req ? requestId(req) : undefined,
+  });
+  sendAppError(res, { ...appError, statusCode: outStatus }, outStatus);
+}
+
+function notFound(res: Response, message: string, technical?: string) {
+  const appError = createAppError("VALIDATION_FAILED", {
+    message,
+    technicalMessage: technical ?? message,
+    statusCode: 404,
+  });
+  logStructuredError(appError, {});
+  sendAppError(res, appError, 404);
 }
 
 function requestId(req: Request) {
@@ -149,13 +176,15 @@ export async function registerSwarmApiRoutes(
         },
       });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
-  app.get("/api/solana/status", async (_req, res) => {
+  app.get("/api/solana/status", async (req, res) => {
     try {
+      circuitBreakerAllowOrThrow("solana_rpc");
       const network = await deps.bridge.getNetwork();
+      recordCircuitSuccess("solana_rpc");
       ok(res, {
         cluster: network.cluster,
         programId: network.programId,
@@ -168,7 +197,8 @@ export async function registerSwarmApiRoutes(
         healthy: true,
       });
     } catch (error) {
-      fail(res, error, 500);
+      recordCircuitFailure("solana_rpc");
+      fail(res, error, 500, req);
     }
   });
 
@@ -194,7 +224,7 @@ export async function registerSwarmApiRoutes(
 
       ok(res, { skills: mapped, total: mapped.length });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -206,7 +236,7 @@ export async function registerSwarmApiRoutes(
       const skillId = mirror.getSelectedSkill(wallet);
       ok(res, { walletAddress: wallet, skillId });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -215,18 +245,18 @@ export async function registerSwarmApiRoutes(
       if (!deps.identityService) throw new Error("identity_service_unavailable");
       const id = String(req.params.id);
       if (id === "session") {
-        res.status(404).json({ ok: false, error: "skill_not_found" });
+        notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       const rows = await deps.identityService.listDiscoverySkills();
       const row = rows.find(r => r.skillAddress === id || r.slug === id || r.name === id);
       if (!row) {
-        res.status(404).json({ ok: false, error: "skill_not_found" });
+        notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       ok(res, discoveryToSkillIdentity(row));
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -239,7 +269,7 @@ export async function registerSwarmApiRoutes(
       console.log(`[${requestId(req)}] skill_selected`, wallet, skillId);
       ok(res, { walletAddress: wallet, skillId, selectedAt: new Date().toISOString() });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -275,7 +305,7 @@ export async function registerSwarmApiRoutes(
       const receipt = await deps.memoryService.anchorReflection(created.reflection.id, wallet);
       ok(res, { executionId, reflection: created.reflection, receipt });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -308,9 +338,12 @@ export async function registerSwarmApiRoutes(
         result.errors.join(";")
       );
 
-      res.status(result.degraded ? 207 : 200).json({ ok: !result.degraded || result.execution.status === "verified", data: result });
+      sendAppOk(res, result, {
+        degraded: result.degraded,
+        status: result.degraded ? 207 : 200,
+      });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -339,9 +372,9 @@ export async function registerSwarmApiRoutes(
         userId: null,
         requestId: requestId(req),
       });
-      res.status(200).json({ ok: true, data: result });
+      sendAppOk(res, result, { degraded: result.degraded, status: 200 });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -357,7 +390,7 @@ export async function registerSwarmApiRoutes(
       });
       ok(res, data);
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -366,7 +399,7 @@ export async function registerSwarmApiRoutes(
       const data = await deps.memoryService.getReflection(String(req.params.id));
       ok(res, data);
     } catch (error) {
-      fail(res, error, 404);
+      fail(res, error, 404, req);
     }
   });
 
@@ -392,7 +425,7 @@ export async function registerSwarmApiRoutes(
       }
       ok(res, { reflection: created.reflection, receipt });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -406,7 +439,7 @@ export async function registerSwarmApiRoutes(
         chain: chainAccounts.slice(0, 50),
       });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -423,9 +456,9 @@ export async function registerSwarmApiRoutes(
         ok(res, fromMirror);
         return;
       }
-      res.status(404).json({ ok: false, error: "receipt_not_found" });
+      notFound(res, "Receipt not found.", "receipt_not_found");
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -458,7 +491,7 @@ export async function registerSwarmApiRoutes(
       await mirror.appendReceipt(record);
       ok(res, record);
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -471,7 +504,7 @@ export async function registerSwarmApiRoutes(
       } as never);
       ok(res, accounts);
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -479,22 +512,22 @@ export async function registerSwarmApiRoutes(
     try {
       const data = await deps.bridge.getMirrorAccount(String(req.params.id));
       if (!data) {
-        res.status(404).json({ ok: false, error: "proof_not_found" });
+        notFound(res, "Proof receipt not found.", "proof_not_found");
         return;
       }
       ok(res, data);
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
-  app.get("/api/reputation", async (_req, res) => {
+  app.get("/api/reputation", async (req, res) => {
     try {
       if (!deps.identityService) throw new Error("identity_service_unavailable");
       const profiles = await deps.identityService.listDiscoveryProfiles();
       ok(res, { profiles });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -505,7 +538,7 @@ export async function registerSwarmApiRoutes(
       const rows = await deps.identityService.listDiscoverySkills();
       const row = rows.find(r => r.skillAddress === skillId || r.slug === skillId);
       if (!row) {
-        res.status(404).json({ ok: false, error: "skill_not_found" });
+        notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       ok(res, {
@@ -519,7 +552,7 @@ export async function registerSwarmApiRoutes(
         },
       });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 
@@ -533,7 +566,7 @@ export async function registerSwarmApiRoutes(
       ]);
       ok(res, { executions, bridgeHistory });
     } catch (error) {
-      fail(res, error);
+      fail(res, error, 400, req);
     }
   });
 }

@@ -1,5 +1,8 @@
 import crypto from "crypto";
 import { nanoid } from "nanoid";
+import { buildAgentFrameworkRun, mergePersistenceIntoFramework } from "@shared/agents/pipeline";
+import type { AgentFrameworkRun } from "@shared/agents/framework";
+import type { AgentMemoryRecord, AgentProofRecord, AgentReflection } from "@shared/agents/types";
 import type {
   ExecutionRecord,
   ExecutionStatus,
@@ -16,6 +19,7 @@ import type { SolanaBridgeService } from "../solana/bridgeService";
 import type { SolanaIdentityService } from "../solana/identityService";
 import { normalizeWalletAddress } from "../solana/pda";
 import { SkillRegistryService } from "../skills/skillRegistryService";
+import { orchestratorStringsToAppErrors } from "../errors/orchestratorErrors";
 import { SwarmMirrorStore } from "./swarmMirrorStore";
 
 function sha256Hex(value: string) {
@@ -30,14 +34,59 @@ function hashPayload(payload: unknown) {
   return sha256Hex(JSON.stringify(payload ?? {}));
 }
 
-const AGENT_ROLES: OrchestrationAgentStep["role"][] = [
-  "planner",
-  "researcher",
-  "operator",
-  "critic",
-  "support",
-  "coordinator",
-];
+function toProofCluster(cluster: string): AgentProofRecord["cluster"] {
+  const c = cluster.toLowerCase();
+  if (c.includes("mainnet")) return "mainnet-beta";
+  if (c === "testnet") return "testnet";
+  if (c === "localnet") return "localnet";
+  return "devnet";
+}
+
+function mapToAgentReflection(
+  r: ReflectionRecord,
+  runId: string,
+  executionId: string,
+): AgentReflection {
+  const st = r.status === "failed" ? "degraded" : (r.status as AgentReflection["status"]);
+  return {
+    id: r.id,
+    runId,
+    sourceExecutionId: executionId,
+    rootCause: r.rootCause,
+    correctiveAdvice: r.correctiveAdvice,
+    nextAction: r.nextAction,
+    summary: r.summary,
+    fullText: r.fullText,
+    createdAt: r.createdAt,
+    status: st,
+    memoryId: r.memoryId,
+    proofReceiptId: r.onchainReceiptId,
+    storageRef: r.offchainStorageRef,
+    proofHash: r.proofHash,
+    metadata: { skillId: r.skillId, sourceTurnId: r.sourceTurnId },
+  };
+}
+
+function mapToAgentMemory(m: MemoryRecord, runId: string, reflectionId: string): AgentMemoryRecord {
+  return {
+    id: m.id,
+    runId,
+    sourceExecutionId: m.sourceExecutionId,
+    sourceReflectionId: reflectionId,
+    kind: m.kind,
+    title: m.title,
+    summary: m.summary,
+    content: m.content,
+    tags: m.tags,
+    storageRef: m.storageRef,
+    checksum: m.checksum,
+    proofReceiptId: m.proofReceiptId,
+    linkedNextRunId: m.linkedNextTurnId,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+    metadata: {},
+  };
+}
 
 export type OrchestratorDeps = {
   bridge: SolanaBridgeService;
@@ -88,22 +137,42 @@ export class ExecutionOrchestratorService {
       degraded = true;
     }
 
-    const orchestration: OrchestrationAgentStep[] = AGENT_ROLES.map(role => ({
-      role,
-      label:
-        role === "planner"
-          ? "Decompose goal & bind skill context"
-          : role === "researcher"
-            ? "Gather constraints & precedents"
-            : role === "operator"
-              ? "Execute tool path"
-              : role === "critic"
-                ? "Validate output & policy"
-                : role === "support"
-                  ? "Retry / fallback lane"
-                  : "Merge lanes & handoff",
-      status: "pending",
+    const priorList = await this.deps.memoryService.listReflections({ wallet, limit: 5 });
+    const priorSummaries = priorList.items.map(x => ({
+      id: x.reflection.id,
+      summary: x.reflection.summary,
+      tags: x.reflection.tags,
     }));
+
+    let agentFramework: AgentFrameworkRun = buildAgentFrameworkRun({
+      runId: executionId,
+      executionId,
+      wallet,
+      cluster: toProofCluster(session.cluster),
+      goal: input.goal,
+      skillId: input.skillId,
+      skillName: input.skillName,
+      agentId: input.agentId,
+      sessionActive: session.isActive,
+      sessionVerified: session.isVerified,
+      priorReflectionSummaries: priorSummaries,
+    });
+
+    const orchestration: OrchestrationAgentStep[] = [
+      {
+        role: "coordinator",
+        label: "Coordinator · receive goal and bind run context",
+        status: "pending",
+        detail: `Intent ${agentFramework.intent.goalType} · ${priorSummaries.length} prior reflection(s) considered`,
+      },
+      ...agentFramework.delegations.map(d => ({
+        role: d.toRole,
+        label: `${d.fromRole} → ${d.toRole}: ${d.task}`,
+        status: "pending" as const,
+        detail: d.outputSummary,
+        at: d.at,
+      })),
+    ];
 
     let status: ExecutionStatus = "planning";
     const execution: ExecutionRecord = {
@@ -120,8 +189,10 @@ export class ExecutionOrchestratorService {
         skillName: input.skillName ?? input.skillId,
         requestId,
         sessionActive: session.isActive,
+        agentRunId: agentFramework.runId,
       },
       orchestration,
+      agentFramework,
     };
 
     await this.deps.mirror.upsertExecution(execution);
@@ -140,33 +211,33 @@ export class ExecutionOrchestratorService {
     try {
       orchestration[0]!.status = "active";
       orchestration[0]!.at = nowIso();
-      orchestration[0]!.detail = `Selected skill: ${input.skillName || input.skillId}`;
+      orchestration[0]!.detail = `Skill ${input.skillName || input.skillId} · planner confidence ${agentFramework.plan.confidence}`;
+
+      const planStepsForReceipt = agentFramework.plan.steps.map((s, i) => ({
+        id: s.id,
+        index: i,
+        title: s.title,
+        description: s.description,
+        dependencies: s.dependencies,
+        chosenSkills: agentFramework.plan.chosenSkillIds,
+        status: "pending" as const,
+      }));
 
       if (this.deps.planReceiptService) {
-        const steps = AGENT_ROLES.map((role, i) => ({
-          id: `step_${role}_${i}`,
-          index: i,
-          title: `${role} phase`,
-          description: orchestration[i]!.label,
-          dependencies: i ? [`step_${AGENT_ROLES[i - 1]!}_${i - 1}`] : [],
-          chosenSkills: [input.skillId],
-          status: "pending" as const,
-        }));
-
         const created = await this.deps.planReceiptService.create({
           planId,
           taskType: "research",
           title: `SWARM run: ${input.skillName || input.skillId}`,
-          summary: input.goal.slice(0, 240),
+          summary: agentFramework.plan.summary.slice(0, 240),
           goal: input.goal,
-          steps,
+          steps: planStepsForReceipt,
           chosenSkills: [{ id: input.skillId, name: input.skillName || input.skillId }],
           expectedOutcome: "Structured output with reflection and anchored receipt.",
           agentId: input.agentId,
           wallet,
           turnId: sourceTurnId,
           tags: ["swarm", "command-center"],
-          metadata: { executionId, requestId },
+          metadata: { executionId, requestId, agentRunId: agentFramework.runId },
           anchorOnCreate: true,
         });
         planReceiptId = created.id;
@@ -178,18 +249,43 @@ export class ExecutionOrchestratorService {
           worker: "operator_swarm",
           status: "success",
           finalResult: `Completed mission for skill ${input.skillId}: ${input.goal.slice(0, 120)}`,
-          stepProgress: steps.map(s => ({ stepId: s.id, status: "done" as const })),
+          stepProgress: planStepsForReceipt.map(s => ({ stepId: s.id, status: "done" as const })),
           metadata: { executionId },
         });
+        agentFramework = mergePersistenceIntoFramework(agentFramework, {
+          proofRecords: [
+            {
+              id: `pf_plan_${nanoid(8)}`,
+              runId: agentFramework.runId,
+              agentId: input.agentId,
+              proofType: "plan",
+              walletAddress: wallet,
+              cluster: toProofCluster(session.cluster),
+              proofStatus: "verified",
+              summaryHash: hashPayload({ planId, receiptId: created.id }),
+              createdAt: nowIso(),
+              metadata: { planReceiptId: created.id, executionId },
+            },
+          ],
+        });
       } else {
-        const planHash = hashPayload({ planId, goal: input.goal, skillId: input.skillId });
-        const stepHash = hashPayload({ steps: AGENT_ROLES });
+        const planHash = hashPayload({
+          planId,
+          goal: input.goal,
+          skillId: input.skillId,
+          frameworkPlanId: agentFramework.plan.id,
+        });
         const planTx = await this.deps.bridge.sendInstruction({
           walletAddress: wallet,
           action: "create_plan_receipt",
           subjectId: planId,
           payloadHash: planHash,
-          metadata: { goal: input.goal, skillId: input.skillId, stepCount: AGENT_ROLES.length },
+          metadata: {
+            goal: input.goal,
+            skillId: input.skillId,
+            stepCount: agentFramework.plan.steps.length,
+            agentRunId: agentFramework.runId,
+          },
         });
         planReceiptId = planTx.requestId;
         execution.planReceiptId = planReceiptId;
@@ -214,18 +310,41 @@ export class ExecutionOrchestratorService {
           explorerUrl: planTx.explorerTxUrl,
           metadata: { executionId, requestId },
         });
+        agentFramework = mergePersistenceIntoFramework(agentFramework, {
+          proofRecords: [
+            {
+              id: `pf_plan_${nanoid(8)}`,
+              runId: agentFramework.runId,
+              agentId: input.agentId,
+              proofType: "plan",
+              walletAddress: wallet,
+              cluster: toProofCluster(session.cluster),
+              txSignature: planTx.txSignature,
+              pda: planTx.accountAddress,
+              proofStatus: planTx.status === "failed" ? "degraded" : "pending",
+              summaryHash: planHash,
+              createdAt: nowIso(),
+              explorerUrl: planTx.explorerTxUrl,
+              metadata: { executionId, planId },
+            },
+          ],
+        });
       }
 
       orchestration[0]!.status = "done";
       for (let i = 1; i < orchestration.length; i++) {
         orchestration[i]!.status = "done";
         orchestration[i]!.at = nowIso();
-        orchestration[i]!.detail = "Lane completed";
+        orchestration[i]!.detail =
+          orchestration[i]!.detail && orchestration[i]!.detail !== "Lane completed"
+            ? orchestration[i]!.detail
+            : "Lane completed";
       }
 
       status = "running";
       execution.status = status;
       execution.updatedAt = nowIso();
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
       this.log(requestId, "plan_completed", { planId, planReceiptId });
     } catch (e) {
@@ -235,6 +354,9 @@ export class ExecutionOrchestratorService {
       status = "failed";
       execution.status = status;
       execution.updatedAt = nowIso();
+      execution.metadata = { ...execution.metadata, planPhaseFailed: true };
+      agentFramework = { ...agentFramework, status: "failed", updatedAt: nowIso() };
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
 
@@ -365,12 +487,41 @@ export class ExecutionOrchestratorService {
         explorerUrl: anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : undefined,
         metadata: { executionId, requestId },
       });
+
+      agentFramework = mergePersistenceIntoFramework(agentFramework, {
+        reflections: [mapToAgentReflection(reflection, agentFramework.runId, executionId)],
+        memoryRecords: memoryCanonical
+          ? [mapToAgentMemory(memoryCanonical, agentFramework.runId, reflection.id)]
+          : [],
+        proofRecords: [
+          {
+            id: `pf_refl_${nanoid(8)}`,
+            runId: agentFramework.runId,
+            agentId: input.agentId,
+            proofType: "reflection",
+            walletAddress: wallet,
+            cluster: toProofCluster(session.cluster),
+            txSignature: anchorTxSig,
+            account: receiptAccount,
+            proofStatus: anchorTxSig ? "pending" : "degraded",
+            summaryHash: created.reflection.payloadHash,
+            createdAt: nowIso(),
+            explorerUrl: anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : undefined,
+            storageRef: created.reflection.storageRef,
+            metadata: { reflectionId: reflection.id },
+          },
+        ],
+      });
+      execution.agentFramework = agentFramework;
+      await this.deps.mirror.upsertExecution(execution);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "reflection_failed";
       errors.push(msg);
       degraded = true;
       execution.status = "degraded";
       execution.updatedAt = nowIso();
+      agentFramework = { ...agentFramework, status: "degraded", updatedAt: nowIso() };
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
 
@@ -426,6 +577,45 @@ export class ExecutionOrchestratorService {
         explorerUrl: proofTx.explorerTxUrl,
         metadata: { executionId, requestId },
       });
+      agentFramework = mergePersistenceIntoFramework(agentFramework, {
+        proofRecords: [
+          {
+            id: `pf_exec_${nanoid(8)}`,
+            runId: agentFramework.runId,
+            agentId: input.agentId,
+            proofType: "execution",
+            walletAddress: wallet,
+            cluster: toProofCluster(session.cluster),
+            txSignature: proofTx.txSignature,
+            pda: proofTx.accountAddress,
+            proofStatus: proofTx.status === "failed" ? "degraded" : "verified",
+            summaryHash: proofHash,
+            createdAt: nowIso(),
+            explorerUrl: proofTx.explorerTxUrl,
+            metadata: { proofSubject },
+          },
+        ],
+      });
+      agentFramework = {
+        ...agentFramework,
+        status:
+          execution.status === "verified" && !degraded
+            ? "completed"
+            : execution.metadata.planPhaseFailed
+              ? "failed"
+              : "degraded",
+        updatedAt: nowIso(),
+        reputationSnapshot: {
+          ...agentFramework.reputationSnapshot,
+          skillTrustDelta: execution.status === "verified" ? 0.55 : 0.05,
+          notes:
+            execution.status === "verified"
+              ? "Proof receipt verified; next run can reuse injected memory with higher planner confidence."
+              : agentFramework.reputationSnapshot.notes,
+        },
+      };
+      execution.agentFramework = agentFramework;
+      await this.deps.mirror.upsertExecution(execution);
       this.log(requestId, "proof_receipt", { tx: proofTx.txSignature });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "proof_failed";
@@ -433,6 +623,8 @@ export class ExecutionOrchestratorService {
       degraded = true;
       execution.status = "degraded";
       execution.updatedAt = nowIso();
+      agentFramework = { ...agentFramework, status: "degraded", updatedAt: nowIso() };
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
 
@@ -457,6 +649,16 @@ export class ExecutionOrchestratorService {
       }
     }
 
+    const appErrors = orchestratorStringsToAppErrors(errors, {
+      requestId,
+      executionId,
+      wallet,
+      skillId: input.skillId,
+    });
+
+    execution.agentFramework = agentFramework;
+    await this.deps.mirror.upsertExecution(execution);
+
     return {
       execution,
       reflection,
@@ -467,6 +669,8 @@ export class ExecutionOrchestratorService {
       planId,
       degraded,
       errors,
+      appErrors,
+      agentFramework,
     };
   }
 }

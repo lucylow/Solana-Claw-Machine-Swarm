@@ -1,7 +1,28 @@
-import type { Express } from "express";
+import type { Express, Response } from "express";
+import { z } from "zod";
 import { DaoService } from "./daoService";
+import { mapVoteLedger } from "./governanceMapper";
+
+function ok(res: Response, data: unknown) {
+  res.json({ ok: true, data });
+}
+
+function fail(res: Response, message: string, status = 400) {
+  res.status(status).json({ ok: false, error: message });
+}
 
 export function registerDaoRoutes(app: Express, daoService: DaoService) {
+  app.get("/api/dao/command-center", (req, res) => {
+    try {
+      const demo = String(req.query.demo || "") === "1" || String(req.query.demo || "") === "true";
+      const walletAddress = req.query.walletAddress ? String(req.query.walletAddress).trim() : undefined;
+      const payload = daoService.buildCommandCenterPayload({ walletAddress, demo });
+      ok(res, payload);
+    } catch (e: unknown) {
+      fail(res, e instanceof Error ? e.message : "command_center_failed", 500);
+    }
+  });
+
   app.get("/api/dao/config", (_req, res) => {
     res.json({ ok: true, data: daoService.getConfig() });
   });
@@ -12,7 +33,7 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
 
   app.get("/api/dao/members/:wallet", (req, res) => {
     const data = daoService.getMember(req.params.wallet);
-    if (!data) return res.status(404).json({ ok: false, error: "member_not_found" });
+    if (!data) return fail(res, "member_not_found", 404);
     res.json({ ok: true, data });
   });
 
@@ -30,6 +51,44 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
       const message = e instanceof Error ? e.message : "register_failed";
       res.status(400).json({ ok: false, error: message });
     }
+  });
+
+  app.get("/api/dao/delegations", (_req, res) => {
+    ok(res, daoService.listDelegations());
+  });
+
+  app.post("/api/dao/delegations", async (req, res) => {
+    try {
+      const body = z
+        .object({
+          fromWallet: z.string().min(32),
+          toWallet: z.string().min(32),
+          reason: z.string().max(500).optional(),
+        })
+        .parse(req.body);
+      const data = await daoService.delegateVotePower(body.fromWallet, body.toWallet, body.reason);
+      ok(res, data);
+    } catch (e: unknown) {
+      fail(res, e instanceof Error ? e.message : "delegation_failed");
+    }
+  });
+
+  app.post("/api/dao/delegations/revoke", async (req, res) => {
+    try {
+      const body = z.object({ fromWallet: z.string().min(32) }).parse(req.body);
+      await daoService.revokeDelegate(body.fromWallet);
+      ok(res, { revoked: true });
+    } catch (e: unknown) {
+      fail(res, e instanceof Error ? e.message : "revoke_failed");
+    }
+  });
+
+  app.get("/api/dao/votes", (req, res) => {
+    const proposalId = req.query.proposalId ? Number(req.query.proposalId) : undefined;
+    if (proposalId !== undefined && Number.isNaN(proposalId)) {
+      return fail(res, "invalid_proposal_id");
+    }
+    ok(res, daoService.listVoteLedger(proposalId).map(mapVoteLedger));
   });
 
   app.post("/api/dao/proposals", async (req, res) => {
@@ -61,16 +120,20 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
 
   app.get("/api/dao/proposals/:proposalId", (req, res) => {
     const data = daoService.getProposal(Number(req.params.proposalId));
-    if (!data) return res.status(404).json({ ok: false, error: "proposal_not_found" });
+    if (!data) return fail(res, "proposal_not_found", 404);
     res.json({ ok: true, data });
   });
 
   app.post("/api/dao/proposals/:proposalId/vote", async (req, res) => {
     try {
+      const choice = String(req.body.choice) as import("./daoTypes").DaoVoteChoice;
+      if (!["yes", "no", "abstain", "veto"].includes(choice)) {
+        return fail(res, "invalid_vote_choice");
+      }
       const data = await daoService.castVote(
         Number(req.params.proposalId),
         String(req.body.wallet),
-        String(req.body.choice) as import("./daoTypes").DaoVoteChoice,
+        choice,
         String(req.body.reason || "")
       );
       res.json({ ok: true, data });

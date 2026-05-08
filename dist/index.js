@@ -10517,6 +10517,957 @@ async function mountDao(app) {
 // server/orchestration/registerSwarmApiRoutes.ts
 import { z as z7 } from "zod";
 
+// shared/errorCatalog.ts
+var ERROR_CATALOG = {
+  WALLET_NOT_CONNECTED: {
+    scope: "wallet",
+    severity: "warning",
+    title: "Wallet not connected",
+    message: "Connect a Solana wallet to bind identity and anchor receipts.",
+    recoveryAction: "Open the wallet panel and approve a connection.",
+    retryLabel: "Connect wallet"
+  },
+  WALLET_CONNECTION_REJECTED: {
+    scope: "wallet",
+    severity: "warning",
+    title: "Wallet connection rejected",
+    message: "The wallet declined the connection request.",
+    recoveryAction: "Try again or choose a different wallet.",
+    retryLabel: "Retry connection"
+  },
+  WALLET_SESSION_SIGN_FAILED: {
+    scope: "session",
+    severity: "warning",
+    title: "Session signature failed",
+    message: "The wallet did not sign the session challenge.",
+    recoveryAction: "Approve the signature request or refresh the session.",
+    retryLabel: "Sign again"
+  },
+  WALLET_SESSION_EXPIRED: {
+    scope: "session",
+    severity: "warning",
+    title: "Session expired",
+    message: "Reconnect your Solana wallet to continue with a fresh session.",
+    recoveryAction: "Disconnect and connect again, then complete verification.",
+    retryLabel: "Refresh session"
+  },
+  WALLET_WRONG_CLUSTER: {
+    scope: "wallet",
+    severity: "warning",
+    title: "Wrong Solana cluster",
+    message: "Switch to the cluster this command center expects (e.g. devnet for this demo).",
+    recoveryAction: "Change network in your wallet to match the app cluster.",
+    retryLabel: "After switching network"
+  },
+  WALLET_UNSUPPORTED: {
+    scope: "wallet",
+    severity: "error",
+    title: "Wallet not supported",
+    message: "This wallet adapter is not supported for this flow.",
+    recoveryAction: "Use a compatible Solana wallet (e.g. Phantom, Backpack)."
+  },
+  SESSION_VERIFICATION_FAILED: {
+    scope: "session",
+    severity: "error",
+    title: "Session verification failed",
+    message: "The server could not verify your wallet session.",
+    recoveryAction: "Complete the session signature flow again.",
+    retryLabel: "Verify session"
+  },
+  SESSION_TOKEN_EXPIRED: {
+    scope: "session",
+    severity: "warning",
+    title: "Session token expired",
+    message: "Your session token is no longer valid.",
+    recoveryAction: "Sign in or refresh the wallet session.",
+    retryLabel: "Refresh session"
+  },
+  SESSION_REQUIRED: {
+    scope: "session",
+    severity: "warning",
+    title: "Verified session required",
+    message: "An active, verified wallet session is required for this step.",
+    recoveryAction: "Connect and complete session verification before anchoring.",
+    retryLabel: "Verify session"
+  },
+  RPC_UNAVAILABLE: {
+    scope: "rpc",
+    severity: "critical",
+    title: "Solana RPC unavailable",
+    message: "The cluster RPC endpoint is not reachable.",
+    recoveryAction: "Wait and retry, or check RPC configuration.",
+    retryLabel: "Retry",
+    supportHint: "If this persists, the network or your RPC provider may be down."
+  },
+  RPC_TIMEOUT: {
+    scope: "rpc",
+    severity: "error",
+    title: "RPC timeout",
+    message: "The Solana RPC did not respond in time.",
+    recoveryAction: "Retry the operation; congestion often clears quickly.",
+    retryLabel: "Retry"
+  },
+  RPC_RATE_LIMITED: {
+    scope: "rpc",
+    severity: "warning",
+    title: "RPC rate limited",
+    message: "Too many requests were sent to the RPC endpoint.",
+    recoveryAction: "Wait briefly and retry, or use a dedicated RPC URL.",
+    retryLabel: "Retry after wait"
+  },
+  TX_BUILD_FAILED: {
+    scope: "transaction",
+    severity: "error",
+    title: "Transaction build failed",
+    message: "The transaction could not be constructed.",
+    recoveryAction: "Check accounts and program ID, then retry.",
+    retryLabel: "Retry"
+  },
+  TX_SIMULATION_FAILED: {
+    scope: "transaction",
+    severity: "error",
+    title: "Simulation failed",
+    message: "The transaction simulation reported a failure before send.",
+    recoveryAction: "Review logs for program errors or insufficient funds.",
+    retryLabel: "Retry after fix"
+  },
+  TX_SEND_FAILED: {
+    scope: "transaction",
+    severity: "error",
+    title: "Transaction failed to send",
+    message: "The signed transaction could not be submitted to the cluster.",
+    recoveryAction: "Retry send; if it persists, check RPC and wallet.",
+    retryLabel: "Retry send"
+  },
+  TX_CONFIRMATION_FAILED: {
+    scope: "transaction",
+    severity: "error",
+    title: "Confirmation failed",
+    message: "The transaction was sent but confirmation did not complete.",
+    recoveryAction: "Check the signature on the explorer or retry confirmation.",
+    retryLabel: "Recheck explorer"
+  },
+  TX_EXPIRED: {
+    scope: "transaction",
+    severity: "warning",
+    title: "Transaction expired",
+    message: "The blockhash expired before the transaction landed.",
+    recoveryAction: "Rebuild and sign a fresh transaction.",
+    retryLabel: "Retry"
+  },
+  ACCOUNT_NOT_FOUND: {
+    scope: "account",
+    severity: "error",
+    title: "Account not found",
+    message: "The requested on-chain account does not exist.",
+    recoveryAction: "Initialize the account or switch cluster."
+  },
+  ACCOUNT_DECODE_FAILED: {
+    scope: "account",
+    severity: "error",
+    title: "Account decode failed",
+    message: "Account data could not be decoded with the expected layout.",
+    recoveryAction: "Check program deployment and IDL version."
+  },
+  PDA_DERIVATION_FAILED: {
+    scope: "account",
+    severity: "error",
+    title: "PDA derivation failed",
+    message: "A program-derived address could not be derived for this path.",
+    recoveryAction: "Verify seeds and program id."
+  },
+  PROGRAM_ERROR: {
+    scope: "anchor",
+    severity: "error",
+    title: "Program error",
+    message: "The on-chain program returned an error.",
+    recoveryAction: "Inspect simulation logs and program error code."
+  },
+  ANCHOR_IDL_MISMATCH: {
+    scope: "anchor",
+    severity: "critical",
+    title: "IDL mismatch",
+    message: "The IDL does not match the deployed program.",
+    recoveryAction: "Redeploy or refresh the IDL used by the client and server."
+  },
+  INSUFFICIENT_SOL: {
+    scope: "solana",
+    severity: "warning",
+    title: "Insufficient SOL",
+    message: "The wallet does not have enough SOL for fees and rent.",
+    recoveryAction: "Fund the wallet on this cluster."
+  },
+  INSUFFICIENT_PERMISSIONS: {
+    scope: "backend",
+    severity: "error",
+    title: "Insufficient permissions",
+    message: "This wallet or session cannot perform the requested action.",
+    recoveryAction: "Use an authorized wallet or complete verification."
+  },
+  RECEIPT_ANCHOR_FAILED: {
+    scope: "receipt",
+    severity: "error",
+    title: "Receipt anchor failed",
+    message: "The receipt could not be anchored on Solana.",
+    recoveryAction: "Your draft is preserved; retry anchor after fixing the session or RPC.",
+    retryLabel: "Retry anchor"
+  },
+  PROOF_VERIFICATION_FAILED: {
+    scope: "proof",
+    severity: "warning",
+    title: "Proof pending verification",
+    message: "A signature exists but explorer verification did not succeed yet.",
+    recoveryAction: "Recheck proof status; data may still be valid.",
+    retryLabel: "Verify again"
+  },
+  MEMORY_WRITE_FAILED: {
+    scope: "memory",
+    severity: "error",
+    title: "Memory write failed",
+    message: "Reflection or memory could not be written.",
+    recoveryAction: "Retry after checking backend and storage.",
+    retryLabel: "Retry write"
+  },
+  MEMORY_RETRIEVE_FAILED: {
+    scope: "memory",
+    severity: "error",
+    title: "Memory retrieve failed",
+    message: "Stored memory could not be loaded.",
+    recoveryAction: "Retry; cached data may still display.",
+    retryLabel: "Retry load"
+  },
+  REFLECTION_WRITE_FAILED: {
+    scope: "reflection",
+    severity: "error",
+    title: "Reflection write failed",
+    message: "The reflection step did not complete.",
+    recoveryAction: "Execution may still exist; retry reflection or anchor.",
+    retryLabel: "Retry reflection"
+  },
+  SKILL_PUBLISH_FAILED: {
+    scope: "skill",
+    severity: "error",
+    title: "Skill publish failed",
+    message: "The skill could not be published.",
+    recoveryAction: "Fix validation errors and retry publish.",
+    retryLabel: "Retry publish"
+  },
+  SKILL_UPDATE_FAILED: {
+    scope: "skill",
+    severity: "error",
+    title: "Skill update failed",
+    message: "The skill version could not be updated.",
+    recoveryAction: "Retry after resolving on-chain or registry errors.",
+    retryLabel: "Retry update"
+  },
+  PLAN_BUILD_FAILED: {
+    scope: "plan",
+    severity: "error",
+    title: "Plan build failed",
+    message: "The execution plan could not be built or anchored.",
+    recoveryAction: "Preserved goal and skill selection can be retried.",
+    retryLabel: "Retry plan"
+  },
+  EXECUTION_FAILED: {
+    scope: "execution",
+    severity: "error",
+    title: "Execution failed",
+    message: "The autonomous execution path did not complete successfully.",
+    recoveryAction: "Review errors below; partial receipts may still be available.",
+    retryLabel: "Retry execution"
+  },
+  OPENCLAW_IMPORT_FAILED: {
+    scope: "openclaw",
+    severity: "error",
+    title: "OpenClaw import failed",
+    message: "Manifest or tool import through OpenClaw failed.",
+    recoveryAction: "Check bridge health and payload format.",
+    retryLabel: "Retry import"
+  },
+  OPENCLAW_EXPORT_FAILED: {
+    scope: "openclaw",
+    severity: "error",
+    title: "OpenClaw export failed",
+    message: "Export to OpenClaw-compatible format failed.",
+    recoveryAction: "Retry after bridge recovery.",
+    retryLabel: "Retry export"
+  },
+  ZERO_G_STORAGE_FAILED: {
+    scope: "zerog",
+    severity: "error",
+    title: "Storage upload failed",
+    message: "0G storage upload did not complete.",
+    recoveryAction: "Receipt may be degraded; retry upload when storage is healthy.",
+    retryLabel: "Retry upload"
+  },
+  ZERO_G_DA_FAILED: {
+    scope: "zerog",
+    severity: "error",
+    title: "DA batch failed",
+    message: "0G data availability batching did not complete.",
+    recoveryAction: "Mark partial commitment; retry DA when available.",
+    retryLabel: "Retry DA"
+  },
+  ZERO_G_VERIFY_FAILED: {
+    scope: "zerog",
+    severity: "warning",
+    title: "0G verify failed",
+    message: "Blob or batch verification against 0G did not succeed.",
+    recoveryAction: "Retry verification or use an alternate proof path.",
+    retryLabel: "Retry verify"
+  },
+  DB_WRITE_FAILED: {
+    scope: "database",
+    severity: "critical",
+    title: "Database write failed",
+    message: "A persistent write to the database failed.",
+    recoveryAction: "Retry; if critical, check DB connectivity.",
+    retryLabel: "Retry"
+  },
+  DB_READ_FAILED: {
+    scope: "database",
+    severity: "error",
+    title: "Database read failed",
+    message: "Data could not be read from the database.",
+    recoveryAction: "Retry; last cached snapshot may still show.",
+    retryLabel: "Retry"
+  },
+  INDEXER_SYNC_FAILED: {
+    scope: "indexer",
+    severity: "warning",
+    title: "Indexer sync failed",
+    message: "The indexer could not sync chain or receipt state.",
+    recoveryAction: "Proof may show as pending until sync recovers.",
+    retryLabel: "Retry sync"
+  },
+  UNEXPECTED_ROUTE_ERROR: {
+    scope: "backend",
+    severity: "critical",
+    title: "Request failed",
+    message: "The server hit an unexpected error handling this request.",
+    recoveryAction: "Retry; if it repeats, capture request id from diagnostics.",
+    retryLabel: "Retry"
+  },
+  VALIDATION_FAILED: {
+    scope: "backend",
+    severity: "warning",
+    title: "Validation failed",
+    message: "The request payload did not pass validation.",
+    recoveryAction: "Fix the highlighted fields and submit again."
+  },
+  DEMO_MODE_MISMATCH: {
+    scope: "demo",
+    severity: "info",
+    title: "Demo mode only",
+    message: "This path is simulated or fixture-backed \u2014 not asserted as live verification.",
+    recoveryAction: "Switch to live mode for real chain proofs when configured."
+  },
+  DEGRADED_MODE: {
+    scope: "backend",
+    severity: "warning",
+    title: "Degraded mode",
+    message: "Some integrations are unhealthy; the app continues with reduced guarantees.",
+    recoveryAction: "Retry failed steps when services recover.",
+    retryLabel: "Retry"
+  },
+  UNKNOWN: {
+    scope: "unknown",
+    severity: "error",
+    title: "Request error",
+    message: "An error occurred that could not be classified.",
+    recoveryAction: "Retry or open diagnostics for technical detail.",
+    retryLabel: "Retry"
+  }
+};
+function catalogEntry(code) {
+  return ERROR_CATALOG[code] ?? ERROR_CATALOG.UNKNOWN;
+}
+
+// shared/errorId.ts
+function newErrorId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return `err_${globalThis.crypto.randomUUID()}`;
+  }
+  return `err_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+// shared/retryPolicy.ts
+var DEFAULT = {
+  retryable: false,
+  strategy: "none",
+  maxRetries: 0,
+  baseDelayMs: 0,
+  label: "Not retryable"
+};
+var RETRY_POLICY_BY_CODE = {
+  WALLET_NOT_CONNECTED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Connect wallet first"
+  },
+  WALLET_CONNECTION_REJECTED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 3,
+    baseDelayMs: 500,
+    label: "Retry connection"
+  },
+  WALLET_SESSION_SIGN_FAILED: {
+    retryable: true,
+    strategy: "session_refresh",
+    maxRetries: 5,
+    baseDelayMs: 400,
+    label: "Retry signature"
+  },
+  WALLET_SESSION_EXPIRED: {
+    retryable: true,
+    strategy: "session_refresh",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Refresh session"
+  },
+  WALLET_WRONG_CLUSTER: {
+    retryable: true,
+    strategy: "cluster_fix",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Fix cluster"
+  },
+  WALLET_UNSUPPORTED: { ...DEFAULT, label: "Change wallet" },
+  SESSION_VERIFICATION_FAILED: {
+    retryable: true,
+    strategy: "session_refresh",
+    maxRetries: 3,
+    baseDelayMs: 600,
+    label: "Re-verify"
+  },
+  SESSION_TOKEN_EXPIRED: {
+    retryable: true,
+    strategy: "session_refresh",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Refresh session"
+  },
+  SESSION_REQUIRED: {
+    retryable: true,
+    strategy: "session_refresh",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Complete session"
+  },
+  RPC_UNAVAILABLE: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 5,
+    baseDelayMs: 2e3,
+    label: "Retry with backoff"
+  },
+  RPC_TIMEOUT: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 4,
+    baseDelayMs: 1500,
+    label: "Retry"
+  },
+  RPC_RATE_LIMITED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 6,
+    baseDelayMs: 3e3,
+    label: "Wait and retry"
+  },
+  TX_BUILD_FAILED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 2,
+    baseDelayMs: 0,
+    label: "Retry after fix"
+  },
+  TX_SIMULATION_FAILED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 2,
+    baseDelayMs: 0,
+    label: "Retry after simulation fix"
+  },
+  TX_SEND_FAILED: {
+    retryable: true,
+    strategy: "immediate",
+    maxRetries: 3,
+    baseDelayMs: 800,
+    label: "Retry send"
+  },
+  TX_CONFIRMATION_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 8,
+    baseDelayMs: 2e3,
+    label: "Poll confirmation"
+  },
+  TX_EXPIRED: {
+    retryable: true,
+    strategy: "immediate",
+    maxRetries: 3,
+    baseDelayMs: 0,
+    label: "Rebuild tx"
+  },
+  ACCOUNT_NOT_FOUND: { ...DEFAULT, label: "Initialize or fix cluster" },
+  ACCOUNT_DECODE_FAILED: { ...DEFAULT },
+  PDA_DERIVATION_FAILED: { ...DEFAULT },
+  PROGRAM_ERROR: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 1,
+    baseDelayMs: 0,
+    label: "Retry after program fix"
+  },
+  ANCHOR_IDL_MISMATCH: { ...DEFAULT },
+  INSUFFICIENT_SOL: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Fund wallet"
+  },
+  INSUFFICIENT_PERMISSIONS: { ...DEFAULT },
+  RECEIPT_ANCHOR_FAILED: {
+    retryable: true,
+    strategy: "immediate",
+    maxRetries: 4,
+    baseDelayMs: 1200,
+    label: "Retry anchor"
+  },
+  PROOF_VERIFICATION_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 10,
+    baseDelayMs: 3e3,
+    label: "Recheck proof"
+  },
+  MEMORY_WRITE_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 4,
+    baseDelayMs: 1e3,
+    label: "Retry write"
+  },
+  MEMORY_RETRIEVE_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 4,
+    baseDelayMs: 800,
+    label: "Retry load"
+  },
+  REFLECTION_WRITE_FAILED: {
+    retryable: true,
+    strategy: "immediate",
+    maxRetries: 3,
+    baseDelayMs: 600,
+    label: "Retry reflection"
+  },
+  SKILL_PUBLISH_FAILED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 2,
+    baseDelayMs: 0,
+    label: "Retry publish"
+  },
+  SKILL_UPDATE_FAILED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 2,
+    baseDelayMs: 0,
+    label: "Retry update"
+  },
+  PLAN_BUILD_FAILED: {
+    retryable: true,
+    strategy: "immediate",
+    maxRetries: 3,
+    baseDelayMs: 500,
+    label: "Retry plan"
+  },
+  EXECUTION_FAILED: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 3,
+    baseDelayMs: 0,
+    label: "Retry execution"
+  },
+  OPENCLAW_IMPORT_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 3,
+    baseDelayMs: 2e3,
+    label: "Retry import"
+  },
+  OPENCLAW_EXPORT_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 3,
+    baseDelayMs: 2e3,
+    label: "Retry export"
+  },
+  ZERO_G_STORAGE_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 5,
+    baseDelayMs: 2500,
+    label: "Retry storage"
+  },
+  ZERO_G_DA_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 5,
+    baseDelayMs: 2500,
+    label: "Retry DA"
+  },
+  ZERO_G_VERIFY_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 4,
+    baseDelayMs: 1500,
+    label: "Retry verify"
+  },
+  DB_WRITE_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 3,
+    baseDelayMs: 2e3,
+    label: "Retry"
+  },
+  DB_READ_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 4,
+    baseDelayMs: 1e3,
+    label: "Retry"
+  },
+  INDEXER_SYNC_FAILED: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 6,
+    baseDelayMs: 4e3,
+    label: "Retry sync"
+  },
+  UNEXPECTED_ROUTE_ERROR: {
+    retryable: true,
+    strategy: "backoff",
+    maxRetries: 2,
+    baseDelayMs: 1500,
+    label: "Retry"
+  },
+  VALIDATION_FAILED: { ...DEFAULT, label: "Fix input" },
+  DEMO_MODE_MISMATCH: { ...DEFAULT },
+  DEGRADED_MODE: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 0,
+    baseDelayMs: 0,
+    label: "Retry when healthy"
+  },
+  UNKNOWN: {
+    retryable: true,
+    strategy: "manual",
+    maxRetries: 2,
+    baseDelayMs: 1e3,
+    label: "Retry"
+  }
+};
+function getRetryPolicyForCode(code) {
+  return RETRY_POLICY_BY_CODE[code] ?? RETRY_POLICY_BY_CODE.UNKNOWN;
+}
+
+// shared/appErrorFactory.ts
+function createAppError(code, overrides = {}) {
+  const cat = catalogEntry(code);
+  const policy = getRetryPolicyForCode(code);
+  const now5 = (/* @__PURE__ */ new Date()).toISOString();
+  const resolvedCode = overrides.code ?? code;
+  return {
+    id: overrides.id ?? newErrorId(),
+    code: resolvedCode,
+    scope: overrides.scope ?? cat.scope,
+    severity: overrides.severity ?? cat.severity,
+    title: overrides.title ?? cat.title,
+    message: overrides.message ?? cat.message,
+    technicalMessage: overrides.technicalMessage,
+    retryable: overrides.retryable ?? policy.retryable,
+    recoverable: overrides.recoverable ?? true,
+    retryLabel: overrides.retryLabel ?? cat.retryLabel ?? policy.label,
+    recoveryAction: overrides.recoveryAction ?? cat.recoveryAction,
+    supportHint: overrides.supportHint ?? cat.supportHint,
+    actionUrl: overrides.actionUrl,
+    source: overrides.source,
+    statusCode: overrides.statusCode,
+    cause: overrides.cause,
+    metadata: overrides.metadata,
+    createdAt: overrides.createdAt ?? now5,
+    updatedAt: overrides.updatedAt
+  };
+}
+
+// server/errors/circuitBreaker.ts
+var DEFAULT_THRESHOLD = 4;
+var DEFAULT_COOLDOWN_MS = 3e4;
+var circuits = /* @__PURE__ */ new Map();
+function getState(key) {
+  let s = circuits.get(key);
+  if (!s) {
+    s = { failures: 0, openUntil: 0, halfOpen: false };
+    circuits.set(key, s);
+  }
+  return s;
+}
+function isCircuitOpen(key, now5 = Date.now()) {
+  const s = getState(key);
+  if (s.openUntil > now5) return true;
+  if (s.openUntil > 0 && s.openUntil <= now5) {
+    s.halfOpen = true;
+    s.openUntil = 0;
+  }
+  return false;
+}
+function recordCircuitSuccess(key) {
+  const s = getState(key);
+  s.failures = 0;
+  s.halfOpen = false;
+  s.openUntil = 0;
+}
+function recordCircuitFailure(key, threshold = DEFAULT_THRESHOLD) {
+  const s = getState(key);
+  s.failures += 1;
+  if (s.failures >= threshold) {
+    s.openUntil = Date.now() + DEFAULT_COOLDOWN_MS;
+    s.halfOpen = false;
+  }
+}
+function circuitBreakerAllowOrThrow(key) {
+  if (isCircuitOpen(key)) {
+    throw new Error(`${key}_circuit_open`);
+  }
+}
+
+// server/errors/httpRespond.ts
+function sendAppError(res, appError, statusOverride) {
+  const status = statusOverride ?? appError.statusCode ?? 400;
+  res.status(status).json({ ok: false, error: { ...appError, statusCode: status } });
+}
+function sendAppOk(res, data, opts) {
+  const status = opts?.status ?? 200;
+  res.status(status).json({
+    ok: true,
+    data,
+    ...opts?.degraded !== void 0 ? { degraded: opts.degraded } : {}
+  });
+}
+
+// server/errors/logStructuredError.ts
+function logStructuredError(appError, ctx = {}) {
+  const payload = {
+    ts: (/* @__PURE__ */ new Date()).toISOString(),
+    kind: "claw_app_error",
+    id: appError.id,
+    code: appError.code,
+    scope: appError.scope,
+    severity: appError.severity,
+    message: appError.message,
+    technicalMessage: appError.technicalMessage,
+    retryable: appError.retryable,
+    recoverable: appError.recoverable,
+    recoveryAction: appError.recoveryAction,
+    route: ctx.route,
+    component: ctx.component,
+    service: ctx.service,
+    walletAddress: ctx.walletAddress ?? appError.metadata?.walletAddress,
+    cluster: ctx.cluster ?? appError.metadata?.cluster,
+    receiptId: ctx.receiptId,
+    memoryId: ctx.memoryId,
+    skillId: ctx.skillId,
+    planId: ctx.planId,
+    txSignature: ctx.txSignature ?? appError.metadata?.txSignature,
+    requestId: ctx.requestId
+  };
+  const line = JSON.stringify(payload);
+  if (appError.severity === "critical" || appError.severity === "error") {
+    console.error(line);
+  } else {
+    console.warn(line);
+  }
+}
+
+// shared/errorTypes.ts
+function isAppErrorPayload(value) {
+  if (!value || typeof value !== "object") return false;
+  const o = value;
+  return typeof o.id === "string" && typeof o.code === "string" && typeof o.scope === "string" && typeof o.severity === "string" && typeof o.message === "string" && typeof o.retryable === "boolean" && typeof o.recoverable === "boolean" && typeof o.createdAt === "string";
+}
+
+// shared/normalizeError.ts
+import { ZodError } from "zod";
+function mergeMetadata(base, extra) {
+  return { ...base ?? {}, ...extra };
+}
+function inferCodeFromLegacyMessage(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes("walletaddress_required") || m.includes("wallet_address_required") || m.includes("wallet required"))
+    return "VALIDATION_FAILED";
+  if (m.includes("wallet_session_inactive") || m.includes("session_inactive")) return "SESSION_REQUIRED";
+  if (m.includes("session") && m.includes("expired")) return "WALLET_SESSION_EXPIRED";
+  if (m.includes("wrong cluster") || m.includes("cluster mismatch")) return "WALLET_WRONG_CLUSTER";
+  if (m.includes("user rejected") || m.includes("rejected")) return "WALLET_CONNECTION_REJECTED";
+  if (m.includes("not enough sol") || m.includes("insufficient funds")) return "INSUFFICIENT_SOL";
+  if (m.includes("429") || m.includes("rate limit")) return "RPC_RATE_LIMITED";
+  if (m.includes("timed out") || m.includes("timeout")) return "RPC_TIMEOUT";
+  if (m.includes("fetch failed") || m.includes("econnrefused")) return "RPC_UNAVAILABLE";
+  if (m.includes("circuit_open")) return "RPC_UNAVAILABLE";
+  if (m.includes("simulation failed")) return "TX_SIMULATION_FAILED";
+  if (m.includes("blockhash not found") || m.includes("expired")) return "TX_EXPIRED";
+  if (m.includes("sendtransaction") || m.includes("send failed")) return "TX_SEND_FAILED";
+  if (m.includes("anchor") && m.includes("idl")) return "ANCHOR_IDL_MISMATCH";
+  if (m.includes("memory_anchor") || m.includes("anchor_failed")) return "RECEIPT_ANCHOR_FAILED";
+  if (m.includes("proof_receipt") || m.includes("proof_failed")) return "RECEIPT_ANCHOR_FAILED";
+  if (m.includes("plan_anchor") || m.includes("plan_failed")) return "PLAN_BUILD_FAILED";
+  if (m.includes("reflection_failed")) return "REFLECTION_WRITE_FAILED";
+  if (m.includes("identity_service_unavailable")) return "INDEXER_SYNC_FAILED";
+  if (m.includes("skill_not_found")) return "VALIDATION_FAILED";
+  if (m.includes("zerog") && m.includes("storage")) return "ZERO_G_STORAGE_FAILED";
+  if (m.includes("zerog") && m.includes("da")) return "ZERO_G_DA_FAILED";
+  if (m.includes("openclaw") && m.includes("import")) return "OPENCLAW_IMPORT_FAILED";
+  if (m.includes("openclaw") && m.includes("export")) return "OPENCLAW_EXPORT_FAILED";
+  if (m.includes("demo") && m.includes("mismatch")) return "DEMO_MODE_MISMATCH";
+  if (m.includes("degraded")) return "DEGRADED_MODE";
+  if (m.includes("verification failed") || m.includes("proof")) return "PROOF_VERIFICATION_FAILED";
+  if (m.includes("database") || m.includes("db_")) return "DB_READ_FAILED";
+  return void 0;
+}
+function technicalFromUnknown(error) {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+function normalizeError(error, options = {}) {
+  const id = options.fallback?.id ?? newErrorId();
+  const now5 = (/* @__PURE__ */ new Date()).toISOString();
+  if (isAppErrorPayload(error)) {
+    const policy2 = getRetryPolicyForCode(error.code);
+    return {
+      ...error,
+      id: error.id || id,
+      retryable: error.retryable ?? policy2.retryable,
+      recoverable: error.recoverable ?? true,
+      createdAt: error.createdAt || now5,
+      metadata: mergeMetadata(error.metadata, {
+        requestPath: options.requestPath,
+        walletAddress: options.walletAddress,
+        cluster: options.cluster,
+        txSignature: options.txSignature
+      })
+    };
+  }
+  if (error instanceof ZodError) {
+    const cat2 = catalogEntry("VALIDATION_FAILED");
+    const policy2 = getRetryPolicyForCode("VALIDATION_FAILED");
+    const issues = error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    return {
+      id,
+      code: "VALIDATION_FAILED",
+      scope: cat2.scope,
+      severity: cat2.severity,
+      title: cat2.title,
+      message: issues || cat2.message,
+      technicalMessage: issues,
+      retryable: policy2.retryable,
+      recoverable: true,
+      recoveryAction: cat2.recoveryAction,
+      retryLabel: cat2.retryLabel,
+      source: options.source,
+      statusCode: options.statusCode ?? 400,
+      cause: error,
+      metadata: {
+        requestPath: options.requestPath,
+        zodIssues: error.issues
+      },
+      createdAt: now5
+    };
+  }
+  const msg = error instanceof Error ? error.message : typeof error === "string" ? error : technicalFromUnknown(error) ?? "unknown_error";
+  const inferred = inferCodeFromLegacyMessage(msg);
+  const code = options.fallback?.code ?? inferred ?? "UNKNOWN";
+  const cat = catalogEntry(code);
+  const policy = getRetryPolicyForCode(code);
+  return {
+    id,
+    code,
+    scope: options.fallback?.scope ?? cat.scope,
+    severity: options.fallback?.severity ?? cat.severity,
+    title: options.fallback?.title ?? cat.title,
+    message: options.fallback?.message ?? cat.message,
+    technicalMessage: options.fallback?.technicalMessage ?? technicalFromUnknown(error),
+    retryable: options.fallback?.retryable ?? policy.retryable,
+    recoverable: options.fallback?.recoverable ?? true,
+    retryLabel: options.fallback?.retryLabel ?? cat.retryLabel ?? policy.label,
+    recoveryAction: options.fallback?.recoveryAction ?? cat.recoveryAction,
+    supportHint: options.fallback?.supportHint ?? cat.supportHint,
+    actionUrl: options.fallback?.actionUrl,
+    source: options.fallback?.source ?? options.source,
+    statusCode: options.fallback?.statusCode ?? options.statusCode,
+    cause: error,
+    metadata: mergeMetadata(options.fallback?.metadata, {
+      requestPath: options.requestPath,
+      walletAddress: options.walletAddress,
+      cluster: options.cluster,
+      txSignature: options.txSignature,
+      legacyMessage: msg
+    }),
+    createdAt: now5
+  };
+}
+
+// server/errors/normalizeServerError.ts
+function httpStatusToCode(status, message) {
+  if (status === 400) return inferCodeFromLegacyMessage(message) ?? "VALIDATION_FAILED";
+  if (status === 401) return "SESSION_VERIFICATION_FAILED";
+  if (status === 403) return "INSUFFICIENT_PERMISSIONS";
+  if (status === 404) return inferCodeFromLegacyMessage(message) ?? "VALIDATION_FAILED";
+  if (status === 429) return "RPC_RATE_LIMITED";
+  if (status >= 500) return "UNEXPECTED_ROUTE_ERROR";
+  return inferCodeFromLegacyMessage(message) ?? "UNEXPECTED_ROUTE_ERROR";
+}
+function normalizeServerError(error, ctx = {}) {
+  if (error instanceof HttpError) {
+    const code = httpStatusToCode(error.statusCode, error.message);
+    return normalizeError(error.message, {
+      statusCode: error.statusCode,
+      source: "http_error",
+      requestPath: ctx.route,
+      walletAddress: ctx.walletAddress,
+      cluster: ctx.cluster,
+      txSignature: ctx.txSignature,
+      fallback: {
+        code,
+        technicalMessage: error.message,
+        metadata: { requestId: ctx.requestId }
+      }
+    });
+  }
+  return normalizeError(error, {
+    source: "server",
+    requestPath: ctx.route,
+    walletAddress: ctx.walletAddress,
+    cluster: ctx.cluster,
+    txSignature: ctx.txSignature,
+    fallback: {
+      metadata: { requestId: ctx.requestId }
+    }
+  });
+}
+
 // server/orchestration/ExecutionOrchestratorService.ts
 import crypto21 from "crypto";
 import { nanoid as nanoid13 } from "nanoid";
@@ -10659,6 +11610,19 @@ function receiptRecordToStructured(r) {
 }
 function domainReceiptsToStructured(receipts) {
   return receipts.map(receiptRecordToStructured);
+}
+
+// server/errors/orchestratorErrors.ts
+function orchestratorStringsToAppErrors(errors, ctx) {
+  return errors.map((msg) => {
+    const code = inferCodeFromLegacyMessage(msg) ?? "EXECUTION_FAILED";
+    return createAppError(code, {
+      message: msg.length > 200 ? `${msg.slice(0, 197)}\u2026` : msg,
+      technicalMessage: msg,
+      metadata: { ...ctx, orchestratorLane: true },
+      source: "orchestrator"
+    });
+  });
 }
 
 // server/orchestration/ExecutionOrchestratorService.ts
@@ -11021,6 +11985,12 @@ ${nextAction}`;
       } catch {
       }
     }
+    const appErrors = orchestratorStringsToAppErrors(errors, {
+      requestId: requestId6,
+      executionId,
+      wallet,
+      skillId: input.skillId
+    });
     return {
       execution,
       reflection,
@@ -11030,7 +12000,8 @@ ${nextAction}`;
       planReceiptId,
       planId,
       degraded,
-      errors
+      errors,
+      appErrors
     };
   }
 };
@@ -11116,11 +12087,28 @@ var SwarmMirrorStore = class {
 
 // server/orchestration/registerSwarmApiRoutes.ts
 function ok4(res, data) {
-  res.json({ ok: true, data });
+  sendAppOk(res, data);
 }
-function fail5(res, error, status = 400) {
-  const message = error instanceof Error ? error.message : "swarm_api_error";
-  res.status(status).json({ ok: false, error: message });
+function fail5(res, error, status = 400, req) {
+  const appError = normalizeServerError(error, {
+    route: req?.path,
+    requestId: requestId5(req ?? {})
+  });
+  const outStatus = appError.statusCode && appError.statusCode >= 400 ? appError.statusCode : status;
+  logStructuredError(appError, {
+    route: req?.path,
+    requestId: req ? requestId5(req) : void 0
+  });
+  sendAppError(res, { ...appError, statusCode: outStatus }, outStatus);
+}
+function notFound(res, message, technical) {
+  const appError = createAppError("VALIDATION_FAILED", {
+    message,
+    technicalMessage: technical ?? message,
+    statusCode: 404
+  });
+  logStructuredError(appError, {});
+  sendAppError(res, appError, 404);
 }
 function requestId5(req) {
   return String(req.headers["x-request-id"] || `req_${Date.now()}`);
@@ -11221,12 +12209,14 @@ async function registerSwarmApiRoutes(app, deps) {
         }
       });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
-  app.get("/api/solana/status", async (_req, res) => {
+  app.get("/api/solana/status", async (req, res) => {
     try {
+      circuitBreakerAllowOrThrow("solana_rpc");
       const network = await deps.bridge.getNetwork();
+      recordCircuitSuccess("solana_rpc");
       ok4(res, {
         cluster: network.cluster,
         programId: network.programId,
@@ -11239,7 +12229,8 @@ async function registerSwarmApiRoutes(app, deps) {
         healthy: true
       });
     } catch (error) {
-      fail5(res, error, 500);
+      recordCircuitFailure("solana_rpc");
+      fail5(res, error, 500, req);
     }
   });
   app.get("/api/skills", async (req, res) => {
@@ -11263,7 +12254,7 @@ async function registerSwarmApiRoutes(app, deps) {
       else mapped.sort((a, b) => b.reputationScore - a.reputationScore);
       ok4(res, { skills: mapped, total: mapped.length });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/skills/session/current", async (req, res) => {
@@ -11274,7 +12265,7 @@ async function registerSwarmApiRoutes(app, deps) {
       const skillId = mirror.getSelectedSkill(wallet);
       ok4(res, { walletAddress: wallet, skillId });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/skills/:id", async (req, res) => {
@@ -11282,18 +12273,18 @@ async function registerSwarmApiRoutes(app, deps) {
       if (!deps.identityService) throw new Error("identity_service_unavailable");
       const id = String(req.params.id);
       if (id === "session") {
-        res.status(404).json({ ok: false, error: "skill_not_found" });
+        notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       const rows = await deps.identityService.listDiscoverySkills();
       const row = rows.find((r) => r.skillAddress === id || r.slug === id || r.name === id);
       if (!row) {
-        res.status(404).json({ ok: false, error: "skill_not_found" });
+        notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       ok4(res, discoveryToSkillIdentity(row));
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.post("/api/skills/:id/select", async (req, res) => {
@@ -11305,7 +12296,7 @@ async function registerSwarmApiRoutes(app, deps) {
       console.log(`[${requestId5(req)}] skill_selected`, wallet, skillId);
       ok4(res, { walletAddress: wallet, skillId, selectedAt: (/* @__PURE__ */ new Date()).toISOString() });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.post("/api/execute/:id/reflect", async (req, res) => {
@@ -11340,7 +12331,7 @@ ${body.nextAction}`,
       const receipt = await deps.memoryService.anchorReflection(created.reflection.id, wallet);
       ok4(res, { executionId, reflection: created.reflection, receipt });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.post("/api/execute", async (req, res) => {
@@ -11369,9 +12360,12 @@ ${body.nextAction}`,
         result.execution.status,
         result.errors.join(";")
       );
-      res.status(result.degraded ? 207 : 200).json({ ok: !result.degraded || result.execution.status === "verified", data: result });
+      sendAppOk(res, result, {
+        degraded: result.degraded,
+        status: result.degraded ? 207 : 200
+      });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.post("/api/demo/story", async (req, res) => {
@@ -11398,9 +12392,9 @@ ${body.nextAction}`,
         userId: null,
         requestId: requestId5(req)
       });
-      res.status(200).json({ ok: true, data: result });
+      sendAppOk(res, result, { degraded: result.degraded, status: 200 });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/memory", async (req, res) => {
@@ -11415,7 +12409,7 @@ ${body.nextAction}`,
       });
       ok4(res, data);
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/memory/:id", async (req, res) => {
@@ -11423,7 +12417,7 @@ ${body.nextAction}`,
       const data = await deps.memoryService.getReflection(String(req.params.id));
       ok4(res, data);
     } catch (error) {
-      fail5(res, error, 404);
+      fail5(res, error, 404, req);
     }
   });
   app.post("/api/memory", async (req, res) => {
@@ -11448,7 +12442,7 @@ ${body.nextAction}`,
       }
       ok4(res, { reflection: created.reflection, receipt });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/receipts", async (req, res) => {
@@ -11461,7 +12455,7 @@ ${body.nextAction}`,
         chain: chainAccounts.slice(0, 50)
       });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/receipts/:id", async (req, res) => {
@@ -11477,9 +12471,9 @@ ${body.nextAction}`,
         ok4(res, fromMirror);
         return;
       }
-      res.status(404).json({ ok: false, error: "receipt_not_found" });
+      notFound(res, "Receipt not found.", "receipt_not_found");
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.post("/api/receipts", async (req, res) => {
@@ -11509,7 +12503,7 @@ ${body.nextAction}`,
       await mirror.appendReceipt(record);
       ok4(res, record);
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/proofs", async (req, res) => {
@@ -11521,28 +12515,28 @@ ${body.nextAction}`,
       });
       ok4(res, accounts);
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/proofs/:id", async (req, res) => {
     try {
       const data = await deps.bridge.getMirrorAccount(String(req.params.id));
       if (!data) {
-        res.status(404).json({ ok: false, error: "proof_not_found" });
+        notFound(res, "Proof receipt not found.", "proof_not_found");
         return;
       }
       ok4(res, data);
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
-  app.get("/api/reputation", async (_req, res) => {
+  app.get("/api/reputation", async (req, res) => {
     try {
       if (!deps.identityService) throw new Error("identity_service_unavailable");
       const profiles = await deps.identityService.listDiscoveryProfiles();
       ok4(res, { profiles });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/reputation/:skillId", async (req, res) => {
@@ -11552,7 +12546,7 @@ ${body.nextAction}`,
       const rows = await deps.identityService.listDiscoverySkills();
       const row = rows.find((r) => r.skillAddress === skillId || r.slug === skillId);
       if (!row) {
-        res.status(404).json({ ok: false, error: "skill_not_found" });
+        notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       ok4(res, {
@@ -11566,7 +12560,7 @@ ${body.nextAction}`,
         }
       });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
   app.get("/api/history", async (req, res) => {
@@ -11579,7 +12573,7 @@ ${body.nextAction}`,
       ]);
       ok4(res, { executions, bridgeHistory });
     } catch (error) {
-      fail5(res, error);
+      fail5(res, error, 400, req);
     }
   });
 }

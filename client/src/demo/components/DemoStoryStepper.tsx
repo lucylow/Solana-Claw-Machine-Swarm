@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { getUnifiedStoryBeats } from "@shared/demoUnifiedStoryPlayback";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,11 +9,10 @@ import {
   SkipForward,
   CircleDot,
 } from "lucide-react";
-import { useMemo } from "react";
 import { useDemo } from "../DemoProvider";
 import { DemoPanel } from "./DemoPanel";
 
-/** Unified execution story scrubber · drives stage rail + presenter copy. */
+/** Interactive demo scrubber — scenario frames, variable cadence, unified beat metadata. */
 export function DemoStoryStepper({ presentationMode }: { presentationMode?: boolean }) {
   const {
     runOutcome,
@@ -28,10 +26,13 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
     storyBeatCount,
     playbackDrivesDemoWallet,
     setPlaybackDrivesDemoWallet,
+    activeUnifiedBeat,
+    demoSnapshot,
+    selectedScenarioId,
   } = useDemo();
 
-  const beats = useMemo(() => getUnifiedStoryBeats(runOutcome), [runOutcome]);
-  const step = beats[storyPlaybackIndex] ?? beats[0]!;
+  const step = activeUnifiedBeat;
+  const rail = demoSnapshot.storySteps;
 
   return (
     <DemoPanel presentationMode={presentationMode} className="space-y-4">
@@ -39,7 +40,10 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
         <div>
           <p className="text-xs uppercase tracking-[0.14em] text-[#87f7d0]">Demo story controller</p>
           <p className="text-sm font-medium text-white">
-            Beat {storyPlaybackIndex + 1} / {storyBeatCount} · Execution stage rail
+            Step {storyPlaybackIndex + 1} / {storyBeatCount} · {selectedScenarioId.replace(/-/g, " ")}
+          </p>
+          <p className="mt-1 text-[10px] font-mono text-slate-500">
+            Outcome rail · {runOutcome} · data posture · {demoSnapshot.derived.dataPosture.replace(/_/g, " ")}
           </p>
           <label className="mt-2 flex cursor-pointer items-center gap-2 text-[11px] text-slate-500">
             <input
@@ -48,7 +52,7 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
               onChange={e => setPlaybackDrivesDemoWallet(e.target.checked)}
               className="rounded border-white/20 bg-black"
             />
-            Sync wallet indicator with beats
+            Sync wallet panel with playback
           </label>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -59,7 +63,7 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
             onClick={() => setStoryPlaybackAutoplay(!storyPlaybackAutoplay)}
           >
             {storyPlaybackAutoplay ? <Pause className="mr-1 h-3.5 w-3.5" /> : <Play className="mr-1 h-3.5 w-3.5" />}
-            {storyPlaybackAutoplay ? "Pause autoplay" : "Autoplay beats"}
+            {storyPlaybackAutoplay ? "Pause" : "Autoplay"}
           </Button>
           <Button
             size="sm"
@@ -81,7 +85,7 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
           </Button>
           <Button size="sm" variant="outline" className="border-white/15 text-slate-200" onClick={replayStory}>
             <RotateCcw className="mr-1 h-3.5 w-3.5" />
-            Replay beats
+            Restart
           </Button>
           <Button
             size="sm"
@@ -90,7 +94,7 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
             onClick={() => setStoryPlaybackIndex(storyBeatCount - 1)}
           >
             <FastForward className="mr-1 h-3.5 w-3.5" />
-            Terminal beat
+            End
           </Button>
         </div>
       </div>
@@ -99,6 +103,9 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
         <p className="text-[10px] font-semibold uppercase tracking-wider text-[#14f195]/90">{step.patch.currentStage}</p>
         <p className="mt-2 text-base font-semibold text-[#d4ffef]">{step.title}</p>
         <p className="mt-2 text-sm text-slate-300">{step.detail}</p>
+        {demoSnapshot.activeStoryAnnotation ? (
+          <p className="mt-2 text-xs text-cyan-100/90">{demoSnapshot.activeStoryAnnotation}</p>
+        ) : null}
         {showPresenterNotes ? (
           <p className="mt-3 border-t border-white/10 pt-3 text-xs text-amber-100/90">
             <span className="font-medium text-amber-50">Presenter:</span> {step.presenterNote}
@@ -111,7 +118,7 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
           {showPresenterNotes ? "Hide presenter notes" : "Show presenter notes"}
         </Button>
         <div className="flex flex-1 flex-wrap gap-1">
-          {beats.map((s, i) => (
+          {rail.map((s, i) => (
             <button
               key={s.id}
               type="button"
@@ -134,12 +141,18 @@ export function DemoStoryStepper({ presentationMode }: { presentationMode?: bool
           onClick={() => setStoryPlaybackIndex(i => (i + 1) % storyBeatCount)}
         >
           <SkipForward className="mr-1 h-3.5 w-3.5" />
-          Loop beats
+          Loop
         </Button>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+        <div
+          className="h-full bg-[#3bff96]/80 transition-all duration-300"
+          style={{ width: `${demoSnapshot.progressPercent}%` }}
+        />
       </div>
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-600">
         <CircleDot className="h-3 w-3 text-[#38d7d0]" />
-        <span>Jumps sync execution rail + lineage visibility — receipts stay honest about demo anchors.</span>
+        <span>Jump rail follows scenario frames — receipts stay explicit about demo vs verified.</span>
       </div>
     </DemoPanel>
   );

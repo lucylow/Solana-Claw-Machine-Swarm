@@ -1,11 +1,12 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import SwarmLanding from "@/components/swarm/SwarmLanding";
+import DappLanding from "@/components/dapp/DappLanding";
 
 /**
- * Landing is Solana-first: wallet session is primary identity.
- * OAuth (`useAuth`) loads in the background for optional account binding only.
+ * Solana dApp landing.
+ *
+ * Wallet is identity, transactions are visible, proof + receipts are
+ * first-class objects. The legacy `SwarmLanding` is kept around for
+ * deeper feature pages but is no longer the entry point.
  */
 export default function Home() {
-  const { isAuthenticated } = useAuth();
-  return <SwarmLanding isAuthenticated={isAuthenticated} />;
+  return <DappLanding />;
 }

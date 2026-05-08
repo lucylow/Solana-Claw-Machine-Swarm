@@ -7,6 +7,7 @@ import type { ProofIntegrityStatus } from "./zerog";
 
 export type ReceiptStatus =
   | "draft"
+  | "pending"
   | "submitted"
   | "confirmed"
   | "verified"

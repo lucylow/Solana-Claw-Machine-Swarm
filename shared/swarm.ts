@@ -14,9 +14,32 @@ export type SwarmSectionId =
   | "agents"
   | "reputation"
   | "openclaw-bridge"
+  | "demo-mode"
   | "settings"
   | "zerog-sidecar"
   | "proof-graph";
+
+/** All command-center sections — use with URL `?section=` and {@link isSwarmSectionId}. */
+export const SWARM_SECTION_IDS: readonly SwarmSectionId[] = [
+  "overview",
+  "live-run",
+  "skills",
+  "memory",
+  "reflections",
+  "receipts",
+  "proof-explorer",
+  "agents",
+  "reputation",
+  "openclaw-bridge",
+  "demo-mode",
+  "proof-graph",
+  "zerog-sidecar",
+  "settings",
+] as const;
+
+export function isSwarmSectionId(id: string): id is SwarmSectionId {
+  return (SWARM_SECTION_IDS as readonly string[]).includes(id);
+}
 
 export type SwarmExecutionPhase =
   | "wallet"

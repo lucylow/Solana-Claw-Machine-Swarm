@@ -170,7 +170,7 @@ export default function SkillsRegistry() {
             <h1 className="text-2xl font-semibold text-cyan-200">{SOLANA_COPY.skillRegistry.publishConsoleTitle}</h1>
             <SolanaStatusBadge label={`Solana ${SOLANA_CLUSTER}`} active />
           </div>
-          <Button onClick={() => setLocation("/dashboard")} variant="outline" className="border-cyan-500/40 text-cyan-200">
+          <Button onClick={() => setLocation("/dashboard?section=skills")} variant="outline" className="border-cyan-500/40 text-cyan-200">
             {SOLANA_COPY.skillRegistry.backLabel}
           </Button>
         </div>

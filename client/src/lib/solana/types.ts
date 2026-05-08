@@ -8,6 +8,7 @@ export type {
   ReceiptArtifact,
   MemoryArtifact,
   ReflectionArtifact,
+  SolanaBackendStatus,
   SolanaCluster,
   SolanaConnectionStatus,
   SolanaReceiptRecord,

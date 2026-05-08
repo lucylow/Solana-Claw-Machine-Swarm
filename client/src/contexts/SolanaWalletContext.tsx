@@ -6,6 +6,7 @@ import type {
   SolanaWalletState,
   WalletConnectionStatus,
 } from "@shared/solana/types";
+import { fetchSolanaBackendStatus } from "@/lib/solana/chainStatus";
 import {
   DEMO_MODE,
   SOLANA_CLUSTER,
@@ -85,6 +86,11 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
   const [error, setError] = useState<string | null>(null);
   const [txHistory, setTxHistory] = useState<SolanaTxRecord[]>([]);
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+  const [rpcReachable, setRpcReachable] = useState<boolean | null>(null);
+  const [rpcSlot, setRpcSlot] = useState<string | null>(null);
+  const [rpcLatencyMs, setRpcLatencyMs] = useState<number | null>(null);
+  const [rpcError, setRpcError] = useState<string | null>(null);
+  const [rpcCheckedAt, setRpcCheckedAt] = useState<string | null>(null);
 
   const walletAddress = toWalletAddress(wallet.publicKey);
   const walletName = wallet.wallet?.adapter.name || null;
@@ -154,13 +160,32 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const token = loadStoredSessionToken();
     if (!token) return;
-    if (!walletAddress) return;
+    if (!wallet.connected || !walletAddress) return;
     refreshSessionInternal(token).catch(() => {
       setSessionToken(null);
       setSessionProfile(null);
       storeSessionToken(null);
     });
-  }, [refreshSessionInternal, walletAddress]);
+  }, [refreshSessionInternal, wallet.connected, walletAddress]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const status = await fetchSolanaBackendStatus();
+      if (cancelled || !status) return;
+      setRpcReachable(status.rpc.ok);
+      setRpcSlot(status.rpc.slot != null ? String(status.rpc.slot) : null);
+      setRpcLatencyMs(status.rpc.latencyMs ?? null);
+      setRpcError(status.rpc.ok ? null : status.rpc.error ?? "rpc_unreachable");
+      setRpcCheckedAt(new Date().toISOString());
+    };
+    void poll();
+    const id = window.setInterval(poll, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   const connectAndVerify = useCallback(async () => {
     setError(null);
@@ -279,16 +304,26 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
       lastSignatureAt: latestSignature ? new Date().toISOString() : undefined,
       lastSessionAt:
         sessionProfile?.verifiedAt != null ? new Date(sessionProfile.verifiedAt).toISOString() : undefined,
+      rpcReachable,
+      rpcSlot,
+      rpcLatencyMs,
+      rpcError,
+      rpcCheckedAt,
       permissions,
       txHistory,
       diagnostics: {
         demoMode: DEMO_MODE,
         wrongCluster,
         walletReady: wallet.connected,
+        identityLayer: "solana_wallet_adapter",
+        sessionVerification: "backend_bearer",
         adapter: wallet.wallet?.adapter.name,
         sessionStorageKey: SOLANA_SESSION_STORAGE_KEY,
         sessionTokenCacheNote:
-          "Local session token is a non-authoritative cache; adapter pubkey + verified Bearer session are truth.",
+          "Bearer token in localStorage is cache only — identity is the connected adapter; verification is the server session.",
+        rpcReachable,
+        rpcSlot,
+        rpcError,
       },
     };
   }, [
@@ -305,6 +340,11 @@ export function SolanaWalletProvider({ children }: { children: React.ReactNode }
     walletAddress,
     walletName,
     wrongCluster,
+    rpcReachable,
+    rpcSlot,
+    rpcLatencyMs,
+    rpcError,
+    rpcCheckedAt,
   ]);
 
   const value = useMemo<SolanaWalletContextValue>(

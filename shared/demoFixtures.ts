@@ -269,7 +269,7 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     whatYouWillSee: ["Role cards", "Delegation rail", "Merged output"],
     accent: "green",
     defaultSkillId: "skill-multi-coordinator",
-    preferredOutcome: "success",
+    preferredOutcome: "recovery",
   },
   {
     id: "full-e2e",
@@ -280,6 +280,26 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     accent: "teal",
     defaultSkillId: "skill-support-triage",
     preferredOutcome: "recovery",
+  },
+  {
+    id: "proof-degraded",
+    title: "Proof degraded / pending",
+    subtitle: "Receipt exists while verification lags — honest UX.",
+    summary: "Execution exhausts retries; anchoring stays pending or degraded until RPC/indexer recover.",
+    whatYouWillSee: ["Degraded stage", "Pending verification labels", "Demo-only explorer handoff"],
+    accent: "cyan",
+    defaultSkillId: "skill-proof-publisher",
+    preferredOutcome: "failure",
+  },
+  {
+    id: "openclaw-bridge",
+    title: "OpenClaw bridge",
+    subtitle: "Import / export skills with provenance and bridge receipts.",
+    summary: "Skill crosses OpenClaw ↔ CLAW with compatibility markers and mirrored manifests.",
+    whatYouWillSee: ["Import lane", "Sync", "Export lane", "0G storage mock"],
+    accent: "teal",
+    defaultSkillId: "skill-receipt-anchor",
+    preferredOutcome: "success",
   },
 ];
 

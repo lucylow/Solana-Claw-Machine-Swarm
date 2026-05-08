@@ -1,6 +1,9 @@
 import type { Express, Request } from "express";
 import { SolanaIdentityService } from "./identityService";
+import { getServerSolanaCluster, getServerSolanaRpcUrl } from "./config";
+import { explorerBaseUrl } from "./explorer";
 import { normalizeWalletAddress } from "./pda";
+import { probeSolanaRpc } from "./rpcHealth";
 import { SolanaSessionService } from "./session";
 
 function requestId(req: Request) {
@@ -109,7 +112,17 @@ export function registerSolanaIdentityRoutes(
 
   app.get("/api/solana/status", async (_req, res) => {
     try {
-      const data = sessionService.getStatus();
+      const base = sessionService.getStatus();
+      const cluster = getServerSolanaCluster();
+      const rpcUrl = getServerSolanaRpcUrl(cluster);
+      const rpc = await probeSolanaRpc(rpcUrl);
+      const data = {
+        ...base,
+        cluster,
+        rpcUrl,
+        explorerBaseUrl: explorerBaseUrl(),
+        rpc,
+      };
       res.json({ ok: true, data });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "status_failed";

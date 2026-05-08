@@ -1,9 +1,17 @@
+import { StoryAtAGlance } from "@/components/command-center/StoryAtAGlance";
 import { StoryLoopRail } from "@/components/command-center/StoryLoopRail";
 import {
   MissionPanel,
   ProofBadge,
   StatusChip,
 } from "@/components/command-center/CommandCenterShell";
+import {
+  CcMetric,
+  CcMiniLoopOrbit,
+  CcPanel,
+  CcSectionHeader,
+  CcStatusDot,
+} from "@/components/command-center/CcPrimitives";
 import { ProofStateBadge } from "@/components/solana/ProofStateBadge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +21,7 @@ import { ZeroGProofGraph } from "@/components/zerog/ZeroGProofGraph";
 import type { ZeroGHealthResponse, ZeroGProofGraphResponse } from "@/lib/zerog/types";
 import { getClientZeroGConfig } from "@/lib/zerog/config";
 import { SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
+import type { CommandUXSnapshot, ProofChannel, UXTimelineItem } from "@shared/uxState";
 import { cn } from "@/lib/utils";
 import { buildDemoExecutionArtifacts } from "@shared/buildDemoExecutionRun";
 import {
@@ -27,6 +36,7 @@ import {
 } from "@shared/demoFixtures";
 import type { DemoExecutionStepFixture, DemoReflectionFixture } from "@shared/demoTypes";
 import type { SwarmExecuteResult } from "@shared/domainModel";
+import { AgentFrameworkInspector } from "@/components/agents/AgentFrameworkInspector";
 import { getClaimText, getReceiptTruthLine } from "@shared/proofTruth";
 import type { ProofStatus } from "@shared/structuredReceipt";
 import { AUTONOMY_SPECTRUM, autonomyLabel } from "@shared/autonomy";
@@ -45,9 +55,23 @@ import {
 
   formatClawInteger,
 } from "@shared/clawMachineMock";
-import { AlertTriangle, ArrowRight, Cpu, ReceiptText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { DappCopyButton } from "@/components/dapp/DappCopyButton";
+import { txExplorerUrl } from "@/lib/solana/explorer";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Cpu,
+  PlayCircle,
+  ReceiptText,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Wallet,
+} from "lucide-react";
 import { motion } from "framer-motion";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 export function DemoModeToggle({
   enabled,
@@ -102,6 +126,23 @@ export function DegradedStateBanner({
   );
 }
 
+function proofChannelBadgeLabel(ch: ProofChannel): string {
+  switch (ch) {
+    case "verified":
+      return "Proof: verified (live)";
+    case "pending":
+      return "Proof: pending";
+    case "cached_only":
+      return "Proof: cached / degraded";
+    case "demo_only":
+      return "Proof: demo fixtures";
+    case "unavailable":
+      return "Proof: none yet";
+    default:
+      return "Proof: unknown";
+  }
+}
+
 function executionStageLabel(status: string | undefined, busy: boolean): string {
   if (busy) return "executing";
   if (!status) return "idle";
@@ -139,6 +180,8 @@ export function OverviewMissionBlock({
   demoSteps,
   demoMode,
   demoExecutionRun,
+  commandUx,
+  explorerUrl,
 }: {
   goal: string;
   onGoalChange: (g: string) => void;
@@ -156,41 +199,203 @@ export function OverviewMissionBlock({
   demoSteps: DemoExecutionStepFixture[] | null;
   demoMode: boolean;
   demoExecutionRun: import("@shared/executionStory").ExecutionRun | null;
+  commandUx: CommandUXSnapshot;
+  explorerUrl?: string | null;
 }) {
   const activeLabel = executionStageLabel(lastResult?.execution.status, loopBusy);
+  const [skillQuery, setSkillQuery] = useState("");
+  const filteredSkillRows = useMemo(() => {
+    const q = skillQuery.trim().toLowerCase();
+    if (!q) return skillRows;
+    return skillRows.filter(
+      s =>
+        s.name.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q) ||
+        s.authorWallet.toLowerCase().includes(q),
+    );
+  }, [skillRows, skillQuery]);
+
+  const primaryKind = commandUx.nextActionKind;
+  const runIsPrimary = primaryKind === "run" || primaryKind === "view_explorer";
+  const connectIsPrimary = primaryKind === "connect" || primaryKind === "verify" || primaryKind === "fix_cluster";
+
+  const txSig = lastResult?.receipts?.[0]?.txSignature;
+  const resolvedExplorer = explorerUrl ?? (txSig ? txExplorerUrl(txSig) : null);
+
+  // Map the canonical 9-step story loop onto the 8-stage orbit visualization.
+  // Both share the same narrative; the orbit just collapses 0G storage + DA
+  // into a single "memory" node for a cleaner ring.
+  const orbitActiveIndex = Math.min(7, Math.max(0, Math.round((loopStep / 8) * 7)));
+  const proofChannelTone =
+    commandUx.proofChannel === "verified"
+      ? "proof"
+      : commandUx.proofChannel === "demo_only" || commandUx.proofChannel === "unavailable"
+        ? "warn"
+        : "idle";
+  const verified = lastResult?.execution.status === "verified" && !lastResult?.degraded;
 
   return (
     <div className="space-y-4">
-      <MissionPanel className="relative overflow-hidden border-[#14f195]/15 p-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#14f195]/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-48 rounded-full bg-[#38d7d0]/10 blur-2xl" />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Solana mission control</p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">Solana-native agent command center</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{SOLANA_COPY.dashboard.heroSubtitle}</p>
+      <CcPanel
+        tone="proof"
+        className="relative overflow-hidden p-5 sm:p-6"
+      >
+        {/* Cinematic atmospheric layers */}
+        <div className="pointer-events-none absolute inset-0 cc-grid opacity-40" aria-hidden />
+        <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#14f195]/10 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-72 rounded-full bg-[#38d7d0]/10 blur-3xl" aria-hidden />
+
+        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_minmax(200px,260px)]">
+          {/* Left — mission narrative */}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#14f195]/35 bg-[#14f195]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#c8ffe8]">
+                <Target className="h-3 w-3" aria-hidden />
+                Mission · {commandUx.uxState.replace(/_/g, " ")}
+              </span>
+              <StatusChip
+                tone="live"
+                pulse={loopBusy}
+                label={loopBusy ? "Live execution" : `Stage · ${activeLabel}`}
+              />
+              <ProofBadge verified={verified} />
+            </div>
+
+            <h2 className="mt-3 text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
+              {commandUx.headline}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+              {commandUx.subline}
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#38d7d0]/30 bg-[#38d7d0]/10 px-2 py-0.5 text-[#bdf6f0]">
+                <ArrowRight className="h-3 w-3" aria-hidden /> Next · {commandUx.nextActionLabel}
+              </span>
+              <span
+                className="text-slate-500"
+                title={commandUx.proofChannelExplanation}
+              >
+                {proofChannelBadgeLabel(commandUx.proofChannel)}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button
+                className={cn(
+                  "bg-[#14f195] font-semibold text-black hover:bg-[#5cffb8]",
+                  runIsPrimary && "ring-2 ring-[#14f195] ring-offset-2 ring-offset-[#060a0e]",
+                )}
+                disabled={loopBusy || !walletAddress || !selectedSkillId}
+                onClick={onRunLoop}
+              >
+                <PlayCircle className="mr-1.5 h-4 w-4" aria-hidden />
+                {loopBusy ? "Orchestrating…" : "Run proof-linked loop"}
+              </Button>
+              <Button
+                variant="outline"
+                className={cn(
+                  "border-[#38d7d0]/45 text-[#b5fff8]",
+                  connectIsPrimary && "ring-2 ring-[#38d7d0] ring-offset-2 ring-offset-[#060a0e]",
+                )}
+                type="button"
+                disabled={loopBusy}
+                onClick={onConnect}
+              >
+                <Wallet className="mr-1.5 h-4 w-4" aria-hidden />
+                {SOLANA_COPY.wallet.connectVerify}
+              </Button>
+              {resolvedExplorer ? (
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "border-white/20 text-slate-100",
+                    primaryKind === "view_explorer" && "ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#060a0e]",
+                  )}
+                  asChild
+                >
+                  <a href={resolvedExplorer} target="_blank" rel="noreferrer">
+                    <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden />
+                    Verify on Solana
+                  </a>
+                </Button>
+              ) : null}
+              <Button
+                variant="outline"
+                className="border-white/12 text-slate-300"
+                type="button"
+                disabled={loopBusy}
+                onClick={onDemoComplete}
+              >
+                <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />
+                Advance demo
+              </Button>
+            </div>
+
+            {!walletAddress && !demoMode ? (
+              <p className="mt-3 text-xs text-amber-200/95">
+                {SOLANA_COPY.story.connectForReceipts}
+              </p>
+            ) : null}
+            {walletAddress && !selectedSkillId && skillRows.length > 0 ? (
+              <p className="mt-3 text-xs text-cyan-200/90">
+                Select a skill below — the same choice stays highlighted across the command center.
+              </p>
+            ) : null}
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <StatusChip tone="live" pulse={loopBusy} label={loopBusy ? "Live execution" : `Run · ${activeLabel}`} />
-            <ProofBadge verified={lastResult?.execution.status === "verified" && !lastResult?.degraded} />
+
+          {/* Right — live mini-loop orbit + state ring */}
+          <div className="relative flex flex-col items-center justify-center gap-3">
+            <CcMiniLoopOrbit
+              activeIndex={orbitActiveIndex}
+              size={220}
+              caption={loopBusy ? "executing…" : verified ? "anchored" : demoMode ? "demo loop" : "standby"}
+            />
+            <div className="flex items-center gap-2 text-[10px]">
+              <CcStatusDot tone={proofChannelTone} pulse={loopBusy} />
+              <span className="font-mono uppercase tracking-wider text-slate-500">
+                {commandUx.proofChannel}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="relative mt-5 flex flex-wrap gap-2">
-          <Button
-            className="bg-[#14f195] font-semibold text-black hover:bg-[#5cffb8]"
-            disabled={loopBusy || !walletAddress}
-            onClick={onRunLoop}
-          >
-            {loopBusy ? "Orchestrating…" : "Run Solana proof-linked loop"}
-          </Button>
-          <Button variant="outline" className="border-[#38d7d0]/40 text-[#b5fff8]" type="button" disabled={loopBusy} onClick={onConnect}>
-            {SOLANA_COPY.wallet.connectVerify}
-          </Button>
-          <Button variant="outline" className="border-white/15 text-slate-200" type="button" disabled={loopBusy} onClick={onDemoComplete}>
-            Advance demo stage
-          </Button>
+
+        {/* Live metrics rail */}
+        <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <CcMetric
+            label="Stage"
+            value={loopStep === 0 ? "ready" : `${loopStep}/8`}
+            delta={loopBusy ? "in flight" : verified ? "verified" : "standby"}
+            tone={loopBusy ? "live" : verified ? "proof" : "idle"}
+            ratio={Math.min(1, loopStep / 8)}
+          />
+          <CcMetric
+            label="Memory writes"
+            value={lastResult?.memoryReflectionId ? "+1" : demoMode ? "+1" : "0"}
+            delta={lastResult?.memoryReflectionId ? "reflection-linked" : "awaiting reflection"}
+            tone={lastResult?.memoryReflectionId ? "proof" : "idle"}
+          />
+          <CcMetric
+            label="Receipts"
+            value={lastResult?.receipts?.length ?? (demoMode ? 4 : 0)}
+            delta={verified ? "anchored on Solana" : "pending anchor"}
+            tone={verified ? "proof" : "idle"}
+          />
+          <CcMetric
+            label="Skill"
+            value={
+              skillRows.find(s => s.id === selectedSkillId)?.name?.split(" ")[0] ??
+              (selectedSkillId ? "selected" : "—")
+            }
+            delta={
+              selectedSkillId
+                ? `rep ${skillRows.find(s => s.id === selectedSkillId)?.reputationScore?.toFixed(0) ?? "—"}`
+                : "pick from registry"
+            }
+            tone={selectedSkillId ? "live" : "warn"}
+          />
         </div>
-      </MissionPanel>
+      </CcPanel>
 
       {demoExecutionRun ? (
         <MissionPanel className="border-[#38d7d0]/35 bg-[#050c10]/95 p-4">
@@ -237,18 +442,25 @@ export function OverviewMissionBlock({
             rows={4}
             className="w-full resize-y rounded-xl border border-white/10 bg-black/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-[#14f195]/0 transition focus:border-[#14f195]/35 focus:ring-2 focus:ring-[#14f195]/20"
           />
-          {!walletAddress ? (
-            <p className="text-xs text-amber-200/90">{SOLANA_COPY.story.connectForReceipts}</p>
-          ) : null}
           {loopError ? <p className="text-xs text-rose-300">{loopError}</p> : null}
         </MissionPanel>
 
         <MissionPanel className="p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Skill registry</p>
           <p className="mt-1 text-[11px] text-slate-600">{SOLANA_COPY.skillRegistry.capabilityHint}</p>
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" aria-hidden />
+            <Input
+              value={skillQuery}
+              onChange={e => setSkillQuery(e.target.value)}
+              placeholder="Search name, id, author…"
+              className="border-white/10 bg-black/50 pl-9 text-sm text-slate-100 placeholder:text-slate-600"
+              aria-label="Search skills"
+            />
+          </div>
           <div className="mt-3 max-h-[340px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
             {skillRows.length ? (
-              skillRows.map(s => {
+              filteredSkillRows.map(s => {
                 const active = selectedSkillId === s.id;
                 return (
                   <motion.button
@@ -287,8 +499,14 @@ export function OverviewMissionBlock({
                 );
               })
             ) : (
-              <p className="text-xs text-slate-500">No registry rows yet — enable demo mode or verify a wallet on devnet.</p>
+              <div className="rounded-xl border border-dashed border-white/15 bg-black/30 p-4 text-xs text-slate-400">
+                <p className="font-medium text-slate-300">No skills loaded</p>
+                <p className="mt-2">Connect a wallet on the expected cluster, retry the registry, or turn on demo mode for a full fixture loop.</p>
+              </div>
             )}
+            {skillRows.length > 0 && filteredSkillRows.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">No skills match “{skillQuery}” — clear search or pick another filter.</p>
+            ) : null}
           </div>
         </MissionPanel>
       </div>
@@ -350,6 +568,35 @@ function LiveExecutionStrip({
     );
   }
 
+  if (loopBusy && !steps?.length) {
+    const placeholders = ["Plan", "Delegate", "Execute", "Critic", "Anchor proof"];
+    return (
+      <MissionPanel className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Live execution · stage rail
+          </p>
+          <StatusChip tone="live" pulse label="resolving steps" />
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">
+          Planner and operators are spinning up — step detail will land as the API streams orchestration.
+        </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {placeholders.map((label, i) => (
+            <div
+              key={label}
+              className="relative flex min-w-[140px] flex-1 animate-pulse flex-col rounded-xl border border-[#38d7d0]/20 bg-black/40 px-3 py-2"
+            >
+              <span className="text-[10px] uppercase tracking-wide text-slate-600">Step {i + 1}</span>
+              <span className="text-sm font-medium text-slate-400">{label}</span>
+              <span className="mt-1 text-[10px] font-medium uppercase text-[#38d7d0]">pending</span>
+            </div>
+          ))}
+        </div>
+      </MissionPanel>
+    );
+  }
+
   return (
     <MissionPanel className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -392,6 +639,7 @@ function OutcomeNarrative({ result }: { result: SwarmExecuteResult }) {
   const structured = result.structuredReceipts?.[result.structuredReceipts.length - 1];
   const truth = structured ? getReceiptTruthLine(structured) : null;
   const claim = structured ? getClaimText(structured) : null;
+  const framework = result.agentFramework ?? result.execution.agentFramework;
   return (
     <div className="space-y-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -399,6 +647,16 @@ function OutcomeNarrative({ result }: { result: SwarmExecuteResult }) {
         <span className="font-medium text-[#b8ffd9]">Execution record · {result.execution.id}</span>
         <StatusChip label={`status · ${result.execution.status}`} tone={result.degraded ? "warn" : "neutral"} />
       </div>
+      {framework ? (
+        <div className="rounded-xl border border-[#14f195]/20 bg-[#060a0e]/80 p-1">
+          <p className="px-3 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#14f195]/90">
+            Agent framework trace
+          </p>
+          <div className="p-3">
+            <AgentFrameworkInspector run={framework} />
+          </div>
+        </div>
+      ) : null}
       {result.reflection ? (
         <div className="rounded-xl border border-[#38d7d0]/25 bg-black/40 p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[#38d7d0]">Reflection record (off-chain narrative)</p>
@@ -480,6 +738,16 @@ export function LiveRunsBoard({ runs }: { runs: SwarmMissionRun[] }) {
 }
 
 export function SkillsAssetGallery({ skills }: { skills: SwarmSkill[] }) {
+  if (!skills.length) {
+    return (
+      <MissionPanel className="border-dashed border-white/15 p-8 text-center">
+        <p className="text-sm font-medium text-slate-200">No fleet skills mirrored yet</p>
+        <p className="mt-2 text-xs text-slate-500">
+          Run a proof-linked loop from Overview or enable demo mode — this column shows the runtime skill manifest your agents last bound to.
+        </p>
+      </MissionPanel>
+    );
+  }
   return (
     <div className="relative space-y-2">
       <div className="pointer-events-none absolute left-0 top-0 hidden h-full w-px bg-gradient-to-b from-[#14f195]/50 via-[#38d7d0]/30 to-transparent md:block" />
@@ -870,81 +1138,288 @@ export function ProofGraphPanel({ graph }: { graph: ZeroGProofGraphResponse }) {
   );
 }
 
+/** Demo hub: mirrors left-rail “Demo Mode” — story, toggles, deep links */
+export function DemoModeCommandPanel({
+  demoMode,
+  onDemoMode,
+}: {
+  demoMode: boolean;
+  onDemoMode: (v: boolean) => void;
+}) {
+  return (
+    <div className="mx-auto max-w-3xl space-y-4">
+      <MissionPanel className="border-[#14f195]/20 p-6">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#14f195]">Demo mode</p>
+        <h2 className="mt-2 text-xl font-semibold text-white">Tell the full Solana agent story without mainnet friction</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          Wallet → skill → plan → execution → reflection → memory → receipt → explorer. Toggle on to seed fixtures when RPC or indexer is thin; judges
+          still see the same spine as production.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className="text-xs text-slate-500">{demoMode ? "Demo narrative on" : "Off — live chain only"}</span>
+          <Switch checked={demoMode} onCheckedChange={onDemoMode} aria-label="Toggle demo mode from demo panel" />
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button className="bg-[#14f195] font-semibold text-black hover:bg-[#5cffb8]" asChild>
+            <a href="/demo/hub">Open mock demo hub</a>
+          </Button>
+          <Button variant="outline" className="border-white/15 text-slate-200" asChild>
+            <a href="/demo/full-story">Replayable story engine</a>
+          </Button>
+          <Button variant="outline" className="border-cyan-500/35 text-cyan-100" asChild>
+            <a href="/">Landing · onboarding</a>
+          </Button>
+        </div>
+      </MissionPanel>
+      <MissionPanel className="p-5 text-sm text-slate-400">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">What is verified vs demo?</p>
+        <ul className="mt-3 list-inside list-disc space-y-2 text-xs">
+          <li>
+            <span className="text-slate-200">Live path</span> — wallet session, registry rows, and execution responses from this deployment&apos;s API.
+          </li>
+          <li>
+            <span className="text-slate-200">Demo path</span> — canonical fixtures fill gaps; labels use “demo fixtures” in the proof channel chip.
+          </li>
+        </ul>
+      </MissionPanel>
+    </div>
+  );
+}
+
 /** Right column: wallet, proof, memory, autonomy — always visible story anchors */
 export function CommandRightRail({
   demoMode,
   sessionVerified,
   autonomyScore,
+  autonomyBandLabel,
   proofRate,
   activeSkillName,
+  skillReputation,
   lastTx,
   memorySnippet,
   receiptPreview,
   openClawCompact,
   demoReflection,
+  proofChannel,
+  proofChannelExplanation,
+  explorerUrl,
+  storyUxItems = [],
 }: {
   demoMode: boolean;
   sessionVerified: boolean;
   autonomyScore: number;
+  autonomyBandLabel: string;
   proofRate: number;
   activeSkillName?: string;
+  skillReputation?: number;
   lastTx?: string;
   memorySnippet?: string;
   receiptPreview?: string;
   openClawCompact: string;
   demoReflection?: DemoReflectionFixture | null;
+  proofChannel: ProofChannel;
+  proofChannelExplanation: string;
+  explorerUrl?: string | null;
+  storyUxItems?: UXTimelineItem[];
 }) {
+  const liveProofVerified = proofChannel === "verified";
+  const proofPanelTone = !sessionVerified ? "warn" : liveProofVerified ? "proof" : "live";
   return (
-    <div className="flex flex-col gap-4 p-4 lg:p-5">
-      {demoMode ? (
-        <MissionPanel className="border-amber-400/25 bg-amber-500/5 p-3 text-[11px] text-amber-100/90">
-          Demo mode projects a full loop — judges see the narrative without mainnet RPC.
-        </MissionPanel>
-      ) : null}
-      <SolanaWalletPanel compact />
-      <MissionPanel className="space-y-3 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Proof & trust</p>
-        <div className="flex flex-wrap gap-2">
-          <StatusChip tone={sessionVerified ? "proof" : "warn"} label={sessionVerified ? "verified session" : "session incomplete"} />
-          <ProofBadge verified={Boolean(receiptPreview && sessionVerified)} />
+    <div className="flex flex-col gap-3 p-3 lg:p-4">
+      {/* Story anchor heading — reminds the user this rail is the proof spine */}
+      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md border border-[#14f195]/30 bg-[#14f195]/10">
+            <ShieldCheck className="h-3 w-3 text-[#14f195]" aria-hidden />
+          </span>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-300">
+            Proof rail · Solana
+          </p>
         </div>
-        <dl className="space-y-2 text-xs">
-          <div className="flex justify-between gap-2 border-b border-white/5 pb-2">
+        <span className="text-[9px] font-mono text-slate-600">wallet · skill · proof</span>
+      </div>
+
+      {demoMode ? (
+        <CcPanel tone="warn" className="px-3 py-2 text-[11px] text-amber-100/90">
+          Demo mode projects a full loop — judges see the narrative without mainnet RPC. Proof channel shows{" "}
+          <span className="font-medium text-amber-50">demo fixtures</span> where applicable.
+        </CcPanel>
+      ) : null}
+
+      <SolanaWalletPanel compact />
+
+      {storyUxItems.length ? (
+        <CcPanel className="space-y-1 p-3.5">
+          <CcSectionHeader
+            kicker="same story · two views"
+            title="Proof path checklist"
+            icon={ShieldCheck}
+          />
+          <p className="text-[10px] text-slate-600">
+            Mirrors the bottom timeline — use this rail when the strip is off-screen on small viewports.
+          </p>
+          <StoryAtAGlance items={storyUxItems} />
+        </CcPanel>
+      ) : null}
+
+      {/* Compact verified-state ribbon */}
+      <CcPanel tone={proofPanelTone} glow={liveProofVerified} className="space-y-2.5 p-3.5">
+        <CcSectionHeader
+          icon={ShieldCheck}
+          kicker="proof channel"
+          title={
+            proofChannel === "demo_only"
+              ? "Demo fixtures · illustrative proof"
+              : liveProofVerified
+                ? "Proof anchored · explorer-verifiable"
+                : sessionVerified
+                  ? "Session verified · awaiting anchor"
+                  : "Session not yet signed"
+          }
+          status={<ProofBadge verified={liveProofVerified} />}
+        />
+        <p className="text-[10.5px] leading-relaxed text-slate-500" title={proofChannelExplanation}>
+          {proofChannelExplanation}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <StatusChip
+            tone={sessionVerified ? "proof" : "warn"}
+            label={sessionVerified ? "Verified session" : "Session pending"}
+          />
+          <StatusChip
+            tone={
+              proofChannel === "verified"
+                ? "proof"
+                : proofChannel === "demo_only" || proofChannel === "unavailable"
+                  ? "warn"
+                  : "neutral"
+            }
+            label={proofChannel.replaceAll("_", " ")}
+            className="!normal-case"
+          />
+        </div>
+
+        {/* Trust metrics — micro tiles */}
+        <div className="grid grid-cols-2 gap-1.5">
+          <CcMetric
+            label="Autonomy"
+            value={autonomyScore}
+            delta={autonomyBandLabel}
+            tone="proof"
+            ratio={Math.max(0, Math.min(1, autonomyScore / 100))}
+          />
+          <CcMetric
+            label="Proof rate"
+            value={`${proofRate}%`}
+            delta={liveProofVerified ? "anchored" : "in flight"}
+            tone={liveProofVerified ? "proof" : "live"}
+            ratio={Math.max(0, Math.min(1, proofRate / 100))}
+          />
+        </div>
+
+        <dl className="space-y-1.5 text-[11px]">
+          <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2">
             <dt className="text-slate-500">Active skill</dt>
-            <dd className="truncate text-right text-slate-200">{activeSkillName ?? "—"}</dd>
+            <dd className="truncate text-right text-slate-200">
+              {activeSkillName ?? "—"}
+              {typeof skillReputation === "number" ? (
+                <span className="ml-1.5 font-mono text-slate-500">
+                  rep {skillReputation.toFixed(0)}
+                </span>
+              ) : null}
+            </dd>
           </div>
-          <div className="flex justify-between gap-2 border-b border-white/5 pb-2">
-            <dt className="text-slate-500">Autonomy score</dt>
-            <dd className="font-mono text-[#14f195]">{autonomyScore}</dd>
-          </div>
-          <div className="flex justify-between gap-2 border-b border-white/5 pb-2">
-            <dt className="text-slate-500">Proof completeness</dt>
-            <dd className="font-mono">{proofRate}%</dd>
-          </div>
-          <div className="flex justify-between gap-2 pb-2">
-            <dt className="text-slate-500">Latest signature</dt>
-            <dd className="truncate font-mono text-[10px] text-slate-400">{lastTx ? `${lastTx.slice(0, 8)}…` : "—"}</dd>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="text-slate-500">Latest tx</dt>
+            <dd className="flex min-w-0 flex-1 items-center justify-end gap-1">
+              {lastTx ? (
+                <>
+                  <span className="truncate font-mono text-[10px] text-slate-400">{lastTx}</span>
+                  <DappCopyButton
+                    value={lastTx}
+                    label="Copy"
+                    variant="ghost"
+                    toastMessage="Tx signature copied"
+                    className="shrink-0 px-1.5 py-0.5 text-[10px]"
+                  />
+                </>
+              ) : (
+                <span className="text-slate-600">—</span>
+              )}
+            </dd>
           </div>
         </dl>
-      </MissionPanel>
-      <MissionPanel className="space-y-2 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Memory pulse</p>
-        <p className="text-xs leading-relaxed text-slate-400">{memorySnippet ?? "No snippet yet — run a turn with reflection enabled."}</p>
-      </MissionPanel>
-      <MissionPanel className="space-y-2 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Receipt preview</p>
-        <p className="break-all font-mono text-[10px] text-slate-500">{receiptPreview ?? "Awaiting anchor — execution idle."}</p>
-      </MissionPanel>
+
+        {explorerUrl ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-cyan-500/30 text-cyan-100"
+            asChild
+          >
+            <a href={explorerUrl} target="_blank" rel="noreferrer">
+              <ShieldCheck className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              {SOLANA_COPY.wallet.explorerTx}
+            </a>
+          </Button>
+        ) : null}
+      </CcPanel>
+
+      {/* Memory pulse */}
+      <CcPanel className="space-y-1.5 p-3.5">
+        <CcSectionHeader
+          kicker="memory pulse"
+          title="Latest reflection-linked write"
+          icon={Sparkles}
+        />
+        <p className="text-[11.5px] leading-relaxed text-slate-400">
+          {memorySnippet ?? "No snippet yet — run a turn with reflection enabled."}
+        </p>
+      </CcPanel>
+
+      {/* Receipt preview */}
+      <CcPanel
+        tone={receiptPreview ? "proof" : "idle"}
+        className="space-y-1.5 p-3.5"
+      >
+        <CcSectionHeader
+          kicker="receipt preview"
+          title={receiptPreview ? "Compact Solana receipt" : "Awaiting anchor"}
+          icon={ReceiptText}
+          status={
+            <CcStatusDot tone={receiptPreview ? "proof" : "idle"} pulse={!receiptPreview} />
+          }
+        />
+        <p className="break-all font-mono text-[10px] text-slate-500">
+          {receiptPreview ?? "Execution idle — start a loop to mint a receipt."}
+        </p>
+        {receiptPreview ? (
+          <DappCopyButton
+            value={receiptPreview}
+            label="Copy receipt / tx id"
+            variant="pill"
+            toastMessage="Copied"
+            className="text-[10px]"
+          />
+        ) : null}
+      </CcPanel>
+
       {demoReflection ? (
-        <MissionPanel className="space-y-2 border-[#38d7d0]/20 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#38d7d0]">Reflection · demo</p>
-          <p className="text-xs text-slate-300">{demoReflection.correctiveAdvice}</p>
-        </MissionPanel>
+        <CcPanel tone="live" className="space-y-1.5 p-3.5">
+          <CcSectionHeader
+            kicker="reflection · demo"
+            title="Corrective advice for next turn"
+          />
+          <p className="text-[11.5px] leading-relaxed text-slate-300">
+            {demoReflection.correctiveAdvice}
+          </p>
+        </CcPanel>
       ) : null}
-      <MissionPanel className="space-y-1 p-4 text-[11px] text-slate-500">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">OpenClaw</p>
-        <p>{openClawCompact}</p>
-      </MissionPanel>
+
+      <CcPanel className="space-y-1.5 p-3.5">
+        <CcSectionHeader kicker="OpenClaw" title="Bridge interoperability" />
+        <p className="text-[11px] leading-relaxed text-slate-500">{openClawCompact}</p>
+      </CcPanel>
     </div>
   );
 }

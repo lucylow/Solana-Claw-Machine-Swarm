@@ -3,18 +3,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  DappBalanceCard,
+  DappLoadingSkeleton,
+  DappOnchainTag,
+  DappSectionHeader,
+  DappShell,
+  DappWalletSummary,
+} from "@/components/dapp";
+import {
   DemoStoryStepper,
   EmptyState,
   MemoryArtifactCard,
   OnchainReceiptCard,
   ReflectionCard,
-  SolanaStatusBadge,
   StoryLoopStrip,
   buildDemoSteps,
   buildExplorerTxUrl,
 } from "@/components/command-center";
 import { PlanReceiptCard } from "@/components/PlanReceiptCard";
-import { CheckCircle2, Link2, Sparkles, Workflow, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, Link2, Sparkles, Workflow, Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getPlanTimeline, listPlans } from "@/plans/planClient";
 import type {
@@ -26,7 +33,7 @@ import type {
 import type { ReflectionState } from "@shared/commandCenter";
 import type { PlanReceipt, PlanTimelineEvent } from "@shared/planReceipts";
 import { SOLANA_COPY } from "@shared/copy";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 
 type ReflectionItem = {
   reflection: ReflectionRecordOffchain;
@@ -251,38 +258,55 @@ export default function ReceiptsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-cyan-300">Loading Solana memory and receipt trail…</div>
-      </div>
+      <DappShell brand="Receipts">
+        <div className="space-y-3">
+          <DappLoadingSkeleton className="h-12 w-2/3" />
+          <DappLoadingSkeleton className="h-32 w-full" />
+          <DappLoadingSkeleton className="h-48 w-full" />
+        </div>
+      </DappShell>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#020408] text-white">
-      <header className="border-b border-slate-800 bg-black/70 backdrop-blur">
-        <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <Workflow className="w-7 h-7 text-[#6dffb3]" />
-            <h1 className="text-2xl font-semibold text-[#d6ffea]">Reflection, Memory, and Receipt Trail</h1>
-            <SolanaStatusBadge label="Solana proof view" active />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={runDemo} className="bg-[#6dffb3] text-black hover:bg-[#7fffbe]" disabled={busy}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Memory Demo
-            </Button>
-            <Button onClick={runPlanDemo} className="bg-cyan-500 text-black hover:bg-cyan-400" disabled={busy}>
-              <Workflow className="w-4 h-4 mr-2" />
-              Planner Demo
-            </Button>
-            <Button onClick={() => setLocation("/dashboard")} variant="outline" className="border-[#3bff96]/60">
-              {SOLANA_COPY.navigation.backCommandCenter}
-            </Button>
-          </div>
-        </div>
-      </header>
+  const sideRail = (
+    <>
+      <DappWalletSummary variant="block" />
+      <DappBalanceCard />
+    </>
+  );
 
-      <main className="container space-y-6 py-6">
+  return (
+    <DappShell
+      brand="Receipts & memory trail"
+      sideRail={sideRail}
+      topRightSlot={
+        <Button asChild size="sm" variant="outline" className="rounded-full border-white/15 text-[11px] text-slate-200">
+          <Link href="/dashboard?section=receipts">
+            {SOLANA_COPY.navigation.backCommandCenter}
+            <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+          </Link>
+        </Button>
+      }
+    >
+      <DappSectionHeader
+        eyebrow="Solana receipts"
+        title="Reflection, memory, and receipt trail"
+        description="Full reflections live off-chain. Compact hashes, turn links, wallet proofs, and tx signatures are anchored on Solana."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={runDemo} className="rounded-full bg-[#14f195] text-black hover:bg-[#3bff96]" disabled={busy}>
+              <Sparkles className="w-4 h-4 mr-1.5" aria-hidden />
+              Memory demo
+            </Button>
+            <Button onClick={runPlanDemo} className="rounded-full bg-cyan-500 text-black hover:bg-cyan-400" disabled={busy}>
+              <Workflow className="w-4 h-4 mr-1.5" aria-hidden />
+              Planner demo
+            </Button>
+          </div>
+        }
+      />
+
+      <main className="space-y-6">
         <StoryLoopStrip activeStep={5} />
 
         <Card className="bg-[#07140f] border-[#2af08b]/30 p-5">
@@ -290,7 +314,9 @@ export default function ReceiptsPage() {
             Full reflections are stored off-chain. Compact hashes, turn links, wallet proofs, and tx references are anchored on Solana.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <DappOnchainTag scope="offchain" />
             <Badge className="bg-[#153827] border-[#2af08b]/40">Reflection stored</Badge>
+            <DappOnchainTag scope="onchain" />
             <Badge className="bg-[#153827] border-[#2af08b]/40">Receipt anchored on Solana</Badge>
             <Badge className="bg-[#153827] border-[#2af08b]/40">Injected into next turn</Badge>
             <Badge className="bg-[#153827] border-[#2af08b]/40">Lesson verified</Badge>
@@ -555,6 +581,6 @@ export default function ReceiptsPage() {
           </div>
         </div>
       </main>
-    </div>
+    </DappShell>
   );
 }

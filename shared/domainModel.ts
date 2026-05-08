@@ -3,6 +3,9 @@
  * Maps cleanly onto discovery rows, plan receipts, memory reflections, and bridge memos.
  */
 
+import type { AgentFrameworkRun } from "./agents/framework";
+import type { AgentRole } from "./agents/types";
+import type { AppError } from "./errorTypes";
 import type { StructuredReceipt } from "./structuredReceipt";
 
 export type SkillStatus =
@@ -45,8 +48,11 @@ export type ExecutionStatus =
   | "verified"
   | "degraded";
 
+/** @deprecated Prefer {@link AgentRole}; `support` kept for legacy demo fixtures. */
+export type OrchestrationLaneRole = AgentRole | "support";
+
 export interface OrchestrationAgentStep {
-  role: "planner" | "researcher" | "operator" | "critic" | "support" | "coordinator";
+  role: OrchestrationLaneRole;
   label: string;
   status: "pending" | "active" | "done" | "failed";
   detail?: string;
@@ -73,6 +79,8 @@ export interface ExecutionRecord {
   explorerUrl?: string;
   metadata: Record<string, unknown>;
   orchestration?: OrchestrationAgentStep[];
+  /** Inspectable multi-agent pipeline (plan, tools, delegations, critic, proofs). */
+  agentFramework?: AgentFrameworkRun;
 }
 
 export interface ReflectionRecord {
@@ -80,6 +88,7 @@ export interface ReflectionRecord {
   agentId: string;
   skillId: string;
   sourceTurnId: string;
+  sourceExecutionId?: string;
   rootCause: string;
   correctiveAdvice: string;
   nextAction: string;
@@ -109,6 +118,10 @@ export interface MemoryRecord {
   agentId: string;
   sourceTurnId: string;
   sourceExecutionId?: string;
+  /** Lineage: reflection that produced or justified this memory */
+  sourceReflectionId?: string;
+  /** Lineage: skill context when memory was captured */
+  sourceSkillId?: string;
   kind: MemoryKind;
   title: string;
   summary: string;
@@ -178,4 +191,8 @@ export interface SwarmExecuteResult {
   planId?: string;
   degraded: boolean;
   errors: string[];
+  /** Structured errors aligned with `errors` / orchestration steps (for UI + logging). */
+  appErrors?: AppError[];
+  /** Same as `execution.agentFramework` when present; duplicated for convenience in API clients. */
+  agentFramework?: AgentFrameworkRun;
 }

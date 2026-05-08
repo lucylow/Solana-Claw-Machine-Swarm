@@ -1,18 +1,43 @@
 import type { SkillIdentity, SwarmExecuteResult } from "@shared/domainModel";
+import { normalizeError } from "@shared/normalizeError";
+import { SwarmApiError, throwIfApiFailed } from "@/errors/SwarmApiError";
+
 export { STORY_LOOP_LABELS } from "@shared/copy";
 
-type ApiOk<T> = { ok: true; data: T };
-type ApiErr = { ok: false; error: string };
+type ApiOk<T> = { ok: true; data: T; degraded?: boolean };
 
-async function parse<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as ApiOk<T> | ApiErr;
-  if (!body.ok) throw new Error("error" in body ? body.error : "api_error");
-  return body.data;
+async function readBody(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    throw new SwarmApiError(
+      normalizeError(`Invalid JSON response (HTTP ${res.status})`, {
+        source: "swarm_api",
+        statusCode: res.status,
+        fallback: { code: "UNEXPECTED_ROUTE_ERROR" },
+      })
+    );
+  }
+}
+
+async function parseOk<T>(res: Response): Promise<T> {
+  const body = await readBody(res);
+  throwIfApiFailed(body, res);
+  if (!body || typeof body !== "object" || (body as ApiOk<T>).ok !== true) {
+    throw new SwarmApiError(
+      normalizeError("Malformed success envelope from API.", {
+        source: "swarm_api",
+        statusCode: res.status,
+        fallback: { code: "UNEXPECTED_ROUTE_ERROR" },
+      })
+    );
+  }
+  return (body as ApiOk<T>).data;
 }
 
 export async function fetchSolanaStatus() {
   const res = await fetch("/api/solana/status");
-  return parse<{
+  return parseOk<{
     cluster: string;
     programId: string;
     rpcUrl: string;
@@ -23,7 +48,7 @@ export async function fetchSolanaStatus() {
 
 export async function fetchSession(walletAddress: string) {
   const res = await fetch(`/api/session?walletAddress=${encodeURIComponent(walletAddress)}`);
-  return parse<{
+  return parseOk<{
     walletAddress: string;
     cluster: string;
     sessionActive: boolean;
@@ -38,7 +63,7 @@ export async function fetchSkillsList(params?: { q?: string; sort?: string }) {
   if (params?.q) sp.set("q", params.q);
   if (params?.sort) sp.set("sort", params.sort);
   const res = await fetch(`/api/skills?${sp.toString()}`);
-  return parse<{ skills: SkillIdentity[]; total: number }>(res);
+  return parseOk<{ skills: SkillIdentity[]; total: number }>(res);
 }
 
 export async function selectSkill(skillId: string, walletAddress: string) {
@@ -47,7 +72,7 @@ export async function selectSkill(skillId: string, walletAddress: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ walletAddress }),
   });
-  return parse<{ walletAddress: string; skillId: string; selectedAt: string }>(res);
+  return parseOk<{ walletAddress: string; skillId: string; selectedAt: string }>(res);
 }
 
 export async function executeSwarm(input: {
@@ -68,9 +93,7 @@ export async function executeSwarm(input: {
       agentId: input.agentId ?? "agent_swarm",
     }),
   });
-  const body = (await res.json()) as { ok: boolean; data?: SwarmExecuteResult; error?: string };
-  if (!body.data) throw new Error(body.error || "execute_failed");
-  return body.data;
+  return parseOk<SwarmExecuteResult>(res);
 }
 
 export async function fetchHistory(wallet?: string, limit = 30) {
@@ -78,5 +101,5 @@ export async function fetchHistory(wallet?: string, limit = 30) {
   if (wallet) sp.set("wallet", wallet);
   sp.set("limit", String(limit));
   const res = await fetch(`/api/history?${sp.toString()}`);
-  return parse<{ executions: unknown[]; bridgeHistory: unknown[] }>(res);
+  return parseOk<{ executions: unknown[]; bridgeHistory: unknown[] }>(res);
 }

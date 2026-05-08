@@ -1,16 +1,16 @@
 import type { SwarmSectionId } from "./swarm";
 
-/** Premium story spine: Solana identity + proof · 0G durable narrative + DA lineage. */
+/** Premium story spine: wallet identity → verified session → execution proof on Solana. */
 export const STORY_LOOP_LABELS = [
   "Connect Solana wallet",
-  "Choose published skill",
-  "Run task",
-  "Reflection created",
-  "Memory written",
-  "Stored in 0G Storage",
-  "Committed to 0G DA",
-  "Anchored on Solana",
-  "Verify on explorer",
+  "Verify session",
+  "Choose skill",
+  "Build plan",
+  "Execute transaction(s)",
+  "Create reflection",
+  "Write memory",
+  "Anchor receipt on Solana",
+  "Verify on Solana Explorer",
 ] as const;
 
 export type StoryLoopLabel = (typeof STORY_LOOP_LABELS)[number];
@@ -35,17 +35,18 @@ export const COMMAND_SIDE_NAV_ITEMS: Array<{
   label: string;
   short: string;
 }> = [
-  { id: "overview", label: "Solana mission deck", short: "Deck" },
-  { id: "live-run", label: "Live run", short: "Run" },
-  { id: "skills", label: "Skill registry", short: "Sk" },
-  { id: "memory", label: "Memory lineage", short: "Mem" },
-  { id: "reflections", label: "Reflection trail", short: "Rx" },
-  { id: "receipts", label: "Solana receipts", short: "Rc" },
-  { id: "proof-explorer", label: "Solana proof explorer", short: "Pr" },
+  { id: "overview", label: "Overview", short: "Ov" },
+  { id: "live-run", label: "Live Run", short: "Run" },
+  { id: "skills", label: "Skills", short: "Sk" },
+  { id: "memory", label: "Memory", short: "Mem" },
+  { id: "reflections", label: "Reflections", short: "Rx" },
+  { id: "receipts", label: "Receipts", short: "Rc" },
+  { id: "proof-explorer", label: "Proof Explorer", short: "Pr" },
   { id: "agents", label: "Agent fleet", short: "Ag" },
   { id: "reputation", label: "Reputation", short: "Rep" },
-  { id: "openclaw-bridge", label: "OpenClaw bridge", short: "OC" },
-  { id: "proof-graph", label: "Solana proof graph", short: "Gr" },
+  { id: "openclaw-bridge", label: "OpenClaw Bridge", short: "OC" },
+  { id: "demo-mode", label: "Demo Mode", short: "Dm" },
+  { id: "proof-graph", label: "Proof graph", short: "Gr" },
   { id: "zerog-sidecar", label: "0G sidecar", short: "ZG" },
   { id: "settings", label: "Settings", short: "Set" },
 ];
@@ -81,6 +82,8 @@ export const SOLANA_COPY = {
     offlineChip: "Solana wallet offline",
     wrongCluster: "Wrong Solana cluster",
     clusterBadge: "Solana cluster",
+    clusterRpcTitle: "Cluster RPC (server probe)",
+    identityLayerNote: "Identity: wallet adapter pubkey · Session: backend-verified bearer",
     permissionsTitle: "Solana program permissions",
     toastAddressCopied: "Solana wallet address copied",
     refreshSolBalance: "Refresh Solana balance",

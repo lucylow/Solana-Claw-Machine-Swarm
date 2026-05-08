@@ -14,7 +14,7 @@ export type DaoProposalStatus =
   | "cancelled"
   | "executed";
 
-export type DaoVoteChoice = "yes" | "no" | "abstain";
+export type DaoVoteChoice = "yes" | "no" | "abstain" | "veto";
 
 export interface DaoMemberRecord {
   wallet: string;
@@ -40,6 +40,7 @@ export interface DaoProposalRecord {
   yesVotes: number;
   noVotes: number;
   abstainVotes: number;
+  vetoVotes?: number;
   totalVotes: number;
   voterCount: number;
   startSlot: number;
@@ -51,6 +52,16 @@ export interface DaoProposalRecord {
   createdAt: number;
   updatedAt: number;
   executedAt: number;
+  executionTxSignature?: string;
+  executionReceiptId?: string;
+  proposalReceiptId?: string;
+  proofStatus?: string;
+  onchainPda?: string;
+  onchainAccount?: string;
+  createTxSignature?: string;
+  offchainStorageRef?: string;
+  discussionThreadId?: string;
+  offchainChecksum?: string;
 }
 
 export interface DaoDiscoveryRecord {
@@ -83,4 +94,82 @@ export interface DaoConfigRecord {
   totalVotes: number;
   totalExecuted: number;
   totalTreasurySpend: number;
+}
+
+export interface DaoDelegationRecord {
+  id: string;
+  fromWallet: string;
+  toWallet: string;
+  weight: number;
+  reason?: string;
+  createdAt: number;
+  revokedAt?: number;
+  status: "active" | "revoked" | "expired" | "pending";
+  proofReceiptId?: string;
+  pda?: string;
+}
+
+export interface DaoVoteLedgerRecord {
+  id: string;
+  proposalId: number;
+  voterWallet: string;
+  choice: DaoVoteChoice;
+  weight: number;
+  reason?: string;
+  createdAt: number;
+  proofReceiptId?: string;
+}
+
+export interface DaoAgentRecommendationRecord {
+  id: string;
+  proposalId: number;
+  agentId: string;
+  agentName: string;
+  role: string;
+  summary: string;
+  recommendation: string;
+  confidence: number;
+  risks: string[];
+  supportingEvidence: string[];
+  createdAt: number;
+  status: "draft" | "ready" | "approved" | "rejected" | "degraded" | "demo_only";
+  humanDisposition?: "accepted" | "modified" | "rejected" | "pending";
+}
+
+export interface DaoGovernanceMemoryPersist {
+  id: string;
+  proposalId: number;
+  title: string;
+  lesson: string;
+  outcome: string;
+  createdAt: number;
+  linkedReceiptIds: string[];
+  storageRef?: string;
+}
+
+export interface DaoExecutionReceiptPersist {
+  id: string;
+  proposalId: number;
+  walletAddress: string;
+  txSignature?: string;
+  title: string;
+  summary: string;
+  status: string;
+  proofStatus: string;
+  createdAt: number;
+  explorerUrl?: string;
+  storageRef?: string;
+}
+
+export interface DaoTreasurySnapshotPersist {
+  id: string;
+  walletAddress: string;
+  totalBalanceLamports: string;
+  totalBalanceSol: string;
+  tokenBalances: Array<{ mint: string; symbol?: string; balance: string; valueUsd?: number }>;
+  lastUpdatedAt: string;
+  proofReceiptId?: string;
+  account?: string;
+  pda?: string;
+  status: string;
 }

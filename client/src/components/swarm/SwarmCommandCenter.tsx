@@ -7,6 +7,7 @@ import {
   AgentsOrchestrationGrid,
   buildDemoBundle,
   CommandRightRail,
+  DemoModeCommandPanel,
   DemoModeToggle,
   DegradedStateBanner,
   LiveRunsBoard,
@@ -32,22 +33,41 @@ import type {
 } from "@/lib/zerog/types";
 import { formatSessionExpiry } from "@/lib/solana/format";
 import {
+  DemoModeNotice,
+  ExecutionErrorPanel,
+} from "@/errors/ErrorUiKit";
+import { SwarmApiError } from "@/errors/SwarmApiError";
+import { useErrorSurface } from "@/errors/ErrorSurfaceContext";
+import {
   executeSwarm,
   fetchSkillsList,
   fetchSolanaStatus,
   selectSkill,
 } from "@/lib/swarmApi";
+import { txExplorerUrl } from "@/lib/solana/explorer";
+import { normalizeError } from "@shared/normalizeError";
+import { deriveCommandUX } from "@shared/uxState";
 import {
   createInitialRuntime,
   executeAutonomousCycle,
 } from "@/lib/swarmRuntime";
-import { isStructuredReflectionControl } from "@shared/commandCenterTimeline";
+import {
+  buildCommandTimelineSafe,
+  isStructuredReflectionControl,
+} from "@shared/commandCenterTimeline";
+import { commandEventsToUXTimeline } from "@shared/storyUXTimeline";
 import { DEMO_SKILLS } from "@shared/demoFixtures";
 import { SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
 import type { SkillIdentity, SwarmExecuteResult } from "@shared/domainModel";
+import type { AppError } from "@shared/errorTypes";
 import type { OpenClawBridgeStatus } from "@shared/openclaw/types";
-import type { SwarmRuntimeState, SwarmSectionId } from "@shared/swarm";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  isSwarmSectionId,
+  type SwarmRuntimeState,
+  type SwarmSectionId,
+} from "@shared/swarm";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "wouter";
 
 async function fetchJson<T>(path: string): Promise<T | null> {
   const response = await fetch(path);
@@ -186,9 +206,16 @@ export default function SwarmCommandCenter({
 }: {
   walletAddress?: string;
 }) {
+  const errorSurface = useErrorSurface();
+  const errorSurfaceRef = useRef(errorSurface);
+  errorSurfaceRef.current = errorSurface;
   const wallet = useSolanaWallet();
   const session = useSolanaSession();
-  const [section, setSection] = useState<SwarmSectionId>("overview");
+  const [searchParams] = useSearchParams();
+  const section: SwarmSectionId = useMemo(() => {
+    const raw = searchParams.get("section");
+    return raw && isSwarmSectionId(raw) ? raw : "overview";
+  }, [searchParams]);
   const [demoMode, setDemoMode] = useState(false);
   const [runtime, setRuntime] = useState<SwarmRuntimeState>(() =>
     createInitialRuntime(walletAddress),
@@ -210,6 +237,7 @@ export default function SwarmCommandCenter({
   const [lastResult, setLastResult] = useState<SwarmExecuteResult | null>(null);
   const [loopBusy, setLoopBusy] = useState(false);
   const [loopError, setLoopError] = useState<string | null>(null);
+  const [registryError, setRegistryError] = useState<AppError | null>(null);
 
   const demoBundle = useMemo(
     () => (demoMode ? buildDemoBundle(selectedSkillId) : null),
@@ -235,6 +263,42 @@ export default function SwarmCommandCenter({
     [activeSkillMeta?.name],
   );
 
+  const wrongCluster = wallet.walletState.connectionStatus === "wrong_cluster";
+  const walletConnected = Boolean(wallet.walletAddress ?? effectiveWallet);
+
+  const commandUx = useMemo(
+    () =>
+      deriveCommandUX({
+        demoMode,
+        walletConnected,
+        wrongCluster,
+        sessionVerified: session.isVerified,
+        selectedSkillId,
+        hasRegistrySkills: skillRows.length > 0,
+        loopBusy,
+        loopError,
+        lastResult,
+        registryDegraded: Boolean(registryError && !chainSkills.length && !demoMode),
+        autonomyLevel: runtime.autonomyLevel,
+        autonomyScore: runtime.autonomyScore,
+      }),
+    [
+      demoMode,
+      walletConnected,
+      wrongCluster,
+      session.isVerified,
+      selectedSkillId,
+      skillRows.length,
+      loopBusy,
+      loopError,
+      lastResult,
+      registryError,
+      chainSkills.length,
+      runtime.autonomyLevel,
+      runtime.autonomyScore,
+    ],
+  );
+
   useEffect(() => {
     void (async () => {
       try {
@@ -245,8 +309,16 @@ export default function SwarmCommandCenter({
         setChainStatus(st);
         setChainSkills(sk.skills);
         setSelectedSkillId((prev) => prev ?? sk.skills[0]?.id ?? null);
-      } catch {
-        /* registry may be empty */
+        setRegistryError(null);
+        errorSurfaceRef.current?.markSuccess();
+      } catch (e) {
+        const appErr = normalizeError(e, {
+          source: "command_center_bootstrap",
+          fallback: { code: "INDEXER_SYNC_FAILED" },
+        });
+        setRegistryError(appErr);
+        errorSurfaceRef.current?.pushError(appErr);
+        errorSurfaceRef.current?.markDegraded(true);
       }
     })();
   }, []);
@@ -256,11 +328,23 @@ export default function SwarmCommandCenter({
       try {
         const sk = await fetchSkillsList({ sort: "success_rate" });
         setChainSkills(sk.skills);
-      } catch {
-        /* ignore */
+        setRegistryError(null);
+      } catch (e) {
+        const appErr = normalizeError(e, {
+          source: "command_center_skills_refresh",
+          fallback: { code: "INDEXER_SYNC_FAILED" },
+        });
+        setRegistryError(appErr);
+        errorSurfaceRef.current?.pushError(appErr);
       }
     })();
   }, [lastResult]);
+
+  useEffect(() => {
+    if (selectedSkillId) return;
+    const first = skillRows[0]?.id;
+    if (first) setSelectedSkillId(first);
+  }, [selectedSkillId, skillRows]);
 
   useEffect(() => {
     void (async () => {
@@ -331,6 +415,14 @@ export default function SwarmCommandCenter({
       ? `${receiptPreview.slice(0, 10)}…`
       : receiptPreview;
   }, [receiptPreview]);
+
+  const explorerForRail = useMemo(() => {
+    const direct = lastResult?.execution.explorerUrl;
+    if (direct) return direct;
+    const tx = lastResult?.receipts?.[0]?.txSignature ?? receiptPreview;
+    if (!tx || tx.length < 32) return null;
+    return txExplorerUrl(tx);
+  }, [lastResult, receiptPreview]);
 
   const degradedMessages = useMemo(() => {
     const m: string[] = [];
@@ -435,6 +527,11 @@ export default function SwarmCommandCenter({
     ],
   );
 
+  const storyUxItems = useMemo(() => {
+    const { events } = buildCommandTimelineSafe(timelineInput);
+    return commandEventsToUXTimeline(events);
+  }, [timelineInput]);
+
   const runLinkedLoop = useCallback(async () => {
     if (!effectiveWallet || !selectedSkillId) return;
     setLoopError(null);
@@ -457,7 +554,11 @@ export default function SwarmCommandCenter({
       else if (st === "failed") setLoopStep(Math.min(6, storyFinalIdx));
       else setLoopStep(Math.min(5, storyFinalIdx));
     } catch (e) {
-      setLoopError(e instanceof Error ? e.message : "loop_failed");
+      const appErr =
+        e instanceof SwarmApiError ? e.appError : normalizeError(e, { source: "runLinkedLoop" });
+      setLoopError(appErr.message);
+      errorSurfaceRef.current?.pushError(appErr);
+      errorSurfaceRef.current?.markDegraded(true);
       setLoopStep(0);
     } finally {
       setLoopBusy(false);
@@ -478,16 +579,39 @@ export default function SwarmCommandCenter({
       chips={
         <>
           <StatusChip
+            tone="live"
+            label={`stage · ${commandUx.uxState.replaceAll("_", " ")}`}
+            title="Derived from wallet, session, registry, and last run"
+            className="!max-w-[200px] !normal-case !tracking-normal"
+          />
+          <StatusChip
             tone="neutral"
             label={`cluster · ${chainStatus?.cluster ?? runtime.cluster}`}
           />
           <StatusChip
-            tone={effectiveWallet ? "proof" : "warn"}
+            tone={wrongCluster ? "warn" : effectiveWallet ? "proof" : "warn"}
             label={
-              effectiveWallet
-                ? `${effectiveWallet.slice(0, 4)}…${effectiveWallet.slice(-4)}`
-                : SOLANA_COPY.wallet.offlineChip
+              wrongCluster
+                ? SOLANA_COPY.wallet.wrongCluster
+                : effectiveWallet
+                  ? `${effectiveWallet.slice(0, 4)}…${effectiveWallet.slice(-4)}`
+                  : SOLANA_COPY.wallet.offlineChip
             }
+            title={wrongCluster ? "Wallet RPC cluster does not match verified session cluster" : undefined}
+          />
+          {wallet.walletName ? (
+            <StatusChip
+              tone="neutral"
+              label={wallet.walletName}
+              title="Connected wallet adapter"
+              className="!max-w-[140px] !normal-case !tracking-normal"
+            />
+          ) : null}
+          <StatusChip
+            tone={activeSkillName ? "proof" : "warn"}
+            label={activeSkillName ? `skill · ${activeSkillName}` : "skill · none selected"}
+            title="Active capability for this mission"
+            className="!max-w-[220px] !normal-case !tracking-normal"
           />
           <StatusChip
             tone={session.isVerified || demoMode ? "proof" : "warn"}
@@ -511,6 +635,19 @@ export default function SwarmCommandCenter({
             tone="proof"
             label={`receipts · ${runtime.receipts.length}`}
           />
+          <StatusChip
+            tone="neutral"
+            label={commandUx.autonomyBandLabel}
+            className="!max-w-[200px] !normal-case !tracking-normal"
+            title="Autonomy band from runtime profile"
+          />
+          {typeof activeSkillMeta?.reputationScore === "number" ? (
+            <StatusChip
+              tone="neutral"
+              label={`skill rep · ${activeSkillMeta.reputationScore.toFixed(0)}`}
+              className="!normal-case !tracking-normal"
+            />
+          ) : null}
           <StatusChip
             tone="neutral"
             label={`0G · ${liveZeroGHealth?.statusLabel ?? runtime.zeroGStatus.mode}`}
@@ -538,23 +675,62 @@ export default function SwarmCommandCenter({
       demoMode={demoMode}
       sessionVerified={session.isVerified || demoMode}
       autonomyScore={runtime.autonomyScore}
+      autonomyBandLabel={commandUx.autonomyBandLabel}
       proofRate={runtime.proofCompletionRate}
       activeSkillName={activeSkillName}
+      skillReputation={activeSkillMeta?.reputationScore}
       lastTx={receiptPreview}
       memorySnippet={memorySnippet}
       receiptPreview={receiptPreview}
+      proofChannel={commandUx.proofChannel}
+      proofChannelExplanation={commandUx.proofChannelExplanation}
+      explorerUrl={explorerForRail}
       openClawCompact={`${openClawStatus.connected ? "Bridge live" : "Idle"} · ${openClawStatus.importedCount} imports / ${openClawStatus.exportedCount} exports · OpenClaw compatible manifests.`}
       demoReflection={demoMode ? (demoBundle?.reflection ?? null) : null}
+      storyUxItems={storyUxItems}
     />
   );
 
   const main = (
     <div className="mx-auto max-w-4xl xl:max-w-none">
       <DemoModeToggle enabled={demoMode} onChange={setDemoMode} />
+      <DemoModeNotice active={demoMode} />
       <DegradedStateBanner
         messages={degradedMessages}
         recoverHints={recoverHints}
       />
+      {registryError && !chainSkills.length ? (
+        <div className="mb-3">
+          <ExecutionErrorPanel
+            errors={[registryError]}
+            onRetry={() => {
+              setRegistryError(null);
+              void (async () => {
+                try {
+                  const sk = await fetchSkillsList({ sort: "success_rate" });
+                  setChainSkills(sk.skills);
+                  setRegistryError(null);
+                } catch (e) {
+                  const appErr = normalizeError(e, {
+                    source: "skills_retry",
+                    fallback: { code: "INDEXER_SYNC_FAILED" },
+                  });
+                  setRegistryError(appErr);
+                  errorSurfaceRef.current?.pushError(appErr);
+                }
+              })();
+            }}
+          />
+        </div>
+      ) : null}
+      {lastResult?.appErrors?.length ? (
+        <div className="mb-3">
+          <ExecutionErrorPanel
+            errors={lastResult.appErrors}
+            onRetry={() => void runLinkedLoop()}
+          />
+        </div>
+      ) : null}
 
       {section === "overview" ? (
         <OverviewMissionBlock
@@ -579,7 +755,13 @@ export default function SwarmCommandCenter({
           demoExecutionRun={
             demoMode ? (demoBundle?.executionRun ?? null) : null
           }
+          commandUx={commandUx}
+          explorerUrl={lastResult?.execution.explorerUrl ?? null}
         />
+      ) : null}
+
+      {section === "demo-mode" ? (
+        <DemoModeCommandPanel demoMode={demoMode} onDemoMode={setDemoMode} />
       ) : null}
 
       {section === "live-run" ? <LiveRunsBoard runs={runtime.runs} /> : null}
@@ -669,7 +851,6 @@ export default function SwarmCommandCenter({
       right={right}
       timelineInput={timelineInput}
       section={section}
-      onSection={setSection}
     >
       {main}
     </CommandCenterShell>

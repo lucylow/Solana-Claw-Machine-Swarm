@@ -22,6 +22,8 @@ import { DemoReputationPanel } from "../components/DemoReputationPanel";
 import { DemoSkillCard } from "../components/DemoSkillCard";
 import { DemoErrorState, DemoLoadingState } from "../components/DemoStates";
 import { DemoWalletCard } from "../components/DemoWalletCard";
+import { DemoIntegrationStrip } from "../components/DemoIntegrationStrip";
+import { DemoPlaybackController } from "../components/DemoPlaybackController";
 
 export function DemoPlayground() {
   const {
@@ -101,6 +103,10 @@ export function DemoPlayground() {
           onRetry={() => setForceError(false)}
         />
       ) : null}
+
+      <DemoPlaybackController presentationMode={presentationMode} />
+
+      <DemoIntegrationStrip presentationMode={presentationMode} />
 
       <DemoPanel className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-slate-500">Run outcome</span>

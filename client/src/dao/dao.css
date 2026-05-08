@@ -167,3 +167,117 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Governance command center */
+.dao-cc-toprail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dao-cc-toprail .dao-cc-stat {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dao-cc-toprail .dao-cc-stat span {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(135, 247, 208, 0.75);
+  margin-bottom: 4px;
+}
+
+.dao-cc-toprail .dao-cc-stat strong {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.dao-cc-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.dao-cc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: sticky;
+  top: 88px;
+}
+
+.dao-cc-nav button {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(230, 240, 255, 0.8);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.dao-cc-nav button.dao-cc-nav-active {
+  background: rgba(59, 255, 150, 0.1);
+  border-color: rgba(59, 255, 150, 0.35);
+  color: #b8ffe0;
+}
+
+.dao-cc-main {
+  min-height: 420px;
+}
+
+.dao-cc-side {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dao-cc-panel-title {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(135, 247, 208, 0.85);
+  margin-bottom: 8px;
+}
+
+.dao-cc-demo-banner {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(120, 80, 200, 0.15);
+  border: 1px solid rgba(180, 140, 255, 0.35);
+  color: rgba(232, 220, 255, 0.95);
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.dao-cc-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .dao-cc-layout {
+    grid-template-columns: 1fr;
+  }
+  .dao-cc-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: static;
+  }
+  .dao-cc-side {
+    position: static;
+  }
+  .dao-cc-split {
+    grid-template-columns: 1fr;
+  }
+}

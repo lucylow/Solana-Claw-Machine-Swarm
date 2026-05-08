@@ -1,9 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { useSolanaWallet } from "@/hooks/solana/useSolanaWallet";
-import { createSolanaExplorerUrl } from "@/lib/solana/explorer";
+import {
+  DappBalanceCard,
+  DappCopyButton,
+  DappEmptyState,
+  DappErrorState,
+  DappExplorerLink,
+  DappOnchainTag,
+  DappReceiptSkeleton,
+  DappSectionHeader,
+  DappShell,
+  DappWalletSummary,
+  useDappChainState,
+} from "@/components/dapp";
+import { useSolanaWalletContext } from "@/contexts/SolanaWalletContext";
 import { shortenAddress } from "@/lib/solana/format";
 import { SOLANA_COPY } from "@shared/copy";
 
@@ -19,10 +31,13 @@ type ProofRow = {
 };
 
 export default function ProofExplorerPage() {
-  const wallet = useSolanaWallet();
+  const wallet = useSolanaWalletContext();
+  const state = useDappChainState();
   const [rows, setRows] = useState<ProofRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [scope, setScope] = useState<"all" | "mine">("all");
 
   useEffect(() => {
     let canceled = false;
@@ -51,108 +66,257 @@ export default function ProofExplorerPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!wallet.walletAddress) return rows;
-    return rows.filter(row => row.walletAddress === wallet.walletAddress);
-  }, [rows, wallet.walletAddress]);
+    let out = rows;
+    if (scope === "mine" && wallet.walletAddress) {
+      out = out.filter((row) => row.walletAddress === wallet.walletAddress);
+    }
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      out = out.filter(
+        (row) =>
+          row.action.toLowerCase().includes(term) ||
+          row.id.toLowerCase().includes(term) ||
+          row.walletAddress.toLowerCase().includes(term) ||
+          row.accountAddress.toLowerCase().includes(term) ||
+          row.payloadHash.toLowerCase().includes(term)
+      );
+    }
+    return out;
+  }, [rows, scope, searchTerm, wallet.walletAddress]);
+
+  const sideRail = (
+    <>
+      <DappWalletSummary variant="block" />
+      <DappBalanceCard />
+      <article className="rounded-2xl border border-white/[0.06] bg-black/30 p-4">
+        <header className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7dccb8]">
+            Proof legend
+          </p>
+          <ShieldCheck className="h-3.5 w-3.5 text-[#9cf6d8]" aria-hidden />
+        </header>
+        <ul className="mt-3 space-y-2 text-[11px] text-slate-400">
+          <li>
+            <DappOnchainTag scope="onchain" size="sm" /> — anchored signature on Solana.
+          </li>
+          <li>
+            <DappOnchainTag scope="offchain" size="sm" /> — referenced via storage / sidecar.
+          </li>
+          <li>
+            <DappOnchainTag scope="demo" size="sm" /> — fixture row for demo mode.
+          </li>
+        </ul>
+      </article>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-[#020408] text-white">
-      <header className="border-b border-slate-800 bg-black/80">
-        <div className="container flex items-center justify-between py-4">
-          <div>
-            <h1 className="text-2xl font-semibold">{SOLANA_COPY.explorer.pageTitle}</h1>
-            <p className="text-xs text-slate-400">{SOLANA_COPY.explorer.pageSubtitle}</p>
+    <DappShell
+      brand="Solana proof explorer"
+      sideRail={sideRail}
+      topRightSlot={
+        <Button asChild size="sm" variant="outline" className="rounded-full border-white/15 text-[11px] text-slate-200">
+          <Link href="/dashboard?section=proof-explorer">
+            {SOLANA_COPY.navigation.backCommandCenter}
+            <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
+          </Link>
+        </Button>
+      }
+    >
+      <DappSectionHeader
+        eyebrow="Solana proof explorer"
+        title={SOLANA_COPY.explorer.pageTitle}
+        description={SOLANA_COPY.explorer.pageSubtitle}
+        actions={
+          <div className="inline-flex rounded-full border border-white/10 bg-black/40 p-1">
+            {(
+              [
+                { id: "all", label: "All wallets" },
+                { id: "mine", label: "My wallet" },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setScope(option.id)}
+                className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                  scope === option.id
+                    ? "bg-[#14f195]/15 text-[#d6ffe9]"
+                    : "text-slate-400 hover:text-[#d6ffe9]"
+                }`}
+                disabled={option.id === "mine" && !wallet.walletAddress}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-          <div className="flex gap-2">
-            <Link href="/dashboard">
-              <Button variant="outline" className="border-slate-700 text-slate-200">
-                {SOLANA_COPY.navigation.backCommandCenter}
-              </Button>
-            </Link>
-            <Link href="/receipts">
-              <Button variant="outline" className="border-cyan-500/40 text-cyan-200">
-                Solana receipts
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
-      <main className="container py-6">
-        <Card className="mb-4 border-slate-800 bg-black/40 p-4 text-sm leading-relaxed text-slate-300">
-          <p>
-            Solana wallet:{" "}
-            <span className="text-[#b8ffd8]">{wallet.walletAddress || SOLANA_COPY.wallet.notConnected}</span> | Solana session:{" "}
-            <span className="text-cyan-300">{wallet.state}</span> | {SOLANA_COPY.wallet.clusterBadge}:{" "}
-            <span className="text-cyan-300">{wallet.cluster}</span>
-          </p>
-          <p className="mt-2 text-[11px] text-slate-500">
-            Provenance rails: tie each receipt to wallet address, Solana explorer tx/PDA hashes, reflection id, execution id,
-            storage reference, proof state · when any field is missing the UI stays unknown rather than implying verification.
-          </p>
-        </Card>
-
-        {loading ? <Card className="border-slate-800 bg-black/40 p-4">Loading Solana proof history…</Card> : null}
-        {error ? <Card className="border-red-500/40 bg-red-500/10 p-4 text-red-200">{error}</Card> : null}
-
-        <div className="space-y-3">
-          {filtered.map(row => (
-            <Card key={row.id} className="border-slate-800 bg-black/40 p-4">
-              <div className="grid gap-2 text-xs md:grid-cols-4">
-                <div>
-                  <p className="text-slate-500">Receipt ID</p>
-                  <p className="text-slate-200">{row.id}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Action</p>
-                  <p className="text-slate-200">{row.action}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Author wallet</p>
-                  <p className="text-slate-200">{shortenAddress(row.walletAddress, 8, 8)}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Status</p>
-                  <p className="text-slate-200">{row.status}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-slate-500">Account/PDA</p>
-                  <p className="text-slate-200">{shortenAddress(row.accountAddress, 10, 10)}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-slate-500">Hash</p>
-                  <p className="font-mono text-slate-200">{shortenAddress(row.payloadHash, 14, 14)}</p>
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {row.txSignature ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-cyan-500/40 text-cyan-200"
-                    onClick={() => window.open(createSolanaExplorerUrl("tx", row.txSignature || ""), "_blank")}
-                  >
-                    Open on Solana Explorer
-                  </Button>
-                ) : null}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-slate-700 text-slate-200"
-                  onClick={() => navigator.clipboard.writeText(row.accountAddress)}
-                >
-                  Copy Solana account
-                </Button>
-              </div>
-            </Card>
-          ))}
-          {!loading && filtered.length === 0 ? (
-            <Card className="border-slate-800 bg-black/40 p-4 text-sm text-slate-400">
-              No Solana receipts yet. Run a skill execution or demo to emit explorer-verifiable proof rows.
-            </Card>
+      <div className="rounded-2xl border border-white/[0.07] bg-black/30 p-4">
+        <label
+          htmlFor="proof-search"
+          className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500"
+        >
+          Search proofs
+        </label>
+        <div className="mt-1 flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-2">
+          <Search className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+          <input
+            id="proof-search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="By action, signature, wallet, or hash"
+            className="flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-600"
+          />
+          {searchTerm ? (
+            <button
+              type="button"
+              className="text-[11px] text-slate-500 hover:text-[#d6ffe9]"
+              onClick={() => setSearchTerm("")}
+            >
+              Clear
+            </button>
           ) : null}
         </div>
-      </main>
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <DappReceiptSkeleton key={i} />
+          ))}
+        </div>
+      ) : null}
+
+      {error ? (
+        <DappErrorState
+          title="Could not load proof history"
+          description={error}
+          hint="Confirm the cluster RPC is reachable and the indexer endpoint is healthy."
+          onRetry={() => window.location.reload()}
+        />
+      ) : null}
+
+      <div className="space-y-3">
+        {filtered.map((row) => (
+          <article
+            key={row.id}
+            className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition hover:border-[#14f195]/30 hover:shadow-[0_18px_36px_rgba(20,241,149,0.08)]"
+          >
+            <header className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7dccb8]">
+                  Receipt · {row.action}
+                </p>
+                <p className="mt-0.5 truncate font-mono text-sm text-white">
+                  {row.id}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                  {row.status}
+                </span>
+                <DappOnchainTag
+                  scope={row.txSignature ? "onchain" : "offchain"}
+                  size="sm"
+                />
+              </div>
+            </header>
+
+            <dl className="grid gap-2 text-[11px] sm:grid-cols-2">
+              <Field label="Author wallet" value={shortenAddress(row.walletAddress, 6, 6)} copy={row.walletAddress} />
+              <Field
+                label="Account / PDA"
+                value={shortenAddress(row.accountAddress, 6, 6)}
+                copy={row.accountAddress}
+              />
+              <Field
+                label="Payload hash"
+                value={shortenAddress(row.payloadHash, 8, 8)}
+                copy={row.payloadHash}
+                mono
+              />
+              <Field
+                label="Created"
+                value={new Date(row.createdAt).toLocaleString()}
+              />
+            </dl>
+
+            <footer className="flex flex-wrap items-center gap-2">
+              {row.txSignature ? (
+                <DappExplorerLink
+                  kind="tx"
+                  value={row.txSignature}
+                  cluster={state.cluster}
+                  label="Open tx in Explorer"
+                />
+              ) : null}
+              <DappExplorerLink
+                kind="address"
+                value={row.accountAddress}
+                cluster={state.cluster}
+                label="Open account"
+                variant="inline"
+              />
+              {row.txSignature ? (
+                <DappCopyButton
+                  value={row.txSignature}
+                  label="Copy signature"
+                />
+              ) : null}
+            </footer>
+          </article>
+        ))}
+
+        {!loading && filtered.length === 0 ? (
+          <DappEmptyState
+            title="No matching Solana receipts"
+            description="Run a skill execution or demo to emit explorer-verifiable proof rows. Filters and search apply to all available rows."
+            tone="wallet"
+            action={
+              <Button
+                size="sm"
+                className="rounded-full bg-[#14f195] font-semibold text-black hover:bg-[#3bff96]"
+                onClick={() => {
+                  setScope("all");
+                  setSearchTerm("");
+                }}
+              >
+                Reset filters
+              </Button>
+            }
+          />
+        ) : null}
+      </div>
+    </DappShell>
+  );
+}
+
+function Field({
+  label,
+  value,
+  copy,
+  mono,
+}: {
+  label: string;
+  value: string;
+  copy?: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-white/[0.07] bg-black/30 px-2 py-1.5">
+      <dt className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </dt>
+      <dd
+        className={`mt-0.5 flex items-center justify-between gap-2 ${mono ? "font-mono" : ""} text-slate-200`}
+      >
+        <span className="truncate">{value}</span>
+        {copy ? (
+          <DappCopyButton value={copy} label="Copy" variant="ghost" />
+        ) : null}
+      </dd>
     </div>
   );
 }
