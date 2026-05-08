@@ -49,8 +49,13 @@ import { useDappChainState } from "./useDappChainState";
  * proof rail in the same view, so the "wallet → action → tx → proof" loop
  * is visible above the fold instead of buried beneath marketing copy.
  */
+function navLinkActive(href: string, path: string) {
+  if (href === "/") return path === "/";
+  return path === href || path.startsWith(`${href}/`);
+}
+
 export default function DappLanding() {
-  const [, setLocation] = useLocation();
+  const [path, setLocation] = useLocation();
   const wallet = useSolanaWalletContext();
   const state = useDappChainState();
 
@@ -143,23 +148,34 @@ export default function DappLanding() {
     "Connect a Solana wallet, sign a session, choose a published skill, and watch the on-chain receipt land in real time. Every action surface here is wallet-aware and explorer-verifiable.";
 
   const navLinks = (
-    <nav className="flex items-center gap-1 text-[12px]">
+    <nav
+      className="flex max-w-full flex-wrap items-center justify-end gap-1 text-[12px] lg:justify-start"
+      aria-label="Site sections"
+    >
       {[
         { href: "/skills", label: "Actions", Icon: LayoutGrid },
         { href: "/receipts", label: "Receipts", Icon: ReceiptText },
         { href: "/proofs", label: "Proofs", Icon: ShieldCheck },
         { href: "/onchain", label: "Onchain", Icon: Link2 },
         { href: "/how-it-works", label: "Docs", Icon: BookOpen },
-      ].map(({ href, label, Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-slate-400 transition hover:bg-white/[0.04] hover:text-[#d6ffe9]"
-        >
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-          {label}
-        </Link>
-      ))}
+      ].map(({ href, label, Icon }) => {
+        const active = navLinkActive(href, path);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#04060a] ${
+              active
+                ? "bg-[#14f195]/10 text-[#d6ffe9]"
+                : "text-slate-400 hover:bg-white/[0.04] hover:text-[#d6ffe9]"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {label}
+          </Link>
+        );
+      })}
     </nav>
   );
 
@@ -387,7 +403,7 @@ export default function DappLanding() {
           ].map((step) => (
             <article
               key={step.label}
-              className="group flex flex-col gap-2 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition hover:border-[#14f195]/30 hover:shadow-[0_18px_36px_rgba(20,241,149,0.08)]"
+              className="group flex flex-col gap-2 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#14f195]/30 hover:shadow-[0_18px_36px_rgba(20,241,149,0.08)] motion-reduce:transform-none"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#14f195]/30 bg-[#14f195]/10 text-[#9cf6d8]">
                 <step.Icon className="h-4 w-4" aria-hidden />
@@ -421,7 +437,7 @@ export default function DappLanding() {
           {DEMO_SKILLS.slice(0, 3).map((skill) => (
             <article
               key={skill.id}
-              className="flex flex-col gap-3 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition hover:border-[#14f195]/30"
+              className="flex flex-col gap-3 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#14f195]/30 hover:shadow-[0_14px_32px_rgba(0,0,0,0.35)] motion-reduce:transform-none"
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#14f195]/35 bg-[#14f195]/10 text-[#9cf6d8]">

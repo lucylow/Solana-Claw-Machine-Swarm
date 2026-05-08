@@ -49,7 +49,7 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <ErrorSurfaceProvider>
-        <ThemeProvider defaultTheme="light">
+        <ThemeProvider defaultTheme="dark">
           <TooltipProvider>
             <SolanaProvider>
               <SolanaWalletProvider>

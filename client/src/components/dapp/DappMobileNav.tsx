@@ -55,7 +55,7 @@ export function DappMobileNav({ className }: { className?: string }) {
     <nav
       aria-label="Primary navigation"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-white/[0.06] bg-[#040508]/95 px-1 py-1 backdrop-blur-xl sm:hidden",
+        "fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-white/[0.06] bg-[#040508]/95 px-1 pb-[env(safe-area-inset-bottom,0px)] pt-1 backdrop-blur-xl sm:hidden",
         className
       )}
     >
@@ -66,14 +66,21 @@ export function DappMobileNav({ className }: { className?: string }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex min-w-[60px] flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition",
+              "relative flex min-h-[48px] min-w-[60px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors active:scale-[0.98]",
               active
                 ? "bg-[#14f195]/10 text-[#d6ffe9]"
-                : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200"
+                : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#040508]"
             )}
             aria-current={active ? "page" : undefined}
           >
-            <item.Icon className="h-4 w-4" aria-hidden />
+            {active ? (
+              <span
+                className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[#14f195]/80"
+                aria-hidden
+              />
+            ) : null}
+            <item.Icon className="h-4 w-4 shrink-0" aria-hidden />
             {item.label}
           </Link>
         );

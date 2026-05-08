@@ -83,7 +83,7 @@ export function DappShell({
 
       <main
         id="main-content"
-        className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row"
+        className="mx-auto flex w-full max-w-[1600px] flex-1 scroll-mt-24 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row"
       >
         {sideRailPosition === "left" && sideRail ? (
           <aside
@@ -117,14 +117,17 @@ export function DappShell({
       </main>
 
       {bottomBar ? (
-        <div className="sticky bottom-0 z-20 border-t border-white/[0.06] bg-[#020306]/90 backdrop-blur-xl">
+        <div className="sticky bottom-0 z-20 border-t border-white/[0.06] bg-[#020306]/90 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl">
           <div className="mx-auto max-w-[1600px] px-4 py-2 sm:px-6">
             {bottomBar}
           </div>
         </div>
       ) : null}
 
-      <div className="h-16 sm:h-0" aria-hidden />
+      <div
+        className="h-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:h-0"
+        aria-hidden
+      />
       <DappMobileNav />
     </div>
   );

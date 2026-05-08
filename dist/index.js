@@ -466,9 +466,9 @@ async function getZeroGHealth(input) {
     compute = mergeProbe(computeBase, pc);
     da = mergeProbe(daBase, pd);
   }
-  const ok5 = storage.ok && compute.ok && da.ok && bridge.ok;
+  const ok6 = storage.ok && compute.ok && da.ok && bridge.ok;
   return {
-    ok: ok5,
+    ok: ok6,
     config,
     mode: config.mode,
     storage,
@@ -476,7 +476,7 @@ async function getZeroGHealth(input) {
     da,
     bridge,
     remoteProbesSkipped: skipRemote,
-    statusLabel: !config.enabled ? "0G unavailable" : config.mode === "demo" ? "0G demo mode" : ok5 ? "0G live" : "0G degraded"
+    statusLabel: !config.enabled ? "0G unavailable" : config.mode === "demo" ? "0G demo mode" : ok6 ? "0G live" : "0G degraded"
   };
 }
 var init_health = __esm({
@@ -572,10 +572,10 @@ var init_storage = __esm({
       async getHealth() {
         const config = getZeroGConfig();
         const started = Date.now();
-        const ok5 = config.enabled;
+        const ok6 = config.enabled;
         return {
-          ok: ok5,
-          reason: ok5 ? void 0 : "zerog_disabled",
+          ok: ok6,
+          reason: ok6 ? void 0 : "zerog_disabled",
           latencyMs: Date.now() - started,
           mode: config.mode
         };
@@ -3875,8 +3875,8 @@ var MemoryReceiptService = class {
       sourceTurnHashMatch: receipt.sourceTurnIdHash === hashText(reflection.sourceTurnId)
     };
     const issues = [];
-    for (const [name, ok5] of Object.entries(checks)) {
-      if (!ok5) issues.push(name);
+    for (const [name, ok6] of Object.entries(checks)) {
+      if (!ok6) issues.push(name);
     }
     const verified = issues.length === 0;
     const status = verified ? "verified" : checks.reflectionPresent ? "partial" : "missing";
@@ -5612,8 +5612,8 @@ var SolanaIdentityService = class {
     const messageBytes = new TextEncoder().encode(input.message);
     const publicKey = new PublicKey2(normalizedWallet);
     const signature = bs58.decode(input.signatureBase58);
-    const ok5 = nacl.sign.detached.verify(messageBytes, signature, publicKey.toBytes());
-    if (!ok5) throw new Error("Signature verification failed");
+    const ok6 = nacl.sign.detached.verify(messageBytes, signature, publicKey.toBytes());
+    if (!ok6) throw new Error("Signature verification failed");
     challenge.signature = input.signatureBase58;
     challenge.status = "verified";
     challenge.verifiedAt = Date.now();
@@ -6447,6 +6447,67 @@ var SolanaIdentityService = class {
   }
 };
 
+// server/solana/config.ts
+function clusterFromEnv() {
+  const c = (process.env.SOLANA_CLUSTER || process.env.CLAW_SOLANA_CLUSTER || "devnet").toLowerCase();
+  if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
+  if (c === "testnet") return "testnet";
+  if (c === "localnet" || c === "localhost") return "localnet";
+  return "devnet";
+}
+function getServerSolanaCluster() {
+  return clusterFromEnv();
+}
+function getServerSolanaRpcUrl(cluster = getServerSolanaCluster()) {
+  const override = process.env.SOLANA_RPC_URL || process.env.CLAW_SOLANA_RPC_URL;
+  if (override) return override;
+  const map = {
+    "mainnet-beta": "https://api.mainnet-beta.solana.com",
+    devnet: "https://api.devnet.solana.com",
+    testnet: "https://api.testnet.solana.com",
+    localnet: "http://127.0.0.1:8899"
+  };
+  return map[cluster];
+}
+
+// server/solana/explorer.ts
+var DEFAULT_BASE = "https://explorer.solana.com";
+function explorerBaseUrl() {
+  return process.env.SOLANA_EXPLORER_BASE || DEFAULT_BASE;
+}
+function buildExplorerTxUrl(signature, cluster) {
+  const base = explorerBaseUrl().replace(/\/$/, "");
+  return `${base}/tx/${signature}?cluster=${cluster}`;
+}
+
+// server/solana/rpcHealth.ts
+import { Connection } from "@solana/web3.js";
+async function probeSolanaRpc(rpcUrl, timeoutMs = 4500) {
+  const started = Date.now();
+  const connection = new Connection(rpcUrl, {
+    commitment: "confirmed",
+    disableRetryOnRateLimit: true
+  });
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error("rpc_timeout")), timeoutMs);
+  });
+  try {
+    const slot = await Promise.race([connection.getSlot("confirmed"), timeout]);
+    return {
+      ok: true,
+      slot,
+      latencyMs: Date.now() - started
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "rpc_probe_failed";
+    return {
+      ok: false,
+      error: message,
+      latencyMs: Date.now() - started
+    };
+  }
+}
+
 // server/solana/routes.ts
 function requestId(req) {
   return req.headers["x-request-id"] || `req_${Date.now()}`;
@@ -6539,7 +6600,17 @@ function registerSolanaIdentityRoutes(app, service, sessionService) {
   });
   app.get("/api/solana/status", async (_req, res) => {
     try {
-      const data = sessionService.getStatus();
+      const base = sessionService.getStatus();
+      const cluster = getServerSolanaCluster();
+      const rpcUrl = getServerSolanaRpcUrl(cluster);
+      const rpc = await probeSolanaRpc(rpcUrl);
+      const data = {
+        ...base,
+        cluster,
+        rpcUrl,
+        explorerBaseUrl: explorerBaseUrl(),
+        rpc
+      };
       res.json({ ok: true, data });
     } catch (error) {
       const message = error instanceof Error ? error.message : "status_failed";
@@ -7012,18 +7083,6 @@ var SolanaSessionService = class {
   }
 };
 
-// server/solana/config.ts
-function clusterFromEnv() {
-  const c = (process.env.SOLANA_CLUSTER || process.env.CLAW_SOLANA_CLUSTER || "devnet").toLowerCase();
-  if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
-  if (c === "testnet") return "testnet";
-  if (c === "localnet" || c === "localhost") return "localnet";
-  return "devnet";
-}
-function getServerSolanaCluster() {
-  return clusterFromEnv();
-}
-
 // server/solana/mount.ts
 async function mountSolanaIdentity(app, options) {
   const store = new IdentityStore(path6.join(process.cwd(), "data", "solana-identity.json"));
@@ -7133,7 +7192,7 @@ import crypto15 from "crypto";
 import { nanoid as nanoid7 } from "nanoid";
 import bs583 from "bs58";
 import {
-  Connection,
+  Connection as Connection2,
   Keypair,
   PublicKey as PublicKey4,
   Transaction,
@@ -7199,7 +7258,7 @@ var SolanaBridgeService = class {
   constructor(store) {
     this.store = store;
     const endpoint = process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC_ENDPOINT || "https://api.devnet.solana.com";
-    this.connection = new Connection(endpoint, "confirmed");
+    this.connection = new Connection2(endpoint, "confirmed");
     this.relayer = loadRelayerSigner();
     this.programId = new PublicKey4(
       (process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID || DEFAULT_PROGRAM_ID3).trim()
@@ -7484,18 +7543,6 @@ import { z as z4 } from "zod";
 
 // server/solana/structuredReceipts.ts
 init_integrity();
-
-// server/solana/explorer.ts
-var DEFAULT_BASE = "https://explorer.solana.com";
-function explorerBaseUrl() {
-  return process.env.SOLANA_EXPLORER_BASE || DEFAULT_BASE;
-}
-function buildExplorerTxUrl(signature, cluster) {
-  const base = explorerBaseUrl().replace(/\/$/, "");
-  return `${base}/tx/${signature}?cluster=${cluster}`;
-}
-
-// server/solana/structuredReceipts.ts
 init_receipts();
 var manualStructured = [];
 function pushManualStructuredReceipt(receipt) {
@@ -8071,7 +8118,7 @@ function registerSolanaBridgeRoutes(app, deps) {
       if (!body.walletAddress || !body.subjectId || !body.title || !body.summary) {
         throw new Error("walletAddress, subjectId, title, summary required");
       }
-      const nowIso4 = (/* @__PURE__ */ new Date()).toISOString();
+      const nowIso5 = (/* @__PURE__ */ new Date()).toISOString();
       const net2 = await deps.bridge.getNetwork();
       const cluster = body.cluster ?? normalizeStructuredCluster(net2.cluster);
       const full = {
@@ -8085,8 +8132,8 @@ function registerSolanaBridgeRoutes(app, deps) {
         summary: body.summary,
         status: body.status ?? "draft",
         proofStatus: body.proofStatus ?? "pending",
-        createdAt: body.createdAt ?? nowIso4,
-        updatedAt: nowIso4,
+        createdAt: body.createdAt ?? nowIso5,
+        updatedAt: nowIso5,
         evidence: body.evidence ?? {},
         references: body.references ?? [],
         links: body.links ?? {},
@@ -9227,7 +9274,7 @@ var PlanVerificationService = class {
       reflectionLinked,
       memoryLinked
     };
-    const issues = Object.entries(checks).filter(([, ok5]) => !ok5).map(([name]) => name);
+    const issues = Object.entries(checks).filter(([, ok6]) => !ok6).map(([name]) => name);
     const verified = issues.length === 0;
     const status = verified ? "verified" : anchorPresent && (canonicalPlanHashMatch || canonicalSummaryHashMatch) ? "partially_verified" : anchorPresent ? "anchored_only" : receipt.storage?.ref ? "stored_only" : "degraded";
     return {
@@ -10102,10 +10149,10 @@ var NftStore = class {
     return [...this.state.mints];
   }
   listMintsByOwner(owner) {
-    return this.state.mints.filter((m) => m.owner === owner);
+    return this.state.mints.filter((m2) => m2.owner === owner);
   }
   getByMint(mint) {
-    return this.state.mints.find((m) => m.mint === mint);
+    return this.state.mints.find((m2) => m2.mint === mint);
   }
 };
 
@@ -10127,7 +10174,32 @@ import path14 from "path";
 // server/dao/daoStore.ts
 import fs8 from "fs/promises";
 import path13 from "path";
-var EMPTY2 = { members: [], proposals: [], discovery: [] };
+var EMPTY2 = {
+  members: [],
+  proposals: [],
+  discovery: [],
+  delegations: [],
+  voteLedger: [],
+  agentRecommendations: [],
+  governanceMemory: [],
+  executionReceipts: [],
+  treasurySnapshots: []
+};
+function normalizeState(raw) {
+  return {
+    ...EMPTY2,
+    ...raw,
+    members: raw.members ?? [],
+    proposals: raw.proposals ?? [],
+    discovery: raw.discovery ?? [],
+    delegations: raw.delegations ?? [],
+    voteLedger: raw.voteLedger ?? [],
+    agentRecommendations: raw.agentRecommendations ?? [],
+    governanceMemory: raw.governanceMemory ?? [],
+    executionReceipts: raw.executionReceipts ?? [],
+    treasurySnapshots: raw.treasurySnapshots ?? []
+  };
+}
 var DaoStore = class {
   constructor(filePath) {
     this.filePath = filePath;
@@ -10137,7 +10209,7 @@ var DaoStore = class {
     if (!this.filePath) return;
     try {
       const raw = await fs8.readFile(this.filePath, "utf8");
-      this.state = JSON.parse(raw);
+      this.state = normalizeState(JSON.parse(raw));
     } catch {
       this.state = structuredClone(EMPTY2);
     }
@@ -10162,7 +10234,7 @@ var DaoStore = class {
     return this.state.config;
   }
   async upsertMember(member) {
-    const idx = this.state.members.findIndex((m) => m.wallet === member.wallet);
+    const idx = this.state.members.findIndex((m2) => m2.wallet === member.wallet);
     if (idx >= 0) this.state.members[idx] = member;
     else this.state.members.unshift(member);
     await this.persist();
@@ -10192,19 +10264,812 @@ var DaoStore = class {
     return [...this.state.discovery].sort((a, b) => b.rankScoreBps - a.rankScoreBps);
   }
   getMember(wallet) {
-    return this.state.members.find((m) => m.wallet === wallet);
+    return this.state.members.find((m2) => m2.wallet === wallet);
   }
   getProposal(proposalId) {
     return this.state.proposals.find((p) => p.proposalId === proposalId);
+  }
+  listDelegations() {
+    return [...this.state.delegations];
+  }
+  async appendDelegation(row) {
+    const now5 = Date.now();
+    this.state.delegations = this.state.delegations.map((d) => {
+      if (d.fromWallet === row.fromWallet && d.status === "active") {
+        return { ...d, status: "revoked", revokedAt: now5 };
+      }
+      return d;
+    });
+    this.state.delegations.unshift(row);
+    await this.persist();
+    return row;
+  }
+  async revokeDelegation(fromWallet) {
+    const now5 = Date.now();
+    let changed = false;
+    this.state.delegations = this.state.delegations.map((d) => {
+      if (d.fromWallet === fromWallet && d.status === "active") {
+        changed = true;
+        return { ...d, status: "revoked", revokedAt: now5 };
+      }
+      return d;
+    });
+    if (changed) await this.persist();
+  }
+  listVoteLedger(proposalId) {
+    const rows = [...this.state.voteLedger];
+    if (proposalId === void 0) return rows;
+    return rows.filter((v) => v.proposalId === proposalId);
+  }
+  async appendVoteLedger(row) {
+    this.state.voteLedger.unshift(row);
+    await this.persist();
+    return row;
+  }
+  listAgentRecommendations(proposalId) {
+    const rows = [...this.state.agentRecommendations];
+    if (proposalId === void 0) return rows;
+    return rows.filter((a) => a.proposalId === proposalId);
+  }
+  async appendAgentRecommendations(rows) {
+    this.state.agentRecommendations = [...rows, ...this.state.agentRecommendations];
+    await this.persist();
+  }
+  listGovernanceMemory() {
+    return [...this.state.governanceMemory];
+  }
+  async appendGovernanceMemory(row) {
+    this.state.governanceMemory.unshift(row);
+    await this.persist();
+    return row;
+  }
+  listExecutionReceipts() {
+    return [...this.state.executionReceipts];
+  }
+  async appendExecutionReceipt(row) {
+    this.state.executionReceipts.unshift(row);
+    await this.persist();
+    return row;
+  }
+  listTreasurySnapshots() {
+    return [...this.state.treasurySnapshots];
+  }
+  async upsertTreasurySnapshot(row) {
+    const idx = this.state.treasurySnapshots.findIndex((t2) => t2.id === row.id);
+    if (idx >= 0) this.state.treasurySnapshots[idx] = row;
+    else this.state.treasurySnapshots.unshift(row);
+    await this.persist();
+    return row;
   }
 };
 
 // server/dao/daoService.ts
 import crypto20 from "crypto";
+import { nanoid as nanoid14 } from "nanoid";
+
+// shared/dao/fixtures.ts
+var CLUSTER = "devnet";
+var PROGRAM = "ClAwDAo111111111111111111111111111111111111";
+function m(wallet, role, weight, rep, label) {
+  return {
+    id: `mem_${wallet.slice(0, 8)}`,
+    walletAddress: wallet,
+    displayName: label,
+    role,
+    weight,
+    delegatedWeight: 0,
+    reputationScore: rep,
+    joinedAt: new Date(Date.now() - 864e5 * 30).toISOString(),
+    verified: true,
+    permissions: {
+      canVote: true,
+      canDelegate: true,
+      canPropose: role !== "agent",
+      canExecute: role === "treasurer" || role === "admin" || role === "council",
+      canViewTreasury: true,
+      canReviewProposals: role === "council" || role === "moderator" || role === "admin"
+    },
+    metadata: { demo: true }
+  };
+}
+function buildDaoDemoFixtures(now5 = Date.now()) {
+  const w1 = "CLAWGov111111111111111111111111111111111111";
+  const w2 = "CLAWDel222222222222222222222222222222222222";
+  const w3 = "CLAWMem333333333333333333333333333333333333";
+  const w4 = "CLAWTre444444444444444444444444444444444444";
+  const members = [
+    m(w1, "council", 4200, 88, "Council \xB7 Atlas"),
+    m(w2, "delegate", 3100, 76, "Delegate \xB7 River"),
+    m(w3, "member", 1800, 62, "Member \xB7 Mina"),
+    m(w4, "treasurer", 2600, 91, "Treasurer \xB7 Sol")
+  ];
+  const delegations = [
+    {
+      id: "del_demo_1",
+      fromWallet: w3,
+      toWallet: w2,
+      weight: 1800,
+      reason: "Travel window \u2014 delegate votes for two epochs.",
+      createdAt: new Date(now5 - 864e5 * 2).toISOString(),
+      status: "active",
+      proofReceiptId: "rcpt_del_demo_1",
+      pda: "DaoDelPDA11111111111111111111111111111111"
+    }
+  ];
+  const proposals = [
+    {
+      id: "prop_demo_treasury",
+      title: "Treasury allocation \u2014 agent safety buffer",
+      summary: "Allocate 12 SOL to a claw-agent incident buffer with dual-sig treasurer release.",
+      fullDescription: void 0,
+      proposalType: "treasury_allocation",
+      status: "voting",
+      createdAt: new Date(now5 - 36e5 * 5).toISOString(),
+      updatedAt: new Date(now5 - 36e5).toISOString(),
+      authorWallet: w1,
+      creatorAgentId: "agent_drafter_1",
+      policyLevel: "high",
+      quorumRequired: 4e3,
+      quorumReached: 3200,
+      thresholdRequired: 0.55,
+      voteYes: 7100,
+      voteNo: 2100,
+      voteAbstain: 400,
+      voteVeto: 0,
+      totalVotingPower: 11700,
+      executionReady: false,
+      proposalReceiptId: "rcpt_prop_treasury",
+      proofStatus: "demo_only",
+      onchain: {
+        pda: "DaoPropPDA22222222222222222222222222222222",
+        programId: PROGRAM,
+        cluster: CLUSTER,
+        txSignature: "5demoTreasuryProposalSigBase58Encoded111111111111111111111111111111111111111111111111111111111"
+      },
+      offchain: {
+        storageRef: "zerog://dao/discussion/prop_demo_treasury",
+        discussionThreadId: "thread_demo_treasury",
+        checksum: "sha256:demo_checksum_treasury"
+      },
+      treasuryImpact: {
+        amount: 12e9,
+        destination: w4,
+        budgetCategory: "safety_buffer"
+      },
+      metadata: { demo: true, stage: "live_vote" }
+    },
+    {
+      id: "prop_demo_skill",
+      title: "Skill listing \u2014 Claw Planner v3",
+      summary: "List the planner skill with elevated policy checks for treasury-touching plans.",
+      proposalType: "skill_listing",
+      status: "review",
+      createdAt: new Date(now5 - 864e5).toISOString(),
+      updatedAt: new Date(now5 - 36e5 * 8).toISOString(),
+      authorWallet: w2,
+      policyLevel: "medium",
+      quorumRequired: 4e3,
+      quorumReached: 0,
+      thresholdRequired: 0.5,
+      voteYes: 0,
+      voteNo: 0,
+      voteAbstain: 0,
+      voteVeto: 0,
+      totalVotingPower: 11700,
+      executionReady: false,
+      proofStatus: "demo_only",
+      onchain: { cluster: CLUSTER, programId: PROGRAM },
+      offchain: { storageRef: "zerog://dao/draft/prop_demo_skill" },
+      metadata: { demo: true }
+    },
+    {
+      id: "prop_demo_failed_quorum",
+      title: "Parameter change \u2014 discovery ranking weight",
+      summary: "Tune discovery rank curve; failed quorum in demo epoch.",
+      proposalType: "parameter_change",
+      status: "rejected",
+      createdAt: new Date(now5 - 864e5 * 4).toISOString(),
+      updatedAt: new Date(now5 - 864e5 * 3).toISOString(),
+      authorWallet: w3,
+      policyLevel: "low",
+      quorumRequired: 4e3,
+      quorumReached: 2100,
+      thresholdRequired: 0.5,
+      voteYes: 4e3,
+      voteNo: 1e3,
+      voteAbstain: 200,
+      voteVeto: 0,
+      totalVotingPower: 11700,
+      executionReady: false,
+      proofStatus: "demo_only",
+      onchain: { cluster: CLUSTER },
+      metadata: { demo: true, failure: "quorum_not_reached" }
+    },
+    {
+      id: "prop_demo_executed",
+      title: "Grant \u2014 open-source claw UI components",
+      summary: "Approved grant with anchored execution receipt on devnet.",
+      proposalType: "grant",
+      status: "executed",
+      createdAt: new Date(now5 - 864e5 * 10).toISOString(),
+      updatedAt: new Date(now5 - 864e5 * 9).toISOString(),
+      authorWallet: w4,
+      policyLevel: "medium",
+      quorumRequired: 4e3,
+      quorumReached: 6100,
+      thresholdRequired: 0.5,
+      voteYes: 8200,
+      voteNo: 900,
+      voteAbstain: 300,
+      voteVeto: 100,
+      totalVotingPower: 11700,
+      executionReady: true,
+      executionTxSignature: "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
+      executionReceiptId: "rcpt_exec_grant",
+      proposalReceiptId: "rcpt_prop_grant",
+      proofStatus: "demo_only",
+      onchain: {
+        cluster: CLUSTER,
+        programId: PROGRAM,
+        txSignature: "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
+        pda: "DaoPropPDAexec333333333333333333333333333333"
+      },
+      treasuryImpact: { amount: 4e9, budgetCategory: "ecosystem_grant" },
+      metadata: { demo: true }
+    }
+  ];
+  const votes = [
+    {
+      id: "vote_1",
+      proposalId: "prop_demo_treasury",
+      voterWallet: w1,
+      choice: "yes",
+      weight: 4200,
+      createdAt: new Date(now5 - 18e5).toISOString(),
+      status: "demo_only",
+      proofReceiptId: "rcpt_vote_1",
+      metadata: { demo: true }
+    },
+    {
+      id: "vote_2",
+      proposalId: "prop_demo_treasury",
+      voterWallet: w2,
+      choice: "yes",
+      weight: 3100,
+      reason: "Buffer aligns with claw incident playbook.",
+      createdAt: new Date(now5 - 17e5).toISOString(),
+      status: "demo_only",
+      metadata: { demo: true }
+    }
+  ];
+  const treasury = {
+    id: "snap_demo_1",
+    walletAddress: w4,
+    cluster: CLUSTER,
+    totalBalanceLamports: "84200000000",
+    totalBalanceSol: "84.2000",
+    tokenBalances: [
+      { mint: "So11111111111111111111111111111111111111112", symbol: "SOL", balance: "84.2" },
+      { mint: "USDCxaQ111111111111111111111111111111111111", symbol: "USDC", balance: "125000", valueUsd: 125e3 }
+    ],
+    lastUpdatedAt: new Date(now5 - 6e5).toISOString(),
+    proofReceiptId: "rcpt_treasury_snap",
+    pda: "DaoTreasuryPDA44444444444444444444444444444444",
+    status: "demo_only"
+  };
+  const executionReceipts = [
+    {
+      id: "rcpt_exec_grant",
+      proposalId: "prop_demo_executed",
+      walletAddress: w4,
+      cluster: CLUSTER,
+      txSignature: "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
+      title: "Grant transfer executed",
+      summary: "4 SOL routed to grant multisig; memo hash anchored.",
+      status: "demo_only",
+      proofStatus: "demo_only",
+      createdAt: new Date(now5 - 864e5 * 9).toISOString(),
+      explorerUrl: `https://explorer.solana.com/tx/5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222?cluster=${CLUSTER}`,
+      storageRef: "zerog://dao/exec/prop_demo_executed",
+      metadata: { demo: true }
+    }
+  ];
+  const agentRecommendations = [
+    {
+      id: "ar_treasury_risk",
+      proposalId: "prop_demo_treasury",
+      agentId: "agent_risk",
+      agentName: "Risk Analyst",
+      role: "risk_analyst",
+      summary: "Treasury draw is within spend limit but concentrates authority on treasurer path.",
+      recommendation: "Approve with dual-sig enforcement and 24h timelock in execution coordinator steps.",
+      confidence: 0.82,
+      risks: ["Single treasurer path if multisig misconfigured", "Buffer underfunded for multi-incident week"],
+      supportingEvidence: ["spend_limit_lamports_ok", "policy_high_treasury"],
+      createdAt: new Date(now5 - 34e5).toISOString(),
+      status: "demo_only",
+      humanDisposition: "modified"
+    },
+    {
+      id: "ar_treasury_policy",
+      proposalId: "prop_demo_treasury",
+      agentId: "agent_policy",
+      agentName: "Policy Reviewer",
+      role: "policy_reviewer",
+      summary: "Proposal satisfies quorum and policy level high review.",
+      recommendation: "Require council co-sign for allocations >10 SOL equivalent.",
+      confidence: 0.77,
+      risks: ["Threshold drift if parameters change mid-vote"],
+      supportingEvidence: ["quorum_config_snapshot"],
+      createdAt: new Date(now5 - 33e5).toISOString(),
+      status: "demo_only",
+      humanDisposition: "accepted"
+    },
+    {
+      id: "ar_treasury_treasury",
+      proposalId: "prop_demo_treasury",
+      agentId: "agent_treasury",
+      agentName: "Treasury Analyst",
+      role: "treasury_analyst",
+      summary: "Post-transfer liquidity remains above 60 SOL liquid policy band.",
+      recommendation: "Safe to proceed; schedule follow-on snapshot after execution.",
+      confidence: 0.74,
+      risks: ["Token price volatility not modeled in demo"],
+      supportingEvidence: ["snapshot_snap_demo_1"],
+      createdAt: new Date(now5 - 32e5).toISOString(),
+      status: "demo_only",
+      humanDisposition: "pending"
+    }
+  ];
+  const governanceMemory = [
+    {
+      id: "mem_demo_1",
+      proposalId: "prop_demo_executed",
+      title: "Grant executions anchor well with dual receipts",
+      lesson: "Keep execution coordinator memo hash + treasury snapshot hash paired for explorer audits.",
+      outcome: "executed",
+      createdAt: new Date(now5 - 864e5 * 8).toISOString(),
+      linkedReceiptIds: ["rcpt_exec_grant", "rcpt_prop_grant"],
+      storageRef: "zerog://dao/memory/mem_demo_1",
+      precedentProposalIds: ["prop_demo_executed"],
+      metadata: { demo: true }
+    },
+    {
+      id: "mem_demo_2",
+      proposalId: "prop_demo_failed_quorum",
+      title: "Ranking parameter changes need earlier delegate activation",
+      lesson: "Failed quorum when delegates travel; surface push notifications to delegators.",
+      outcome: "rejected",
+      createdAt: new Date(now5 - 864e5 * 3).toISOString(),
+      linkedReceiptIds: [],
+      metadata: { demo: true }
+    }
+  ];
+  const timeline = [
+    { id: "draft", label: "Proposal drafted", at: new Date(now5 - 36e5 * 6).toISOString(), done: true, artifact: "offchain" },
+    { id: "agents", label: "Agent council review", at: new Date(now5 - 36e5 * 5).toISOString(), done: true, artifact: "offchain" },
+    { id: "publish", label: "Published to members", at: new Date(now5 - 36e5 * 4).toISOString(), done: true, artifact: "receipt" },
+    { id: "vote", label: "Voting open", at: new Date(now5 - 36e5 * 3).toISOString(), done: true, artifact: "chain" },
+    { id: "quorum", label: "Quorum progress", done: false, artifact: "chain" },
+    { id: "finalize", label: "Finalize proposal", done: false, artifact: "receipt" },
+    { id: "execute", label: "Execute on Solana", done: false, artifact: "chain" },
+    { id: "memory", label: "Write governance memory", done: false, artifact: "offchain" }
+  ];
+  return {
+    cluster: CLUSTER,
+    programId: PROGRAM,
+    demoMode: true,
+    member: null,
+    effectiveVoteWeight: 0,
+    delegationsIncoming: delegations.filter((d) => d.toWallet === w2),
+    delegationsOutgoing: [],
+    configSummary: {
+      name: "CLAW Governance (demo)",
+      quorumBps: 4e3,
+      thresholdBps: 5e3,
+      paused: false,
+      minStakeLamports: 1e6,
+      spendLimitLamports: 5e9
+    },
+    proposals,
+    members,
+    delegations,
+    votes,
+    treasury,
+    executionReceipts,
+    agentRecommendations,
+    governanceMemory,
+    activeProposalId: "prop_demo_treasury",
+    timeline,
+    degradedReasons: []
+  };
+}
+
+// server/dao/governanceMapper.ts
+import { nanoid as nanoid13 } from "nanoid";
+
+// shared/dao/engine.ts
+function participationRatio(voterCount, eligibleMembers) {
+  if (eligibleMembers <= 0) return 0;
+  return Math.min(1, voterCount / eligibleMembers);
+}
+function quorumMetBps(participationBps, quorumRequiredBps) {
+  return participationBps >= quorumRequiredBps;
+}
+function approvalRatio(yesWeight, noWeight) {
+  const denom = yesWeight + noWeight;
+  if (denom <= 0) return 0;
+  return yesWeight / denom;
+}
+function participationBpsFromCounts(voterCount, eligibleMembers) {
+  return Math.floor(participationRatio(voterCount, eligibleMembers) * 1e4);
+}
+function deriveCanonicalStatus(input) {
+  if (input.executed || input.legacyStatus === "executed") return "executed";
+  if (input.legacyStatus === "cancelled") return "archived";
+  if (input.legacyStatus === "draft") return "draft";
+  if (input.legacyStatus === "succeeded") return input.executed ? "executed" : "approved";
+  if (input.legacyStatus === "defeated") return "rejected";
+  if (!input.finalized && input.legacyStatus === "active") {
+    if (quorumMetBps(input.participationBps, input.quorumBps)) return "quorum_reached";
+    return "voting";
+  }
+  if (input.finalized && input.legacyStatus === "active") {
+    return "review";
+  }
+  return "voting";
+}
+
+// server/dao/governanceMapper.ts
+var DAO_PROGRAM_ID_DEFAULT = "ClAwDAo111111111111111111111111111111111111";
+function kindToProposalType(kind) {
+  const m2 = {
+    treasury_spend: "treasury_allocation",
+    dao_grant: "grant",
+    parameter_change: "parameter_change",
+    skill_approve: "skill_listing",
+    skill_version_approve: "skill_listing",
+    text: "community_initiative"
+  };
+  return m2[kind] ?? "other";
+}
+function inferPolicy(kind) {
+  if (kind === "treasury_spend" || kind === "dao_grant") return "high";
+  if (kind === "parameter_change") return "medium";
+  return "low";
+}
+function memberRoleFromRecord(m2, incomingDelegationCount) {
+  if (incomingDelegationCount > 0) return "delegate";
+  if (m2.reputationPoints > 80 && m2.stakeLamports > 2e6) return "council";
+  return "member";
+}
+function mapMemberRecord(m2, delegations) {
+  const incoming = delegations.filter((d) => d.status === "active" && d.toWallet === m2.wallet);
+  const delegatedPower = incoming.reduce((acc, d) => {
+    return acc + d.weight;
+  }, 0);
+  const role = memberRoleFromRecord(m2, incoming.length);
+  return {
+    id: `mem_${m2.wallet.slice(0, 8)}`,
+    walletAddress: m2.wallet,
+    role,
+    weight: m2.votingPower,
+    delegatedWeight: delegatedPower || void 0,
+    reputationScore: m2.reputationPoints,
+    joinedAt: new Date(m2.joinedAt).toISOString(),
+    lastActiveAt: new Date(m2.updatedAt).toISOString(),
+    verified: m2.active,
+    permissions: {
+      canVote: m2.active,
+      canDelegate: m2.active,
+      canPropose: m2.active && m2.stakeLamports >= 1e6,
+      canExecute: role === "council" || m2.reputationPoints > 85,
+      canViewTreasury: true,
+      canReviewProposals: role === "council"
+    },
+    metadata: { stakeLamports: m2.stakeLamports, delegate: m2.delegate }
+  };
+}
+function mapDelegationRecord(d) {
+  return {
+    id: d.id,
+    fromWallet: d.fromWallet,
+    toWallet: d.toWallet,
+    weight: d.weight,
+    reason: d.reason,
+    createdAt: new Date(d.createdAt).toISOString(),
+    revokedAt: d.revokedAt ? new Date(d.revokedAt).toISOString() : void 0,
+    status: d.status,
+    proofReceiptId: d.proofReceiptId,
+    pda: d.pda
+  };
+}
+function mapProposalRecord(p, cfg, eligibleMembers, cluster, programId) {
+  const participationBps = participationBpsFromCounts(p.voterCount, Math.max(1, eligibleMembers));
+  const vetoVotes = p.vetoVotes ?? 0;
+  const approval = approvalRatio(p.yesVotes, p.noVotes + vetoVotes);
+  const threshold = (cfg?.proposalThresholdBps ?? 5e3) / 1e4;
+  const finalized = p.status === "succeeded" || p.status === "defeated" || p.status === "executed";
+  const executed = p.status === "executed";
+  const canonicalStatus = deriveCanonicalStatus({
+    legacyStatus: p.status,
+    participationBps,
+    quorumBps: cfg?.quorumBps ?? p.quorumBps,
+    approval,
+    threshold,
+    finalized,
+    executed
+  });
+  return {
+    id: String(p.proposalId),
+    title: p.title,
+    summary: p.description.slice(0, 280) || p.title,
+    fullDescription: p.description.length > 280 ? p.description : void 0,
+    proposalType: kindToProposalType(p.kind),
+    status: canonicalStatus,
+    createdAt: new Date(p.createdAt).toISOString(),
+    updatedAt: new Date(p.updatedAt).toISOString(),
+    authorWallet: p.proposer,
+    policyLevel: inferPolicy(p.kind),
+    quorumRequired: p.quorumBps,
+    quorumReached: participationBps,
+    thresholdRequired: threshold,
+    voteYes: p.yesVotes,
+    voteNo: p.noVotes,
+    voteAbstain: p.abstainVotes,
+    voteVeto: vetoVotes,
+    totalVotingPower: p.totalVotes,
+    executionReady: p.status === "succeeded",
+    executionTxSignature: p.executionTxSignature,
+    executionReceiptId: p.executionReceiptId,
+    proposalReceiptId: p.proposalReceiptId,
+    proofStatus: p.proofStatus ?? "pending",
+    onchain: {
+      cluster,
+      programId,
+      pda: p.onchainPda,
+      account: p.onchainAccount,
+      txSignature: p.createTxSignature
+    },
+    offchain: {
+      storageRef: p.offchainStorageRef,
+      discussionThreadId: p.discussionThreadId,
+      checksum: p.offchainChecksum
+    },
+    treasuryImpact: p.kind === "treasury_spend" || p.kind === "dao_grant" ? {
+      amount: p.amountLamports,
+      destination: p.recipient,
+      budgetCategory: p.kind
+    } : void 0,
+    metadata: {
+      skillKey: p.skillKey,
+      legacyStatus: p.status,
+      voterCount: p.voterCount
+    }
+  };
+}
+function mapVoteLedger(v) {
+  return {
+    id: v.id,
+    proposalId: String(v.proposalId),
+    voterWallet: v.voterWallet,
+    choice: v.choice,
+    weight: v.weight,
+    reason: v.reason,
+    createdAt: new Date(v.createdAt).toISOString(),
+    proofReceiptId: v.proofReceiptId,
+    status: "counted",
+    metadata: {}
+  };
+}
+function mapAgentRec(a) {
+  return {
+    id: a.id,
+    proposalId: String(a.proposalId),
+    agentId: a.agentId,
+    agentName: a.agentName,
+    role: a.role,
+    summary: a.summary,
+    recommendation: a.recommendation,
+    confidence: a.confidence,
+    risks: a.risks,
+    supportingEvidence: a.supportingEvidence,
+    createdAt: new Date(a.createdAt).toISOString(),
+    status: a.status,
+    humanDisposition: a.humanDisposition
+  };
+}
+function mapMemory(m2) {
+  return {
+    id: m2.id,
+    proposalId: String(m2.proposalId),
+    title: m2.title,
+    lesson: m2.lesson,
+    outcome: m2.outcome,
+    createdAt: new Date(m2.createdAt).toISOString(),
+    linkedReceiptIds: m2.linkedReceiptIds,
+    storageRef: m2.storageRef,
+    metadata: {}
+  };
+}
+function mapExecutionReceipt(r, cluster) {
+  const explorerUrl = r.txSignature && r.explorerUrl === void 0 ? buildExplorerTxUrl(r.txSignature, cluster) : r.explorerUrl;
+  return {
+    id: r.id,
+    proposalId: String(r.proposalId),
+    walletAddress: r.walletAddress,
+    cluster,
+    txSignature: r.txSignature,
+    title: r.title,
+    summary: r.summary,
+    status: r.status,
+    proofStatus: r.proofStatus,
+    createdAt: new Date(r.createdAt).toISOString(),
+    explorerUrl,
+    storageRef: r.storageRef,
+    metadata: {}
+  };
+}
+function mapTreasurySnapshot(t2, cluster) {
+  return {
+    id: t2.id,
+    walletAddress: t2.walletAddress,
+    cluster,
+    totalBalanceLamports: t2.totalBalanceLamports,
+    totalBalanceSol: t2.totalBalanceSol,
+    tokenBalances: t2.tokenBalances,
+    lastUpdatedAt: new Date(t2.lastUpdatedAt).toISOString(),
+    proofReceiptId: t2.proofReceiptId,
+    account: t2.account,
+    pda: t2.pda,
+    status: t2.status
+  };
+}
+function defaultAgentCouncilForProposal(proposalId) {
+  const now5 = Date.now();
+  const base = (suffix, role, name) => ({
+    id: nanoid13(),
+    proposalId,
+    agentId: `agent_${suffix}`,
+    agentName: name,
+    role,
+    summary: `Automated ${name.toLowerCase()} pass for proposal ${proposalId}.`,
+    recommendation: "Review quorum, treasury impact, and execution path before finalizing.",
+    confidence: 0.7,
+    risks: ["Data may be incomplete until treasury snapshot refreshes."],
+    supportingEvidence: ["local_store", "policy_default"],
+    createdAt: now5,
+    status: "ready",
+    humanDisposition: "pending"
+  });
+  return [
+    base("drafter", "proposal_drafter", "Proposal Drafter"),
+    base("risk", "risk_analyst", "Risk Analyst"),
+    base("policy", "policy_reviewer", "Policy Reviewer")
+  ];
+}
+function buildLiveCommandCenter(input) {
+  const programId = input.programId || process.env.SOLANA_DAO_PROGRAM_ID || DAO_PROGRAM_ID_DEFAULT;
+  const eligible = input.members.filter((m2) => m2.active).length;
+  const delegations = input.delegations.map(mapDelegationRecord);
+  const members = input.members.map((m2) => mapMemberRecord(m2, input.delegations));
+  const proposals = input.proposals.map(
+    (p) => mapProposalRecord(p, input.cfg, eligible, input.cluster, programId)
+  );
+  const votes = input.voteLedger.map(mapVoteLedger);
+  const agentRecommendations = input.agentRecs.map(mapAgentRec);
+  const governanceMemory = input.memories.map(mapMemory);
+  const executionReceipts = input.execReceipts.map((r) => mapExecutionReceipt(r, input.cluster));
+  const treasury = input.treasurySnaps[0] ? mapTreasurySnapshot(input.treasurySnaps[0], input.cluster) : input.cfg?.treasury ? {
+    id: "treasury_default",
+    walletAddress: input.cfg.treasury,
+    cluster: input.cluster,
+    totalBalanceLamports: "0",
+    totalBalanceSol: "0.0000",
+    tokenBalances: [],
+    lastUpdatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    status: "cached_only"
+  } : null;
+  const active = proposals.find(
+    (p) => p.status === "voting" || p.status === "quorum_reached" || p.status === "review"
+  );
+  const wallet = input.walletAddress;
+  const member = wallet ? members.find((mm) => mm.walletAddress === wallet) ?? null : null;
+  return {
+    cluster: input.cluster,
+    programId,
+    explorerBaseUrl: explorerBaseUrl(),
+    demoMode: false,
+    walletAddress: wallet,
+    member,
+    effectiveVoteWeight: input.effectiveWeight,
+    delegationsIncoming: wallet ? delegations.filter((d) => d.toWallet === wallet && d.status === "active") : [],
+    delegationsOutgoing: wallet ? delegations.filter((d) => d.fromWallet === wallet && d.status === "active") : [],
+    configSummary: {
+      name: input.cfg?.name ?? "CLAW DAO",
+      quorumBps: input.cfg?.quorumBps ?? 4e3,
+      thresholdBps: input.cfg?.proposalThresholdBps ?? 5e3,
+      paused: input.cfg?.paused ?? false,
+      minStakeLamports: input.cfg?.minStakeLamports ?? 0,
+      spendLimitLamports: input.cfg?.spendLimitLamports ?? 0
+    },
+    proposals,
+    members,
+    delegations,
+    votes,
+    treasury,
+    executionReceipts,
+    agentRecommendations,
+    governanceMemory,
+    activeProposalId: active?.id ?? null,
+    timeline: buildTimelineFromProposal(active),
+    degradedReasons: []
+  };
+}
+function buildTimelineFromProposal(p) {
+  if (!p) {
+    return [
+      { id: "draft", label: "Proposal drafted", done: false, artifact: "offchain" },
+      { id: "agents", label: "Agent council review", done: false, artifact: "offchain" },
+      { id: "publish", label: "Published to wallet members", done: false, artifact: "receipt" },
+      { id: "vote", label: "Voting open on Solana", done: false, artifact: "chain" },
+      { id: "quorum", label: "Quorum progress", done: false, artifact: "chain" },
+      { id: "finalize", label: "Finalize proposal", done: false, artifact: "receipt" },
+      { id: "execute", label: "Execute with receipt anchor", done: false, artifact: "chain" },
+      { id: "memory", label: "Governance memory", done: false, artifact: "offchain" }
+    ];
+  }
+  const doneDraft = true;
+  const doneAgents = p.status !== "draft";
+  const donePublish = p.proposalReceiptId != null || p.status !== "draft";
+  const doneVote = p.voteYes + p.voteNo + p.voteAbstain + p.voteVeto > 0;
+  const doneQuorum = p.quorumReached >= p.quorumRequired;
+  const doneFinalize = p.status === "approved" || p.status === "rejected" || p.status === "executed";
+  const doneExec = p.status === "executed";
+  return [
+    { id: "draft", label: "Proposal drafted", done: doneDraft, artifact: "offchain" },
+    { id: "agents", label: "Agent council review", done: doneAgents, artifact: "offchain" },
+    { id: "publish", label: "Published + proposal receipt", done: donePublish, artifact: "receipt" },
+    { id: "vote", label: "Votes cast", done: doneVote, artifact: "chain" },
+    { id: "quorum", label: "Quorum vs threshold", done: doneQuorum, artifact: "chain" },
+    { id: "finalize", label: "Finalize proposal", done: doneFinalize, artifact: "receipt" },
+    { id: "execute", label: "Execution receipt on Solana", done: doneExec, artifact: "chain" },
+    {
+      id: "memory",
+      label: "Governance memory",
+      done: doneExec,
+      artifact: "offchain"
+    }
+  ];
+}
+function mergeDemoWithLive(demo, live) {
+  const proposalIds = new Set(demo.proposals.map((p) => p.id));
+  const mergedProposals = [...demo.proposals, ...live.proposals.filter((p) => !proposalIds.has(p.id))];
+  return {
+    ...demo,
+    explorerBaseUrl: live.explorerBaseUrl,
+    proposals: mergedProposals,
+    members: demo.members.length >= live.members.length ? demo.members : live.members,
+    votes: [...demo.votes, ...live.votes],
+    delegations: [...demo.delegations, ...live.delegations],
+    governanceMemory: [...demo.governanceMemory, ...live.governanceMemory],
+    executionReceipts: [...demo.executionReceipts, ...live.executionReceipts],
+    walletAddress: live.walletAddress,
+    member: live.member,
+    effectiveVoteWeight: live.effectiveVoteWeight,
+    delegationsIncoming: live.delegationsIncoming.length ? live.delegationsIncoming : demo.delegationsIncoming,
+    delegationsOutgoing: live.delegationsOutgoing.length ? live.delegationsOutgoing : demo.delegationsOutgoing,
+    degradedReasons: [...demo.degradedReasons, ...live.degradedReasons]
+  };
+}
+
+// server/dao/daoService.ts
 function rankScore(proposal) {
-  const total = proposal.yesVotes + proposal.noVotes + proposal.abstainVotes;
+  const veto = proposal.vetoVotes ?? 0;
+  const total = proposal.yesVotes + proposal.noVotes + proposal.abstainVotes + veto;
   const participation = total > 0 ? Math.floor(proposal.totalVotes / (total + 1) * 1e4) : 0;
-  const approval = proposal.yesVotes + proposal.noVotes > 0 ? Math.floor(proposal.yesVotes / (proposal.yesVotes + proposal.noVotes + 1) * 1e4) : 0;
+  const denom = proposal.yesVotes + proposal.noVotes + veto;
+  const approval = denom > 0 ? Math.floor(proposal.yesVotes / (denom + 1) * 1e4) : 0;
   return Math.min(
     1e4,
     Math.floor(
@@ -10237,6 +11102,22 @@ var DaoService = class {
         totalTreasurySpend: 0
       });
     }
+    await this.ensureTreasurySnapshot();
+  }
+  async ensureTreasurySnapshot() {
+    const cfg = this.store.getConfig();
+    if (!cfg?.treasury) return;
+    const existing = this.store.listTreasurySnapshots();
+    if (existing.length) return;
+    await this.store.upsertTreasurySnapshot({
+      id: `snap_${nanoid14()}`,
+      walletAddress: cfg.treasury,
+      totalBalanceLamports: "0",
+      totalBalanceSol: "0.0000",
+      tokenBalances: [],
+      lastUpdatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      status: "cached_only"
+    });
   }
   getConfig() {
     const cfg = this.store.getConfig();
@@ -10252,6 +11133,39 @@ var DaoService = class {
       totalExecuted: proposals.filter((p) => p.status === "executed").length,
       totalTreasurySpend: cfg.totalTreasurySpend ?? 0
     };
+  }
+  effectiveVotingPower(wallet) {
+    const member = this.store.getMember(wallet);
+    if (!member || !member.active) return 0;
+    const delegations = this.store.listDelegations();
+    if (delegations.some((d) => d.fromWallet === wallet && d.status === "active")) return 0;
+    const base = member.votingPower;
+    const delegatedIn = delegations.filter((d) => d.toWallet === wallet && d.status === "active").reduce((acc, d) => acc + d.weight, 0);
+    return base + delegatedIn;
+  }
+  buildCommandCenterPayload(opts) {
+    const cluster = getServerSolanaCluster();
+    const wallet = opts.walletAddress?.trim();
+    const eff = wallet ? this.effectiveVotingPower(wallet) : 0;
+    const live = buildLiveCommandCenter({
+      cfg: this.store.getConfig(),
+      members: this.store.listMembers(),
+      proposals: this.store.listProposals(),
+      delegations: this.store.listDelegations(),
+      voteLedger: this.store.listVoteLedger(),
+      agentRecs: this.store.listAgentRecommendations(),
+      memories: this.store.listGovernanceMemory(),
+      execReceipts: this.store.listExecutionReceipts(),
+      treasurySnaps: this.store.listTreasurySnapshots(),
+      cluster,
+      walletAddress: wallet,
+      effectiveWeight: eff
+    });
+    if (opts.demo) {
+      const demoFixtures = buildDaoDemoFixtures();
+      return mergeDemoWithLive(demoFixtures, live);
+    }
+    return live;
   }
   async registerMember(wallet, delegate, stakeLamports, reputationPoints) {
     const cfg = this.store.getConfig();
@@ -10284,8 +11198,31 @@ var DaoService = class {
     };
     return this.store.upsertMember(next);
   }
+  async delegateVotePower(fromWallet, toWallet, reason) {
+    const from = this.store.getMember(fromWallet);
+    const to = this.store.getMember(toWallet);
+    if (!from || !to) throw new Error("member_not_found");
+    if (!from.active || !to.active) throw new Error("member_inactive");
+    if (fromWallet === toWallet) throw new Error("delegate_self_invalid");
+    const weight = from.votingPower;
+    await this.store.appendDelegation({
+      id: `del_${nanoid14()}`,
+      fromWallet,
+      toWallet,
+      weight,
+      reason,
+      createdAt: Date.now(),
+      status: "active",
+      proofReceiptId: `rcpt_del_${nanoid14()}`
+    });
+    return this.store.listDelegations().find((d) => d.fromWallet === fromWallet && d.status === "active");
+  }
+  async revokeDelegate(fromWallet) {
+    await this.store.revokeDelegation(fromWallet);
+  }
   async createProposal(input) {
     const now5 = Date.now();
+    const proposalReceiptId = `rcpt_prop_${nanoid14()}`;
     const proposal = {
       proposalId: input.proposalId,
       proposer: input.proposer,
@@ -10299,6 +11236,7 @@ var DaoService = class {
       yesVotes: 0,
       noVotes: 0,
       abstainVotes: 0,
+      vetoVotes: 0,
       totalVotes: 0,
       voterCount: 0,
       startSlot: input.startSlot,
@@ -10309,9 +11247,15 @@ var DaoService = class {
       resultHash: "",
       createdAt: now5,
       updatedAt: now5,
-      executedAt: 0
+      executedAt: 0,
+      proposalReceiptId,
+      proofStatus: "pending",
+      offchainStorageRef: `mem://dao/desc/${input.proposalId}`,
+      discussionThreadId: `thread_${input.proposalId}`
     };
     await this.store.upsertProposal(proposal);
+    const agents2 = defaultAgentCouncilForProposal(input.proposalId);
+    await this.store.appendAgentRecommendations(agents2);
     return proposal;
   }
   async castVote(proposalId, wallet, choice, reason) {
@@ -10320,15 +11264,29 @@ var DaoService = class {
     if (!proposal) throw new Error("proposal_not_found");
     if (!member) throw new Error("member_not_found");
     if (proposal.status !== "active") throw new Error("proposal_not_active");
-    const weight = member.votingPower;
-    const next = { ...proposal };
+    const prior = this.store.listVoteLedger(proposalId).some((v) => v.voterWallet === wallet);
+    if (prior) throw new Error("already_voted");
+    const weight = this.effectiveVotingPower(wallet);
+    if (weight <= 0) throw new Error("insufficient_voting_power");
+    const next = { ...proposal, vetoVotes: proposal.vetoVotes ?? 0 };
     if (choice === "yes") next.yesVotes += weight;
     if (choice === "no") next.noVotes += weight;
     if (choice === "abstain") next.abstainVotes += weight;
+    if (choice === "veto") next.vetoVotes += weight;
     next.totalVotes += weight;
     next.voterCount += 1;
     next.updatedAt = Date.now();
     await this.store.upsertProposal(next);
+    await this.store.appendVoteLedger({
+      id: `vote_${nanoid14()}`,
+      proposalId,
+      voterWallet: wallet,
+      choice,
+      weight,
+      reason,
+      createdAt: Date.now(),
+      proofReceiptId: `rcpt_vote_${nanoid14()}`
+    });
     return {
       proposal: next,
       vote: {
@@ -10346,9 +11304,11 @@ var DaoService = class {
     if (!proposal) throw new Error("proposal_not_found");
     const cfg = this.store.getConfig();
     if (!cfg) throw new Error("dao_not_bootstrapped");
-    const members = this.store.listMembers().length;
+    const members = this.store.listMembers().filter((m2) => m2.active).length;
     const participationBps = members > 0 ? Math.floor(proposal.voterCount / members * 1e4) : 0;
-    const approvalBps = proposal.yesVotes + proposal.noVotes > 0 ? Math.floor(proposal.yesVotes / (proposal.yesVotes + proposal.noVotes) * 1e4) : 0;
+    const veto = proposal.vetoVotes ?? 0;
+    const approvalDenom = proposal.yesVotes + proposal.noVotes + veto;
+    const approvalBps = approvalDenom > 0 ? Math.floor(proposal.yesVotes / approvalDenom * 1e4) : 0;
     const passed = participationBps >= cfg.quorumBps && approvalBps >= cfg.proposalThresholdBps;
     const next = {
       ...proposal,
@@ -10369,6 +11329,18 @@ var DaoService = class {
       updatedAt: Date.now()
     };
     await this.store.upsertDiscovery(row);
+    if (!passed) {
+      await this.store.appendGovernanceMemory({
+        id: `gmem_${nanoid14()}`,
+        proposalId: next.proposalId,
+        title: `Lesson: proposal ${next.proposalId} did not pass`,
+        lesson: `Quorum ${participationBps} bps vs required ${cfg.quorumBps} bps; approval ${approvalBps} bps vs ${cfg.proposalThresholdBps} bps.`,
+        outcome: "rejected",
+        createdAt: Date.now(),
+        linkedReceiptIds: next.proposalReceiptId ? [next.proposalReceiptId] : [],
+        storageRef: `mem://dao/governance/${next.proposalId}`
+      });
+    }
     return { proposal: next, passed, discovery: row };
   }
   async executeProposal(proposalId) {
@@ -10376,11 +11348,29 @@ var DaoService = class {
     if (!proposal) throw new Error("proposal_not_found");
     if (proposal.status !== "succeeded") throw new Error("proposal_not_passed");
     if (proposal.executedAt) throw new Error("already_executed");
+    const cluster = getServerSolanaCluster();
+    const txSig = `sim_${crypto20.randomBytes(18).toString("base64url")}`;
+    const receiptId2 = `rcpt_exec_${nanoid14()}`;
+    await this.store.appendExecutionReceipt({
+      id: receiptId2,
+      proposalId,
+      walletAddress: proposal.proposer,
+      txSignature: txSig,
+      title: `Execution receipt \xB7 ${proposal.title}`,
+      summary: "Compact execution proof queued for Solana \u2014 relayer submits instruction; explorer link becomes final after confirmation.",
+      status: "submitted",
+      proofStatus: "pending",
+      createdAt: Date.now(),
+      explorerUrl: buildExplorerTxUrl(txSig, cluster)
+    });
     const next = {
       ...proposal,
       status: "executed",
       executedAt: Date.now(),
       updatedAt: Date.now(),
+      executionTxSignature: txSig,
+      executionReceiptId: receiptId2,
+      proofStatus: "pending",
       resultHash: crypto20.createHash("sha256").update(`${proposal.kind}:${proposal.proposalId}:${proposal.title}`).digest("hex")
     };
     await this.store.upsertProposal(next);
@@ -10390,6 +11380,16 @@ var DaoService = class {
         totalTreasurySpend: cfg.totalTreasurySpend + proposal.amountLamports
       });
     }
+    await this.store.appendGovernanceMemory({
+      id: `gmem_${nanoid14()}`,
+      proposalId: next.proposalId,
+      title: `Precedent: ${proposal.title}`,
+      lesson: "Successful execution \u2014 anchor execution receipt and refresh treasury snapshot for the next cycle.",
+      outcome: "executed",
+      createdAt: Date.now(),
+      linkedReceiptIds: [receiptId2, proposal.proposalReceiptId].filter(Boolean),
+      storageRef: `mem://dao/governance/ok/${next.proposalId}`
+    });
     return next;
   }
   listProposals() {
@@ -10401,6 +11401,12 @@ var DaoService = class {
   listMembers() {
     return this.store.listMembers();
   }
+  listDelegations() {
+    return this.store.listDelegations();
+  }
+  listVoteLedger(proposalId) {
+    return this.store.listVoteLedger(proposalId);
+  }
   getProposal(proposalId) {
     return this.store.getProposal(proposalId);
   }
@@ -10410,7 +11416,24 @@ var DaoService = class {
 };
 
 // server/dao/daoRoutes.ts
+import { z as z7 } from "zod";
+function ok4(res, data) {
+  res.json({ ok: true, data });
+}
+function fail5(res, message, status = 400) {
+  res.status(status).json({ ok: false, error: message });
+}
 function registerDaoRoutes(app, daoService) {
+  app.get("/api/dao/command-center", (req, res) => {
+    try {
+      const demo = String(req.query.demo || "") === "1" || String(req.query.demo || "") === "true";
+      const walletAddress = req.query.walletAddress ? String(req.query.walletAddress).trim() : void 0;
+      const payload = daoService.buildCommandCenterPayload({ walletAddress, demo });
+      ok4(res, payload);
+    } catch (e) {
+      fail5(res, e instanceof Error ? e.message : "command_center_failed", 500);
+    }
+  });
   app.get("/api/dao/config", (_req, res) => {
     res.json({ ok: true, data: daoService.getConfig() });
   });
@@ -10419,7 +11442,7 @@ function registerDaoRoutes(app, daoService) {
   });
   app.get("/api/dao/members/:wallet", (req, res) => {
     const data = daoService.getMember(req.params.wallet);
-    if (!data) return res.status(404).json({ ok: false, error: "member_not_found" });
+    if (!data) return fail5(res, "member_not_found", 404);
     res.json({ ok: true, data });
   });
   app.post("/api/dao/members/register", async (req, res) => {
@@ -10436,6 +11459,38 @@ function registerDaoRoutes(app, daoService) {
       const message = e instanceof Error ? e.message : "register_failed";
       res.status(400).json({ ok: false, error: message });
     }
+  });
+  app.get("/api/dao/delegations", (_req, res) => {
+    ok4(res, daoService.listDelegations());
+  });
+  app.post("/api/dao/delegations", async (req, res) => {
+    try {
+      const body = z7.object({
+        fromWallet: z7.string().min(32),
+        toWallet: z7.string().min(32),
+        reason: z7.string().max(500).optional()
+      }).parse(req.body);
+      const data = await daoService.delegateVotePower(body.fromWallet, body.toWallet, body.reason);
+      ok4(res, data);
+    } catch (e) {
+      fail5(res, e instanceof Error ? e.message : "delegation_failed");
+    }
+  });
+  app.post("/api/dao/delegations/revoke", async (req, res) => {
+    try {
+      const body = z7.object({ fromWallet: z7.string().min(32) }).parse(req.body);
+      await daoService.revokeDelegate(body.fromWallet);
+      ok4(res, { revoked: true });
+    } catch (e) {
+      fail5(res, e instanceof Error ? e.message : "revoke_failed");
+    }
+  });
+  app.get("/api/dao/votes", (req, res) => {
+    const proposalId = req.query.proposalId ? Number(req.query.proposalId) : void 0;
+    if (proposalId !== void 0 && Number.isNaN(proposalId)) {
+      return fail5(res, "invalid_proposal_id");
+    }
+    ok4(res, daoService.listVoteLedger(proposalId).map(mapVoteLedger));
   });
   app.post("/api/dao/proposals", async (req, res) => {
     try {
@@ -10464,15 +11519,19 @@ function registerDaoRoutes(app, daoService) {
   });
   app.get("/api/dao/proposals/:proposalId", (req, res) => {
     const data = daoService.getProposal(Number(req.params.proposalId));
-    if (!data) return res.status(404).json({ ok: false, error: "proposal_not_found" });
+    if (!data) return fail5(res, "proposal_not_found", 404);
     res.json({ ok: true, data });
   });
   app.post("/api/dao/proposals/:proposalId/vote", async (req, res) => {
     try {
+      const choice = String(req.body.choice);
+      if (!["yes", "no", "abstain", "veto"].includes(choice)) {
+        return fail5(res, "invalid_vote_choice");
+      }
       const data = await daoService.castVote(
         Number(req.params.proposalId),
         String(req.body.wallet),
-        String(req.body.choice),
+        choice,
         String(req.body.reason || "")
       );
       res.json({ ok: true, data });
@@ -10515,7 +11574,7 @@ async function mountDao(app) {
 }
 
 // server/orchestration/registerSwarmApiRoutes.ts
-import { z as z7 } from "zod";
+import { z as z8 } from "zod";
 
 // shared/errorCatalog.ts
 var ERROR_CATALOG = {
@@ -11310,36 +12369,36 @@ function mergeMetadata(base, extra) {
   return { ...base ?? {}, ...extra };
 }
 function inferCodeFromLegacyMessage(msg) {
-  const m = msg.toLowerCase();
-  if (m.includes("walletaddress_required") || m.includes("wallet_address_required") || m.includes("wallet required"))
+  const m2 = msg.toLowerCase();
+  if (m2.includes("walletaddress_required") || m2.includes("wallet_address_required") || m2.includes("wallet required"))
     return "VALIDATION_FAILED";
-  if (m.includes("wallet_session_inactive") || m.includes("session_inactive")) return "SESSION_REQUIRED";
-  if (m.includes("session") && m.includes("expired")) return "WALLET_SESSION_EXPIRED";
-  if (m.includes("wrong cluster") || m.includes("cluster mismatch")) return "WALLET_WRONG_CLUSTER";
-  if (m.includes("user rejected") || m.includes("rejected")) return "WALLET_CONNECTION_REJECTED";
-  if (m.includes("not enough sol") || m.includes("insufficient funds")) return "INSUFFICIENT_SOL";
-  if (m.includes("429") || m.includes("rate limit")) return "RPC_RATE_LIMITED";
-  if (m.includes("timed out") || m.includes("timeout")) return "RPC_TIMEOUT";
-  if (m.includes("fetch failed") || m.includes("econnrefused")) return "RPC_UNAVAILABLE";
-  if (m.includes("circuit_open")) return "RPC_UNAVAILABLE";
-  if (m.includes("simulation failed")) return "TX_SIMULATION_FAILED";
-  if (m.includes("blockhash not found") || m.includes("expired")) return "TX_EXPIRED";
-  if (m.includes("sendtransaction") || m.includes("send failed")) return "TX_SEND_FAILED";
-  if (m.includes("anchor") && m.includes("idl")) return "ANCHOR_IDL_MISMATCH";
-  if (m.includes("memory_anchor") || m.includes("anchor_failed")) return "RECEIPT_ANCHOR_FAILED";
-  if (m.includes("proof_receipt") || m.includes("proof_failed")) return "RECEIPT_ANCHOR_FAILED";
-  if (m.includes("plan_anchor") || m.includes("plan_failed")) return "PLAN_BUILD_FAILED";
-  if (m.includes("reflection_failed")) return "REFLECTION_WRITE_FAILED";
-  if (m.includes("identity_service_unavailable")) return "INDEXER_SYNC_FAILED";
-  if (m.includes("skill_not_found")) return "VALIDATION_FAILED";
-  if (m.includes("zerog") && m.includes("storage")) return "ZERO_G_STORAGE_FAILED";
-  if (m.includes("zerog") && m.includes("da")) return "ZERO_G_DA_FAILED";
-  if (m.includes("openclaw") && m.includes("import")) return "OPENCLAW_IMPORT_FAILED";
-  if (m.includes("openclaw") && m.includes("export")) return "OPENCLAW_EXPORT_FAILED";
-  if (m.includes("demo") && m.includes("mismatch")) return "DEMO_MODE_MISMATCH";
-  if (m.includes("degraded")) return "DEGRADED_MODE";
-  if (m.includes("verification failed") || m.includes("proof")) return "PROOF_VERIFICATION_FAILED";
-  if (m.includes("database") || m.includes("db_")) return "DB_READ_FAILED";
+  if (m2.includes("wallet_session_inactive") || m2.includes("session_inactive")) return "SESSION_REQUIRED";
+  if (m2.includes("session") && m2.includes("expired")) return "WALLET_SESSION_EXPIRED";
+  if (m2.includes("wrong cluster") || m2.includes("cluster mismatch")) return "WALLET_WRONG_CLUSTER";
+  if (m2.includes("user rejected") || m2.includes("rejected")) return "WALLET_CONNECTION_REJECTED";
+  if (m2.includes("not enough sol") || m2.includes("insufficient funds")) return "INSUFFICIENT_SOL";
+  if (m2.includes("429") || m2.includes("rate limit")) return "RPC_RATE_LIMITED";
+  if (m2.includes("timed out") || m2.includes("timeout")) return "RPC_TIMEOUT";
+  if (m2.includes("fetch failed") || m2.includes("econnrefused")) return "RPC_UNAVAILABLE";
+  if (m2.includes("circuit_open")) return "RPC_UNAVAILABLE";
+  if (m2.includes("simulation failed")) return "TX_SIMULATION_FAILED";
+  if (m2.includes("blockhash not found") || m2.includes("expired")) return "TX_EXPIRED";
+  if (m2.includes("sendtransaction") || m2.includes("send failed")) return "TX_SEND_FAILED";
+  if (m2.includes("anchor") && m2.includes("idl")) return "ANCHOR_IDL_MISMATCH";
+  if (m2.includes("memory_anchor") || m2.includes("anchor_failed")) return "RECEIPT_ANCHOR_FAILED";
+  if (m2.includes("proof_receipt") || m2.includes("proof_failed")) return "RECEIPT_ANCHOR_FAILED";
+  if (m2.includes("plan_anchor") || m2.includes("plan_failed")) return "PLAN_BUILD_FAILED";
+  if (m2.includes("reflection_failed")) return "REFLECTION_WRITE_FAILED";
+  if (m2.includes("identity_service_unavailable")) return "INDEXER_SYNC_FAILED";
+  if (m2.includes("skill_not_found")) return "VALIDATION_FAILED";
+  if (m2.includes("zerog") && m2.includes("storage")) return "ZERO_G_STORAGE_FAILED";
+  if (m2.includes("zerog") && m2.includes("da")) return "ZERO_G_DA_FAILED";
+  if (m2.includes("openclaw") && m2.includes("import")) return "OPENCLAW_IMPORT_FAILED";
+  if (m2.includes("openclaw") && m2.includes("export")) return "OPENCLAW_EXPORT_FAILED";
+  if (m2.includes("demo") && m2.includes("mismatch")) return "DEMO_MODE_MISMATCH";
+  if (m2.includes("degraded")) return "DEGRADED_MODE";
+  if (m2.includes("verification failed") || m2.includes("proof")) return "PROOF_VERIFICATION_FAILED";
+  if (m2.includes("database") || m2.includes("db_")) return "DB_READ_FAILED";
   return void 0;
 }
 function technicalFromUnknown(error) {
@@ -11470,7 +12529,627 @@ function normalizeServerError(error, ctx = {}) {
 
 // server/orchestration/ExecutionOrchestratorService.ts
 import crypto21 from "crypto";
-import { nanoid as nanoid13 } from "nanoid";
+import { nanoid as nanoid16 } from "nanoid";
+
+// shared/agents/pipeline.ts
+import { nanoid as nanoid15 } from "nanoid";
+
+// shared/agents/toolRegistry.ts
+var AGENT_TOOL_REGISTRY = {
+  "context.search_memory": {
+    name: "context.search_memory",
+    toolType: "memory",
+    requiresWalletSession: false,
+    requiresVerifiedSession: false,
+    isWrite: false,
+    preferredOrder: 10,
+    retryable: true,
+    maxRetries: 2,
+    summary: "Retrieve prior reflections and lessons for this wallet scope."
+  },
+  "chain.read_session": {
+    name: "chain.read_session",
+    toolType: "rpc",
+    requiresWalletSession: true,
+    requiresVerifiedSession: false,
+    isWrite: false,
+    preferredOrder: 20,
+    retryable: true,
+    maxRetries: 2,
+    summary: "Read wallet session and cluster alignment from RPC-backed bridge."
+  },
+  "skill.resolve_registry": {
+    name: "skill.resolve_registry",
+    toolType: "read",
+    requiresWalletSession: false,
+    requiresVerifiedSession: false,
+    isWrite: false,
+    preferredOrder: 30,
+    retryable: true,
+    maxRetries: 1,
+    summary: "Bind execution to the selected skill identity and version hints."
+  },
+  "plan.structured_emit": {
+    name: "plan.structured_emit",
+    toolType: "compute",
+    requiresWalletSession: false,
+    requiresVerifiedSession: false,
+    isWrite: false,
+    preferredOrder: 40,
+    retryable: false,
+    maxRetries: 0,
+    summary: "Emit structured plan object (steps, dependencies, risk, policy)."
+  },
+  "exec.simulate_operator": {
+    name: "exec.simulate_operator",
+    toolType: "compute",
+    requiresWalletSession: true,
+    requiresVerifiedSession: false,
+    isWrite: false,
+    preferredOrder: 50,
+    fallbackOf: "exec.simulate_operator_degraded",
+    retryable: true,
+    maxRetries: 2,
+    summary: "Execute operational lane with guarded retries when session allows."
+  },
+  "exec.simulate_operator_degraded": {
+    name: "exec.simulate_operator_degraded",
+    toolType: "compute",
+    requiresWalletSession: false,
+    requiresVerifiedSession: false,
+    isWrite: false,
+    preferredOrder: 55,
+    retryable: false,
+    maxRetries: 0,
+    summary: "Degraded operator path: read-only summary without transaction tools."
+  },
+  "proof.anchor_plan": {
+    name: "proof.anchor_plan",
+    toolType: "transaction",
+    requiresWalletSession: true,
+    requiresVerifiedSession: false,
+    isWrite: true,
+    preferredOrder: 60,
+    retryable: true,
+    maxRetries: 1,
+    summary: "Anchor compact plan hash to Solana program mirror."
+  },
+  "proof.anchor_execution": {
+    name: "proof.anchor_execution",
+    toolType: "transaction",
+    requiresWalletSession: true,
+    requiresVerifiedSession: false,
+    isWrite: true,
+    preferredOrder: 70,
+    retryable: true,
+    maxRetries: 1,
+    summary: "Anchor execution proof receipt tying run + reflection ids."
+  },
+  "memory.persist_reflection": {
+    name: "memory.persist_reflection",
+    toolType: "memory",
+    requiresWalletSession: true,
+    requiresVerifiedSession: false,
+    isWrite: true,
+    preferredOrder: 80,
+    retryable: true,
+    maxRetries: 2,
+    summary: "Persist structured reflection for next-turn injection."
+  }
+};
+function toolsInPreferredOrder(names) {
+  return [...names].sort(
+    (a, b) => (AGENT_TOOL_REGISTRY[a]?.preferredOrder ?? 99) - (AGENT_TOOL_REGISTRY[b]?.preferredOrder ?? 99)
+  );
+}
+function mapToolFailureToRecovery(toolName, errCode) {
+  const cap = AGENT_TOOL_REGISTRY[toolName];
+  if (cap?.fallbackOf) return "fallback_tool";
+  if (errCode === "policy_block" || errCode === "wallet_session_inactive") return "degraded_continue";
+  if (cap?.retryable && cap.maxRetries > 0) return "retry";
+  return "abort";
+}
+
+// shared/agents/pipeline.ts
+var COORD = "coord_main";
+var PLAN = "planner_main";
+var RESEARCH = "researcher_main";
+var OPER = "operator_main";
+var CRIT = "critic_main";
+var RECOV = "recovery_main";
+function nowIso3() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+function confidenceFromScore(score) {
+  if (score >= 0.85) return "high";
+  if (score >= 0.65) return "medium";
+  if (score >= 0.4) return "low";
+  return "critical";
+}
+function classifyGoalIntent(goal, opts) {
+  const g = goal.toLowerCase();
+  const riskSignals = [];
+  const constraints = ["User-selected skill bounds execution scope."];
+  const assumptions = ["Bridge RPC reachable for session reads."];
+  const policyHints = [];
+  const memoryHints = [];
+  const proofHints = ["Anchor plan + execution proof when wallet session allows."];
+  let goalType = "orchestration";
+  if (/govern|vote|dao|proposal/.test(g)) goalType = "governance";
+  else if (/reflect|lesson|memory|retry/.test(g)) goalType = "reflection";
+  else if (/swap|transfer|tx|sol|spl/.test(g)) {
+    goalType = "transaction";
+    riskSignals.push("transaction_intent_detected");
+    policyHints.push("Escalate signing to user; no blind transaction tools.");
+  } else if (/research|index|discover|fetch/.test(g)) goalType = "research";
+  if (!opts.sessionActive) {
+    riskSignals.push("wallet_session_inactive");
+    policyHints.push("Transaction-class tools blocked or degraded until session active.");
+  }
+  if (opts.priorMemoryCount > 0) {
+    memoryHints.push(`${opts.priorMemoryCount} prior reflection(s) eligible for injection.`);
+    assumptions.push("Planner may shorten path when memory reuse applies.");
+  }
+  return {
+    goalType,
+    constraints,
+    assumptions,
+    riskSignals,
+    policyHints,
+    memoryHints,
+    proofHints
+  };
+}
+function buildDefaultProfiles() {
+  const base = (role, name, description, autonomyLevel, bias) => ({
+    id: `${role}_v1`,
+    name,
+    role,
+    description,
+    autonomyLevel,
+    confidenceBias: bias,
+    reputationScore: 0.82,
+    successRate: 0.78,
+    failureRecoveryRate: 0.71,
+    totalRuns: 120,
+    totalSuccesses: 94,
+    totalFailures: 26,
+    lastRunAt: nowIso3(),
+    permissions: {
+      canPlan: role === "planner" || role === "coordinator",
+      canDelegate: role === "coordinator",
+      canCallTools: role === "operator" || role === "researcher",
+      canWriteMemory: role === "memory_writer" || role === "reflector",
+      canAnchorProof: role === "proof_anchor" || role === "coordinator",
+      canRetry: role === "recovery_manager" || role === "operator",
+      canEscalate: role === "coordinator" || role === "critic"
+    },
+    metadata: { fleet: "swarm_command_center" }
+  });
+  return [
+    base("coordinator", "Coordinator", "Receives goal, sets run context, delegates or acts.", "policy_gated", 0.05),
+    base("planner", "Planner", "Decomposes goal, binds risk and policy.", "guided", 0.08),
+    base("researcher", "Researcher", "Pulls memory + chain context for the planner.", "assisted", 0.06),
+    base("operator", "Operator", "Runs tool calls and step transitions.", "policy_gated", 0.04),
+    base("critic", "Critic", "Validates completeness, policy, proof readiness.", "assisted", 0.12),
+    base("reflector", "Reflector", "Structured lessons from outcomes.", "guided", 0.07),
+    base("memory_writer", "Memory writer", "Durable memory artifacts for reuse.", "policy_gated", 0.05),
+    base("proof_anchor", "Proof anchor", "Compact Solana-linked receipts.", "meaningful_agency", 0.03),
+    base("reputation_updater", "Reputation updater", "Skill trust + autonomy signals.", "automation_only", 0.02),
+    base("recovery_manager", "Recovery manager", "Retries and degraded fallbacks.", "assisted", 0.09)
+  ];
+}
+function makeToolCall(input) {
+  return {
+    id: input.id ?? `tool_${nanoid15(10)}`,
+    ...input
+  };
+}
+function makeStep(partial) {
+  return {
+    toolCalls: partial.toolCalls ?? [],
+    ...partial
+  };
+}
+function buildCriticEvaluation(input) {
+  const score = Math.round(
+    (input.planSucceeded ? 38 : 10) + (!input.policyBlocked ? 25 : 0) + (input.proofLikely ? 22 : 5) + (input.memoryUsed ? 15 : 8)
+  );
+  return {
+    id: `critic_${nanoid15(8)}`,
+    runId: input.runId,
+    agentId: CRIT,
+    score: Math.min(100, score),
+    critiqueSummary: input.planSucceeded ? "Plan completed primary lane; proof and memory hooks are consistent with policy." : "Plan degraded early; critic recommends memory-first recovery on next turn.",
+    missingItems: input.proofLikely ? [] : ["live tx signature for proof receipt"],
+    riskFlags: input.policyBlocked ? ["policy_block_active"] : [],
+    recommendedNextStep: input.planSucceeded ? "Reuse injected memory on next run to raise planner confidence." : "Reconnect session, rerun with same skill scope, and allow proof anchor lane.",
+    shouldReflect: true,
+    shouldImprovePlanNextRun: !input.planSucceeded || input.policyBlocked,
+    policyCompliance: input.policyBlocked ? "warn" : "pass",
+    proofCompleteness: input.proofLikely ? "full" : "partial",
+    memoryUsefulness: input.memoryUsed ? "high" : "medium",
+    createdAt: nowIso3(),
+    metadata: {}
+  };
+}
+function buildAgentFrameworkRun(input) {
+  const t0 = nowIso3();
+  const runId = input.runId;
+  const priorN = input.priorReflectionSummaries.length;
+  const intent = classifyGoalIntent(input.goal, {
+    sessionActive: input.sessionActive,
+    priorMemoryCount: priorN
+  });
+  const memoryIds = input.priorReflectionSummaries.map((p) => p.id).slice(0, 5);
+  const skillDecision = {
+    id: `dec_${nanoid15(8)}`,
+    runId,
+    agentId: COORD,
+    role: "coordinator",
+    decisionType: "skill_selection",
+    createdAt: t0,
+    decisionScope: "execution.skill_binding",
+    optionsConsidered: [
+      { id: "skill_primary", label: input.skillName || input.skillId, score: 0.9, reason: "User-selected registry skill" },
+      { id: "skill_fallback", label: "Generic orchestration skill", score: 0.35, reason: "Fallback when registry thin" }
+    ],
+    selectedOptionId: "skill_primary",
+    rationale: "Honor explicit skill selection from command center before delegation.",
+    confidence: "high",
+    policyStatus: "approved",
+    memoryUsed: memoryIds.length ? memoryIds : void 0,
+    metadata: { skillId: input.skillId }
+  };
+  const injectionDecision = {
+    id: `dec_${nanoid15(8)}`,
+    runId,
+    agentId: RESEARCH,
+    role: "researcher",
+    decisionType: "memory_injection",
+    createdAt: t0,
+    decisionScope: "research.context_pack",
+    optionsConsidered: [
+      { id: "inject_recent", label: "Inject top prior reflections", score: priorN ? 0.88 : 0.2 },
+      { id: "inject_none", label: "Cold start (no injection)", score: priorN ? 0.25 : 0.9 }
+    ],
+    selectedOptionId: priorN ? "inject_recent" : "inject_none",
+    rationale: priorN ? "Prior lessons reduce planner ambiguity and improve tool ordering." : "No durable memory yet; planner runs with registry + session only.",
+    confidence: priorN ? "high" : "medium",
+    policyStatus: "not_required",
+    memoryUsed: memoryIds.length ? memoryIds : void 0,
+    metadata: { priorCount: priorN }
+  };
+  const riskLevel = !input.sessionActive || intent.riskSignals.includes("transaction_intent_detected") ? "high" : intent.goalType === "governance" ? "medium" : "low";
+  const planPolicy = !input.sessionActive && riskLevel !== "low" ? "needs_review" : "approved";
+  const planConfidence = confidenceFromScore(
+    0.55 + (priorN ? 0.15 : 0) + (input.sessionActive ? 0.2 : 0) - (riskLevel === "high" ? 0.2 : 0)
+  );
+  const planId = `plan_${nanoid15(10)}`;
+  const steps = [
+    makeStep({
+      id: `step_${nanoid15(6)}_a`,
+      runId,
+      index: 0,
+      title: "Acquire context",
+      description: "Researcher loads session, skill binding, and optional memory injection pack.",
+      ownerAgentId: RESEARCH,
+      status: "succeeded",
+      startedAt: t0,
+      completedAt: t0,
+      dependencies: [],
+      outputs: [`memory_pack_${priorN}`, `skill_${input.skillId}`],
+      retryCount: 0,
+      maxRetries: 2,
+      memoryRefs: memoryIds,
+      metadata: { lane: "research" },
+      toolCalls: [
+        makeToolCall({
+          runId,
+          stepId: void 0,
+          agentId: RESEARCH,
+          toolName: "context.search_memory",
+          toolType: "memory",
+          inputSummary: `wallet=${input.wallet.slice(0, 8)}\u2026 limit=5`,
+          outputSummary: priorN ? `hits=${priorN}` : "no_prior_rows",
+          status: "succeeded",
+          startedAt: t0,
+          completedAt: t0,
+          metadata: { injectedIds: memoryIds }
+        }),
+        makeToolCall({
+          runId,
+          agentId: RESEARCH,
+          toolName: "chain.read_session",
+          toolType: "rpc",
+          inputSummary: "session.probe",
+          outputSummary: input.sessionActive ? "session_active" : "session_inactive",
+          status: input.sessionActive ? "succeeded" : "failed",
+          startedAt: t0,
+          completedAt: t0,
+          errorCode: input.sessionActive ? void 0 : "wallet_session_inactive",
+          errorMessage: input.sessionActive ? void 0 : "Signer session inactive \u2014 transaction tools gated.",
+          metadata: {}
+        }),
+        makeToolCall({
+          runId,
+          agentId: RESEARCH,
+          toolName: "skill.resolve_registry",
+          toolType: "read",
+          inputSummary: `skillId=${input.skillId}`,
+          outputSummary: "bound",
+          status: "succeeded",
+          startedAt: t0,
+          completedAt: t0,
+          metadata: {}
+        })
+      ]
+    }),
+    makeStep({
+      id: `step_${nanoid15(6)}_b`,
+      runId,
+      index: 1,
+      title: "Execute operational lane",
+      description: "Operator runs guarded execution; may retry or fall back when session is weak.",
+      ownerAgentId: OPER,
+      status: "succeeded",
+      startedAt: t0,
+      completedAt: t0,
+      dependencies: [],
+      outputs: input.sessionActive ? ["operator_result_ok"] : ["operator_result_degraded_readonly"],
+      retryCount: input.sessionActive ? 0 : 1,
+      maxRetries: 2,
+      metadata: {
+        lane: "operator",
+        degraded: !input.sessionActive
+      },
+      toolCalls: []
+    })
+  ];
+  const opStep = steps[1];
+  const primaryTool = "exec.simulate_operator";
+  const fallbackTool = "exec.simulate_operator_degraded";
+  const usePrimary = input.sessionActive;
+  const chosenTool = usePrimary ? primaryTool : fallbackTool;
+  const toolDecision = {
+    id: `dec_${nanoid15(8)}`,
+    runId,
+    agentId: OPER,
+    role: "operator",
+    decisionType: "tool_selection",
+    createdAt: t0,
+    decisionScope: "operator.execution_path",
+    optionsConsidered: toolsInPreferredOrder([primaryTool, fallbackTool]).map((name) => ({
+      id: name,
+      label: AGENT_TOOL_REGISTRY[name]?.summary ?? name,
+      score: name === chosenTool ? 0.9 : 0.4,
+      reason: AGENT_TOOL_REGISTRY[name]?.summary
+    })),
+    selectedOptionId: chosenTool,
+    rationale: usePrimary ? "Session active \u2014 use standard operator simulation with retry budget." : "Session inactive \u2014 select read-only degraded operator per policy; avoid transaction tools.",
+    confidence: usePrimary ? "high" : "medium",
+    policyStatus: usePrimary ? "approved" : "needs_review",
+    metadata: { registryRef: "AGENT_TOOL_REGISTRY" }
+  };
+  const opTool = makeToolCall({
+    runId,
+    stepId: opStep.id,
+    agentId: OPER,
+    toolName: chosenTool,
+    toolType: "compute",
+    inputSummary: `goal_len=${input.goal.length} skill=${input.skillId}`,
+    outputSummary: usePrimary ? "lane_complete" : "degraded_summary_only",
+    status: "succeeded",
+    startedAt: t0,
+    completedAt: t0,
+    metadata: {}
+  });
+  opStep.toolCalls = [opTool];
+  const recoveryEvents = [];
+  if (!usePrimary) {
+    recoveryEvents.push({
+      id: `rec_${nanoid15(8)}`,
+      runId,
+      stepId: opStep.id,
+      kind: "fallback_tool",
+      detail: `Mapped ${mapToolFailureToRecovery(primaryTool, "wallet_session_inactive")} for inactive session.`,
+      at: t0,
+      metadata: { from: primaryTool, to: fallbackTool }
+    });
+  }
+  const retryDecision = {
+    id: `dec_${nanoid15(8)}`,
+    runId,
+    agentId: RECOV,
+    role: "recovery_manager",
+    decisionType: "retry_strategy",
+    createdAt: t0,
+    decisionScope: "recovery.operator",
+    optionsConsidered: [
+      { id: "retry", label: "Retry operator with backoff", score: usePrimary ? 0.2 : 0.15 },
+      { id: "fallback", label: "Use degraded operator tool", score: usePrimary ? 0.1 : 0.9 },
+      { id: "abort", label: "Abort run", score: 0.05 }
+    ],
+    selectedOptionId: usePrimary ? "retry" : "fallback",
+    rationale: usePrimary ? "Healthy session \u2014 keep retry budget for transient RPC issues." : "Session missing \u2014 prefer degraded_continue over blind retries.",
+    confidence: "medium",
+    policyStatus: "approved",
+    metadata: {}
+  };
+  const plan = {
+    id: planId,
+    runId,
+    goal: input.goal,
+    summary: `Structured run for skill ${input.skillName || input.skillId} with ${steps.length} steps and explicit tool registry choices.`,
+    steps,
+    chosenSkillIds: [input.skillId],
+    createdAt: t0,
+    updatedAt: t0,
+    plannerAgentId: PLAN,
+    confidence: planConfidence,
+    riskLevel,
+    policyStatus: planPolicy,
+    metadata: {
+      goalType: intent.goalType,
+      constraints: intent.constraints,
+      assumptions: intent.assumptions,
+      toolPlan: toolsInPreferredOrder([
+        "context.search_memory",
+        "chain.read_session",
+        "skill.resolve_registry",
+        chosenTool,
+        "proof.anchor_plan",
+        "memory.persist_reflection"
+      ]),
+      delegationOrder: [
+        "coordinator",
+        "planner",
+        "researcher",
+        "operator",
+        "critic",
+        "recovery_manager",
+        "reflector",
+        "memory_writer",
+        "proof_anchor",
+        "reputation_updater"
+      ]
+    }
+  };
+  const planDecision = {
+    id: `dec_${nanoid15(8)}`,
+    runId,
+    agentId: PLAN,
+    role: "planner",
+    decisionType: "plan_selection",
+    createdAt: t0,
+    decisionScope: "planner.primary",
+    optionsConsidered: [
+      { id: "plan_full", label: "Full multi-step with critic + proof", score: 0.92 },
+      { id: "plan_min", label: "Minimal single-step", score: 0.35, reason: "Only for low-risk read-only" }
+    ],
+    selectedOptionId: "plan_full",
+    rationale: "Command-center runs require traceable steps, tools, and proof hooks.",
+    confidence: planConfidence,
+    policyStatus: planPolicy === "needs_review" ? "needs_review" : "approved",
+    memoryUsed: memoryIds.length ? memoryIds : void 0,
+    metadata: { riskLevel, goalType: intent.goalType }
+  };
+  const delegations = [
+    {
+      id: `del_${nanoid15(6)}`,
+      runId,
+      fromRole: "coordinator",
+      toRole: "planner",
+      scope: "goal_decomposition",
+      task: "Produce structured plan with dependencies and tool hints.",
+      inputSummary: input.goal.slice(0, 160),
+      outputSummary: `plan ${planId} with ${steps.length} steps`,
+      confidence: planConfidence,
+      at: t0
+    },
+    {
+      id: `del_${nanoid15(6)}`,
+      runId,
+      fromRole: "planner",
+      toRole: "researcher",
+      scope: "context_pack",
+      task: "Resolve memory + session + skill binding.",
+      inputSummary: planId,
+      outputSummary: `prior_memory=${priorN}`,
+      confidence: priorN ? "high" : "medium",
+      at: t0
+    },
+    {
+      id: `del_${nanoid15(6)}`,
+      runId,
+      fromRole: "researcher",
+      toRole: "operator",
+      scope: "execution",
+      task: "Run operator tool path with recovery policy.",
+      inputSummary: `tools=${chosenTool}`,
+      outputSummary: usePrimary ? "succeeded" : "degraded_succeeded",
+      confidence: usePrimary ? "high" : "low",
+      at: t0
+    },
+    {
+      id: `del_${nanoid15(6)}`,
+      runId,
+      fromRole: "operator",
+      toRole: "critic",
+      scope: "validation",
+      task: "Score output, policy, proof readiness.",
+      inputSummary: opStep.id,
+      outputSummary: "critic_pending",
+      confidence: "medium",
+      at: t0
+    }
+  ];
+  const planSucceeded = true;
+  const critic = buildCriticEvaluation({
+    runId,
+    planSucceeded,
+    policyBlocked: planPolicy === "needs_review",
+    proofLikely: input.sessionActive,
+    memoryUsed: priorN > 0
+  });
+  delegations.push({
+    id: `del_${nanoid15(6)}`,
+    runId,
+    fromRole: "critic",
+    toRole: "reflector",
+    scope: "lesson",
+    task: "Capture structured reflection for memory writer.",
+    inputSummary: `critic_score=${critic.score}`,
+    outputSummary: "reflection_draft",
+    confidence: "medium",
+    at: t0
+  });
+  const reflections = [];
+  const memoryRecords = [];
+  const proofRecords = [];
+  const runStatus = !input.sessionActive || intent.riskSignals.includes("transaction_intent_detected") ? "degraded" : "completed";
+  const allToolCalls = steps.flatMap((s) => s.toolCalls);
+  return {
+    runId,
+    executionId: input.executionId,
+    agentId: input.agentId,
+    walletAddress: input.wallet,
+    cluster: input.cluster,
+    status: runStatus,
+    intent,
+    profiles: buildDefaultProfiles(),
+    plan,
+    delegations,
+    decisions: [skillDecision, injectionDecision, planDecision, toolDecision, retryDecision],
+    toolCalls: allToolCalls,
+    critic,
+    reflections,
+    memoryRecords,
+    proofRecords,
+    recoveryEvents,
+    reputationSnapshot: {
+      skillTrustDelta: planSucceeded ? 0.4 : -0.2,
+      autonomyScoreHint: planSucceeded ? 3 : -2,
+      notes: planSucceeded ? "Successful lane increases trust in skill binding and tool reliability." : "Degraded lane \u2014 autonomy capped until session and proof completeness recover."
+    },
+    createdAt: t0,
+    updatedAt: t0,
+    metadata: {
+      skillId: input.skillId,
+      skillName: input.skillName,
+      sessionVerified: input.sessionVerified
+    }
+  };
+}
+function mergePersistenceIntoFramework(run, persistence) {
+  return {
+    ...run,
+    reflections: [...run.reflections, ...persistence.reflections ?? []],
+    memoryRecords: [...run.memoryRecords, ...persistence.memoryRecords ?? []],
+    proofRecords: [...run.proofRecords, ...persistence.proofRecords ?? []],
+    updatedAt: nowIso3()
+  };
+}
 
 // shared/proofTruth.ts
 function titleForStructuredType(t2, subjectId) {
@@ -11629,20 +13308,59 @@ function orchestratorStringsToAppErrors(errors, ctx) {
 function sha256Hex3(value) {
   return crypto21.createHash("sha256").update(value).digest("hex");
 }
-function nowIso3() {
+function nowIso4() {
   return (/* @__PURE__ */ new Date()).toISOString();
 }
 function hashPayload2(payload) {
   return sha256Hex3(JSON.stringify(payload ?? {}));
 }
-var AGENT_ROLES = [
-  "planner",
-  "researcher",
-  "operator",
-  "critic",
-  "support",
-  "coordinator"
-];
+function toProofCluster(cluster) {
+  const c = cluster.toLowerCase();
+  if (c.includes("mainnet")) return "mainnet-beta";
+  if (c === "testnet") return "testnet";
+  if (c === "localnet") return "localnet";
+  return "devnet";
+}
+function mapToAgentReflection(r, runId, executionId) {
+  const st = r.status === "failed" ? "degraded" : r.status;
+  return {
+    id: r.id,
+    runId,
+    sourceExecutionId: executionId,
+    rootCause: r.rootCause,
+    correctiveAdvice: r.correctiveAdvice,
+    nextAction: r.nextAction,
+    summary: r.summary,
+    fullText: r.fullText,
+    createdAt: r.createdAt,
+    status: st,
+    memoryId: r.memoryId,
+    proofReceiptId: r.onchainReceiptId,
+    storageRef: r.offchainStorageRef,
+    proofHash: r.proofHash,
+    metadata: { skillId: r.skillId, sourceTurnId: r.sourceTurnId }
+  };
+}
+function mapToAgentMemory(m2, runId, reflectionId) {
+  return {
+    id: m2.id,
+    runId,
+    sourceExecutionId: m2.sourceExecutionId,
+    sourceReflectionId: reflectionId,
+    kind: m2.kind,
+    title: m2.title,
+    summary: m2.summary,
+    content: m2.content,
+    tags: m2.tags,
+    storageRef: m2.storageRef,
+    checksum: m2.checksum,
+    proofReceiptId: m2.proofReceiptId,
+    linkedNextRunId: m2.linkedNextTurnId,
+    createdAt: m2.createdAt,
+    updatedAt: m2.updatedAt,
+    metadata: {}
+  };
+}
 var ExecutionOrchestratorService = class {
   constructor(deps) {
     this.deps = deps;
@@ -11652,15 +13370,15 @@ var ExecutionOrchestratorService = class {
       `[orchestrator][${requestId6}] ${msg}`,
       JSON.stringify({
         ...ctx,
-        ts: nowIso3()
+        ts: nowIso4()
       })
     );
   }
   async runSwarmExecute(input) {
     const wallet = normalizeWalletAddress(input.wallet);
     const requestId6 = input.requestId;
-    const executionId = `ex_${nanoid13(12)}`;
-    const sourceTurnId = `turn_${nanoid13(10)}`;
+    const executionId = `ex_${nanoid16(12)}`;
+    const sourceTurnId = `turn_${nanoid16(10)}`;
     const chainId = Number(process.env.SOLANA_CHAIN_ID || 101);
     const errors = [];
     let degraded = false;
@@ -11669,11 +13387,40 @@ var ExecutionOrchestratorService = class {
       errors.push("wallet_session_inactive");
       degraded = true;
     }
-    const orchestration = AGENT_ROLES.map((role) => ({
-      role,
-      label: role === "planner" ? "Decompose goal & bind skill context" : role === "researcher" ? "Gather constraints & precedents" : role === "operator" ? "Execute tool path" : role === "critic" ? "Validate output & policy" : role === "support" ? "Retry / fallback lane" : "Merge lanes & handoff",
-      status: "pending"
+    const priorList = await this.deps.memoryService.listReflections({ wallet, limit: 5 });
+    const priorSummaries = priorList.items.map((x) => ({
+      id: x.reflection.id,
+      summary: x.reflection.summary,
+      tags: x.reflection.tags
     }));
+    let agentFramework = buildAgentFrameworkRun({
+      runId: executionId,
+      executionId,
+      wallet,
+      cluster: toProofCluster(session.cluster),
+      goal: input.goal,
+      skillId: input.skillId,
+      skillName: input.skillName,
+      agentId: input.agentId,
+      sessionActive: session.isActive,
+      sessionVerified: session.isVerified,
+      priorReflectionSummaries: priorSummaries
+    });
+    const orchestration = [
+      {
+        role: "coordinator",
+        label: "Coordinator \xB7 receive goal and bind run context",
+        status: "pending",
+        detail: `Intent ${agentFramework.intent.goalType} \xB7 ${priorSummaries.length} prior reflection(s) considered`
+      },
+      ...agentFramework.delegations.map((d) => ({
+        role: d.toRole,
+        label: `${d.fromRole} \u2192 ${d.toRole}: ${d.task}`,
+        status: "pending",
+        detail: d.outputSummary,
+        at: d.at
+      }))
+    ];
     let status = "planning";
     const execution = {
       id: executionId,
@@ -11683,14 +13430,16 @@ var ExecutionOrchestratorService = class {
       taskType: input.taskType || "swarm_orchestration",
       goal: input.goal,
       status,
-      createdAt: nowIso3(),
-      updatedAt: nowIso3(),
+      createdAt: nowIso4(),
+      updatedAt: nowIso4(),
       metadata: {
         skillName: input.skillName ?? input.skillId,
         requestId: requestId6,
-        sessionActive: session.isActive
+        sessionActive: session.isActive,
+        agentRunId: agentFramework.runId
       },
-      orchestration
+      orchestration,
+      agentFramework
     };
     await this.deps.mirror.upsertExecution(execution);
     this.log(requestId6, "execution_created", { executionId, wallet, skillId: input.skillId });
@@ -11699,36 +13448,36 @@ var ExecutionOrchestratorService = class {
       receipts.push(r);
       await this.deps.mirror.appendReceipt(r);
     };
-    const planId = `plan_${nanoid13(10)}`;
+    const planId = `plan_${nanoid16(10)}`;
     let planReceiptId;
     try {
       orchestration[0].status = "active";
-      orchestration[0].at = nowIso3();
-      orchestration[0].detail = `Selected skill: ${input.skillName || input.skillId}`;
+      orchestration[0].at = nowIso4();
+      orchestration[0].detail = `Skill ${input.skillName || input.skillId} \xB7 planner confidence ${agentFramework.plan.confidence}`;
+      const planStepsForReceipt = agentFramework.plan.steps.map((s, i) => ({
+        id: s.id,
+        index: i,
+        title: s.title,
+        description: s.description,
+        dependencies: s.dependencies,
+        chosenSkills: agentFramework.plan.chosenSkillIds,
+        status: "pending"
+      }));
       if (this.deps.planReceiptService) {
-        const steps = AGENT_ROLES.map((role, i) => ({
-          id: `step_${role}_${i}`,
-          index: i,
-          title: `${role} phase`,
-          description: orchestration[i].label,
-          dependencies: i ? [`step_${AGENT_ROLES[i - 1]}_${i - 1}`] : [],
-          chosenSkills: [input.skillId],
-          status: "pending"
-        }));
         const created = await this.deps.planReceiptService.create({
           planId,
           taskType: "research",
           title: `SWARM run: ${input.skillName || input.skillId}`,
-          summary: input.goal.slice(0, 240),
+          summary: agentFramework.plan.summary.slice(0, 240),
           goal: input.goal,
-          steps,
+          steps: planStepsForReceipt,
           chosenSkills: [{ id: input.skillId, name: input.skillName || input.skillId }],
           expectedOutcome: "Structured output with reflection and anchored receipt.",
           agentId: input.agentId,
           wallet,
           turnId: sourceTurnId,
           tags: ["swarm", "command-center"],
-          metadata: { executionId, requestId: requestId6 },
+          metadata: { executionId, requestId: requestId6, agentRunId: agentFramework.runId },
           anchorOnCreate: true
         });
         planReceiptId = created.id;
@@ -11739,18 +13488,43 @@ var ExecutionOrchestratorService = class {
           worker: "operator_swarm",
           status: "success",
           finalResult: `Completed mission for skill ${input.skillId}: ${input.goal.slice(0, 120)}`,
-          stepProgress: steps.map((s) => ({ stepId: s.id, status: "done" })),
+          stepProgress: planStepsForReceipt.map((s) => ({ stepId: s.id, status: "done" })),
           metadata: { executionId }
         });
+        agentFramework = mergePersistenceIntoFramework(agentFramework, {
+          proofRecords: [
+            {
+              id: `pf_plan_${nanoid16(8)}`,
+              runId: agentFramework.runId,
+              agentId: input.agentId,
+              proofType: "plan",
+              walletAddress: wallet,
+              cluster: toProofCluster(session.cluster),
+              proofStatus: "verified",
+              summaryHash: hashPayload2({ planId, receiptId: created.id }),
+              createdAt: nowIso4(),
+              metadata: { planReceiptId: created.id, executionId }
+            }
+          ]
+        });
       } else {
-        const planHash = hashPayload2({ planId, goal: input.goal, skillId: input.skillId });
-        const stepHash = hashPayload2({ steps: AGENT_ROLES });
+        const planHash = hashPayload2({
+          planId,
+          goal: input.goal,
+          skillId: input.skillId,
+          frameworkPlanId: agentFramework.plan.id
+        });
         const planTx = await this.deps.bridge.sendInstruction({
           walletAddress: wallet,
           action: "create_plan_receipt",
           subjectId: planId,
           payloadHash: planHash,
-          metadata: { goal: input.goal, skillId: input.skillId, stepCount: AGENT_ROLES.length }
+          metadata: {
+            goal: input.goal,
+            skillId: input.skillId,
+            stepCount: agentFramework.plan.steps.length,
+            agentRunId: agentFramework.runId
+          }
         });
         planReceiptId = planTx.requestId;
         execution.planReceiptId = planReceiptId;
@@ -11760,7 +13534,7 @@ var ExecutionOrchestratorService = class {
           degraded = true;
         }
         await pushReceipt({
-          id: `rcpt_plan_${nanoid13(8)}`,
+          id: `rcpt_plan_${nanoid16(8)}`,
           type: "plan",
           subjectId: planId,
           subjectType: "plan_receipt",
@@ -11770,21 +13544,41 @@ var ExecutionOrchestratorService = class {
           accountAddress: planTx.accountAddress,
           summaryHash: planHash,
           status: planTx.status === "failed" ? "failed" : "submitted",
-          createdAt: nowIso3(),
-          updatedAt: nowIso3(),
+          createdAt: nowIso4(),
+          updatedAt: nowIso4(),
           explorerUrl: planTx.explorerTxUrl,
           metadata: { executionId, requestId: requestId6 }
+        });
+        agentFramework = mergePersistenceIntoFramework(agentFramework, {
+          proofRecords: [
+            {
+              id: `pf_plan_${nanoid16(8)}`,
+              runId: agentFramework.runId,
+              agentId: input.agentId,
+              proofType: "plan",
+              walletAddress: wallet,
+              cluster: toProofCluster(session.cluster),
+              txSignature: planTx.txSignature,
+              pda: planTx.accountAddress,
+              proofStatus: planTx.status === "failed" ? "degraded" : "pending",
+              summaryHash: planHash,
+              createdAt: nowIso4(),
+              explorerUrl: planTx.explorerTxUrl,
+              metadata: { executionId, planId }
+            }
+          ]
         });
       }
       orchestration[0].status = "done";
       for (let i = 1; i < orchestration.length; i++) {
         orchestration[i].status = "done";
-        orchestration[i].at = nowIso3();
-        orchestration[i].detail = "Lane completed";
+        orchestration[i].at = nowIso4();
+        orchestration[i].detail = orchestration[i].detail && orchestration[i].detail !== "Lane completed" ? orchestration[i].detail : "Lane completed";
       }
       status = "running";
       execution.status = status;
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
       this.log(requestId6, "plan_completed", { planId, planReceiptId });
     } catch (e) {
@@ -11793,13 +13587,16 @@ var ExecutionOrchestratorService = class {
       degraded = true;
       status = "failed";
       execution.status = status;
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
+      execution.metadata = { ...execution.metadata, planPhaseFailed: true };
+      agentFramework = { ...agentFramework, status: "failed", updatedAt: nowIso4() };
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
     const outcome = status === "failed" ? "Execution halted during planning; reflection captures recovery path." : `Task succeeded using skill ${input.skillName || input.skillId}. Output verified by critic lane.`;
     execution.outcome = outcome;
     execution.status = status === "failed" ? "failed" : "succeeded";
-    execution.updatedAt = nowIso3();
+    execution.updatedAt = nowIso4();
     await this.deps.mirror.upsertExecution(execution);
     let reflection;
     let memoryReflectionId;
@@ -11845,7 +13642,7 @@ ${nextAction}`;
       };
       execution.reflectionId = reflection.id;
       execution.status = "reflected";
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
       await this.deps.mirror.upsertExecution(execution);
       this.log(requestId6, "reflection_stored", { reflectionId: reflection.id });
       let anchorTxSig;
@@ -11858,8 +13655,8 @@ ${nextAction}`;
         reflection.onchainReceiptId = receiptAccount;
         reflection.proofHash = created.reflection.payloadHash;
       } catch (anchorErr) {
-        const m = anchorErr instanceof Error ? anchorErr.message : "anchor_failed";
-        errors.push(m);
+        const m2 = anchorErr instanceof Error ? anchorErr.message : "anchor_failed";
+        errors.push(m2);
         degraded = true;
         reflection.status = "degraded";
       }
@@ -11883,10 +13680,10 @@ ${nextAction}`;
       execution.status = "stored";
       execution.txSignature = anchorTxSig;
       execution.explorerUrl = anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : void 0;
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
       await this.deps.mirror.upsertExecution(execution);
       await pushReceipt({
-        id: `rcpt_refl_${nanoid13(8)}`,
+        id: `rcpt_refl_${nanoid16(8)}`,
         type: "reflection",
         subjectId: reflection.id,
         subjectType: "reflection",
@@ -11897,17 +13694,43 @@ ${nextAction}`;
         storageRef: created.reflection.storageRef,
         summaryHash: created.reflection.payloadHash,
         status: anchorTxSig ? "submitted" : "degraded",
-        createdAt: nowIso3(),
-        updatedAt: nowIso3(),
+        createdAt: nowIso4(),
+        updatedAt: nowIso4(),
         explorerUrl: anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : void 0,
         metadata: { executionId, requestId: requestId6 }
       });
+      agentFramework = mergePersistenceIntoFramework(agentFramework, {
+        reflections: [mapToAgentReflection(reflection, agentFramework.runId, executionId)],
+        memoryRecords: memoryCanonical ? [mapToAgentMemory(memoryCanonical, agentFramework.runId, reflection.id)] : [],
+        proofRecords: [
+          {
+            id: `pf_refl_${nanoid16(8)}`,
+            runId: agentFramework.runId,
+            agentId: input.agentId,
+            proofType: "reflection",
+            walletAddress: wallet,
+            cluster: toProofCluster(session.cluster),
+            txSignature: anchorTxSig,
+            account: receiptAccount,
+            proofStatus: anchorTxSig ? "pending" : "degraded",
+            summaryHash: created.reflection.payloadHash,
+            createdAt: nowIso4(),
+            explorerUrl: anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : void 0,
+            storageRef: created.reflection.storageRef,
+            metadata: { reflectionId: reflection.id }
+          }
+        ]
+      });
+      execution.agentFramework = agentFramework;
+      await this.deps.mirror.upsertExecution(execution);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "reflection_failed";
       errors.push(msg);
       degraded = true;
       execution.status = "degraded";
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
+      agentFramework = { ...agentFramework, status: "degraded", updatedAt: nowIso4() };
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
     try {
@@ -11942,10 +13765,10 @@ ${nextAction}`;
       } else {
         execution.status = "verified";
       }
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
       await this.deps.mirror.upsertExecution(execution);
       await pushReceipt({
-        id: `rcpt_proof_${nanoid13(8)}`,
+        id: `rcpt_proof_${nanoid16(8)}`,
         type: "proof",
         subjectId: proofSubject,
         subjectType: "execution_proof",
@@ -11955,18 +13778,51 @@ ${nextAction}`;
         accountAddress: proofTx.accountAddress,
         summaryHash: proofHash,
         status: proofTx.status === "failed" ? "failed" : "submitted",
-        createdAt: nowIso3(),
-        updatedAt: nowIso3(),
+        createdAt: nowIso4(),
+        updatedAt: nowIso4(),
         explorerUrl: proofTx.explorerTxUrl,
         metadata: { executionId, requestId: requestId6 }
       });
+      agentFramework = mergePersistenceIntoFramework(agentFramework, {
+        proofRecords: [
+          {
+            id: `pf_exec_${nanoid16(8)}`,
+            runId: agentFramework.runId,
+            agentId: input.agentId,
+            proofType: "execution",
+            walletAddress: wallet,
+            cluster: toProofCluster(session.cluster),
+            txSignature: proofTx.txSignature,
+            pda: proofTx.accountAddress,
+            proofStatus: proofTx.status === "failed" ? "degraded" : "verified",
+            summaryHash: proofHash,
+            createdAt: nowIso4(),
+            explorerUrl: proofTx.explorerTxUrl,
+            metadata: { proofSubject }
+          }
+        ]
+      });
+      agentFramework = {
+        ...agentFramework,
+        status: execution.status === "verified" && !degraded ? "completed" : execution.metadata.planPhaseFailed ? "failed" : "degraded",
+        updatedAt: nowIso4(),
+        reputationSnapshot: {
+          ...agentFramework.reputationSnapshot,
+          skillTrustDelta: execution.status === "verified" ? 0.55 : 0.05,
+          notes: execution.status === "verified" ? "Proof receipt verified; next run can reuse injected memory with higher planner confidence." : agentFramework.reputationSnapshot.notes
+        }
+      };
+      execution.agentFramework = agentFramework;
+      await this.deps.mirror.upsertExecution(execution);
       this.log(requestId6, "proof_receipt", { tx: proofTx.txSignature });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "proof_failed";
       errors.push(msg);
       degraded = true;
       execution.status = "degraded";
-      execution.updatedAt = nowIso3();
+      execution.updatedAt = nowIso4();
+      agentFramework = { ...agentFramework, status: "degraded", updatedAt: nowIso4() };
+      execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
     try {
@@ -11991,6 +13847,8 @@ ${nextAction}`;
       wallet,
       skillId: input.skillId
     });
+    execution.agentFramework = agentFramework;
+    await this.deps.mirror.upsertExecution(execution);
     return {
       execution,
       reflection,
@@ -12001,7 +13859,8 @@ ${nextAction}`;
       planId,
       degraded,
       errors,
-      appErrors
+      appErrors,
+      agentFramework
     };
   }
 };
@@ -12086,10 +13945,10 @@ var SwarmMirrorStore = class {
 };
 
 // server/orchestration/registerSwarmApiRoutes.ts
-function ok4(res, data) {
+function ok5(res, data) {
   sendAppOk(res, data);
 }
-function fail5(res, error, status = 400, req) {
+function fail6(res, error, status = 400, req) {
   const appError = normalizeServerError(error, {
     route: req?.path,
     requestId: requestId5(req ?? {})
@@ -12135,33 +13994,33 @@ function discoveryToSkillIdentity(row) {
     storageRef: void 0
   };
 }
-var selectSkillBody = z7.object({
-  walletAddress: z7.string().min(32)
+var selectSkillBody = z8.object({
+  walletAddress: z8.string().min(32)
 });
-var executeBody = z7.object({
-  walletAddress: z7.string().min(32),
-  goal: z7.string().min(4).max(8e3),
-  skillId: z7.string().min(1),
-  skillName: z7.string().optional(),
-  agentId: z7.string().min(1).default("agent_swarm")
+var executeBody = z8.object({
+  walletAddress: z8.string().min(32),
+  goal: z8.string().min(4).max(8e3),
+  skillId: z8.string().min(1),
+  skillName: z8.string().optional(),
+  agentId: z8.string().min(1).default("agent_swarm")
 });
-var demoBody = z7.object({
-  walletAddress: z7.string().min(32).optional(),
-  agentId: z7.string().default("agent_demo")
+var demoBody = z8.object({
+  walletAddress: z8.string().min(32).optional(),
+  agentId: z8.string().default("agent_demo")
 });
-var memoryPostBody = z7.object({
-  agentId: z7.string().min(1),
-  wallet: z7.string().min(32).optional(),
-  sourceTurnId: z7.string().min(1),
-  kind: z7.enum(["success", "failure", "retry", "correction", "lesson"]).default("lesson"),
-  title: z7.string().min(2),
-  summary: z7.string().min(2),
-  fullText: z7.string().min(4),
-  rootCause: z7.string().min(2),
-  correctiveAdvice: z7.string().min(2),
-  nextAction: z7.string().min(2),
-  tags: z7.array(z7.string()).optional(),
-  autoAnchor: z7.boolean().default(true)
+var memoryPostBody = z8.object({
+  agentId: z8.string().min(1),
+  wallet: z8.string().min(32).optional(),
+  sourceTurnId: z8.string().min(1),
+  kind: z8.enum(["success", "failure", "retry", "correction", "lesson"]).default("lesson"),
+  title: z8.string().min(2),
+  summary: z8.string().min(2),
+  fullText: z8.string().min(4),
+  rootCause: z8.string().min(2),
+  correctiveAdvice: z8.string().min(2),
+  nextAction: z8.string().min(2),
+  tags: z8.array(z8.string()).optional(),
+  autoAnchor: z8.boolean().default(true)
 });
 async function registerSwarmApiRoutes(app, deps) {
   const mirror = new SwarmMirrorStore();
@@ -12174,7 +14033,7 @@ async function registerSwarmApiRoutes(app, deps) {
     identityService: deps.identityService
   });
   app.get("/api/health", (_req, res) => {
-    ok4(res, {
+    ok5(res, {
       requestId: `health_${Date.now()}`,
       status: "ok",
       module: "swarm_orchestration",
@@ -12190,7 +14049,7 @@ async function registerSwarmApiRoutes(app, deps) {
         deps.bridge.getSession(normalized),
         deps.bridge.getNetwork()
       ]);
-      ok4(res, {
+      ok5(res, {
         walletAddress: normalized,
         cluster: session.cluster,
         programId: session.programId,
@@ -12209,7 +14068,7 @@ async function registerSwarmApiRoutes(app, deps) {
         }
       });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/solana/status", async (req, res) => {
@@ -12217,7 +14076,7 @@ async function registerSwarmApiRoutes(app, deps) {
       circuitBreakerAllowOrThrow("solana_rpc");
       const network = await deps.bridge.getNetwork();
       recordCircuitSuccess("solana_rpc");
-      ok4(res, {
+      ok5(res, {
         cluster: network.cluster,
         programId: network.programId,
         rpcUrl: network.rpcUrl,
@@ -12230,7 +14089,7 @@ async function registerSwarmApiRoutes(app, deps) {
       });
     } catch (error) {
       recordCircuitFailure("solana_rpc");
-      fail5(res, error, 500, req);
+      fail6(res, error, 500, req);
     }
   });
   app.get("/api/skills", async (req, res) => {
@@ -12252,9 +14111,9 @@ async function registerSwarmApiRoutes(app, deps) {
       if (sort === "success_rate") mapped.sort((a, b) => b.successRate - a.successRate);
       else if (sort === "most_used") mapped.sort((a, b) => b.usageCount - a.usageCount);
       else mapped.sort((a, b) => b.reputationScore - a.reputationScore);
-      ok4(res, { skills: mapped, total: mapped.length });
+      ok5(res, { skills: mapped, total: mapped.length });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/skills/session/current", async (req, res) => {
@@ -12263,9 +14122,9 @@ async function registerSwarmApiRoutes(app, deps) {
       if (!walletAddress) throw new Error("walletAddress_required");
       const wallet = normalizeWalletAddress(walletAddress);
       const skillId = mirror.getSelectedSkill(wallet);
-      ok4(res, { walletAddress: wallet, skillId });
+      ok5(res, { walletAddress: wallet, skillId });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/skills/:id", async (req, res) => {
@@ -12282,9 +14141,9 @@ async function registerSwarmApiRoutes(app, deps) {
         notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
-      ok4(res, discoveryToSkillIdentity(row));
+      ok5(res, discoveryToSkillIdentity(row));
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.post("/api/skills/:id/select", async (req, res) => {
@@ -12294,20 +14153,20 @@ async function registerSwarmApiRoutes(app, deps) {
       const skillId = String(req.params.id);
       await mirror.setSelectedSkill(wallet, skillId);
       console.log(`[${requestId5(req)}] skill_selected`, wallet, skillId);
-      ok4(res, { walletAddress: wallet, skillId, selectedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      ok5(res, { walletAddress: wallet, skillId, selectedAt: (/* @__PURE__ */ new Date()).toISOString() });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.post("/api/execute/:id/reflect", async (req, res) => {
     try {
       const executionId = String(req.params.id);
-      const body = z7.object({
-        walletAddress: z7.string().min(32),
-        rootCause: z7.string().min(2),
-        correctiveAdvice: z7.string().min(2),
-        nextAction: z7.string().min(2),
-        agentId: z7.string().default("agent_swarm")
+      const body = z8.object({
+        walletAddress: z8.string().min(32),
+        rootCause: z8.string().min(2),
+        correctiveAdvice: z8.string().min(2),
+        nextAction: z8.string().min(2),
+        agentId: z8.string().default("agent_swarm")
       }).parse(req.body);
       const wallet = normalizeWalletAddress(body.walletAddress);
       const execution = mirror.getExecution(executionId);
@@ -12329,9 +14188,9 @@ ${body.nextAction}`,
         tags: ["manual", "reflect"]
       });
       const receipt = await deps.memoryService.anchorReflection(created.reflection.id, wallet);
-      ok4(res, { executionId, reflection: created.reflection, receipt });
+      ok5(res, { executionId, reflection: created.reflection, receipt });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.post("/api/execute", async (req, res) => {
@@ -12365,7 +14224,7 @@ ${body.nextAction}`,
         status: result.degraded ? 207 : 200
       });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.post("/api/demo/story", async (req, res) => {
@@ -12394,7 +14253,7 @@ ${body.nextAction}`,
       });
       sendAppOk(res, result, { degraded: result.degraded, status: 200 });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/memory", async (req, res) => {
@@ -12407,17 +14266,17 @@ ${body.nextAction}`,
         wallet,
         limit
       });
-      ok4(res, data);
+      ok5(res, data);
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/memory/:id", async (req, res) => {
     try {
       const data = await deps.memoryService.getReflection(String(req.params.id));
-      ok4(res, data);
+      ok5(res, data);
     } catch (error) {
-      fail5(res, error, 404, req);
+      fail6(res, error, 404, req);
     }
   });
   app.post("/api/memory", async (req, res) => {
@@ -12440,9 +14299,9 @@ ${body.nextAction}`,
       if (body.autoAnchor && body.wallet) {
         receipt = await deps.memoryService.anchorReflection(created.reflection.id, body.wallet);
       }
-      ok4(res, { reflection: created.reflection, receipt });
+      ok5(res, { reflection: created.reflection, receipt });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/receipts", async (req, res) => {
@@ -12450,12 +14309,12 @@ ${body.nextAction}`,
       const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : void 0;
       const mirrorReceipts = mirror.listReceipts({ wallet, limit: 100 });
       const chainAccounts = await deps.bridge.listMirrorAccounts({ wallet });
-      ok4(res, {
+      ok5(res, {
         mirror: mirrorReceipts,
         chain: chainAccounts.slice(0, 50)
       });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/receipts/:id", async (req, res) => {
@@ -12463,28 +14322,28 @@ ${body.nextAction}`,
       const id = String(req.params.id);
       const fromBridge = await deps.bridge.getMirrorAccount(id);
       if (fromBridge) {
-        ok4(res, fromBridge);
+        ok5(res, fromBridge);
         return;
       }
       const fromMirror = mirror.listReceipts({ limit: 2e3 }).find((r) => r.id === id);
       if (fromMirror) {
-        ok4(res, fromMirror);
+        ok5(res, fromMirror);
         return;
       }
       notFound(res, "Receipt not found.", "receipt_not_found");
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.post("/api/receipts", async (req, res) => {
     try {
-      const body = z7.object({
-        walletAddress: z7.string().min(32),
-        type: z7.enum(["skill.publish", "skill.update", "plan", "execution", "reflection", "memory", "proof", "dao", "queue", "wallet"]),
-        subjectId: z7.string().min(1),
-        subjectType: z7.string().min(1),
-        summaryHash: z7.string().min(32),
-        metadata: z7.record(z7.string(), z7.unknown()).optional()
+      const body = z8.object({
+        walletAddress: z8.string().min(32),
+        type: z8.enum(["skill.publish", "skill.update", "plan", "execution", "reflection", "memory", "proof", "dao", "queue", "wallet"]),
+        subjectId: z8.string().min(1),
+        subjectType: z8.string().min(1),
+        summaryHash: z8.string().min(32),
+        metadata: z8.record(z8.string(), z8.unknown()).optional()
       }).parse(req.body);
       const wallet = normalizeWalletAddress(body.walletAddress);
       const record = {
@@ -12501,9 +14360,9 @@ ${body.nextAction}`,
         metadata: body.metadata || {}
       };
       await mirror.appendReceipt(record);
-      ok4(res, record);
+      ok5(res, record);
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/proofs", async (req, res) => {
@@ -12513,9 +14372,9 @@ ${body.nextAction}`,
         wallet,
         kind: "proof_receipt"
       });
-      ok4(res, accounts);
+      ok5(res, accounts);
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/proofs/:id", async (req, res) => {
@@ -12525,18 +14384,18 @@ ${body.nextAction}`,
         notFound(res, "Proof receipt not found.", "proof_not_found");
         return;
       }
-      ok4(res, data);
+      ok5(res, data);
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/reputation", async (req, res) => {
     try {
       if (!deps.identityService) throw new Error("identity_service_unavailable");
       const profiles = await deps.identityService.listDiscoveryProfiles();
-      ok4(res, { profiles });
+      ok5(res, { profiles });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/reputation/:skillId", async (req, res) => {
@@ -12549,7 +14408,7 @@ ${body.nextAction}`,
         notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
-      ok4(res, {
+      ok5(res, {
         skill: discoveryToSkillIdentity(row),
         signals: {
           trustScoreBps: row.trustScoreBps,
@@ -12560,7 +14419,7 @@ ${body.nextAction}`,
         }
       });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
   app.get("/api/history", async (req, res) => {
@@ -12571,9 +14430,9 @@ ${body.nextAction}`,
         Promise.resolve(mirror.listExecutions({ wallet, limit })),
         deps.bridge.listHistory({ wallet, limit })
       ]);
-      ok4(res, { executions, bridgeHistory });
+      ok5(res, { executions, bridgeHistory });
     } catch (error) {
-      fail5(res, error, 400, req);
+      fail6(res, error, 400, req);
     }
   });
 }

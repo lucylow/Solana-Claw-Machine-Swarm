@@ -72,7 +72,7 @@ export function DappTopBar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b border-white/[0.06] bg-[#040508]/85 backdrop-blur-xl supports-[backdrop-filter]:bg-[#040508]/60",
+        "sticky top-0 z-40 border-b border-white/[0.06] bg-[#040508]/85 pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#040508]/60",
         className
       )}
     >

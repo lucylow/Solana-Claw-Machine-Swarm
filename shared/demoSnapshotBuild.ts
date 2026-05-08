@@ -1,5 +1,6 @@
 import {
   buildCommandTimelineSafe,
+  isStructuredReflectionControl,
   normalizeBuildCommandTimelineInput,
   type BuildCommandTimelineInput,
 } from "./commandCenterTimeline";
@@ -20,7 +21,6 @@ import type { OpenClawBridgeStatus } from "./openclaw/types";
 import type { ZeroGIntegrationStatus } from "./zerog";
 import type { ExecutionRun, StoryReflectionRecord, TraceableMemoryRecord, UnifiedStoryBeat } from "./executionStory";
 import { buildExecutionSteps, buildPlan, buildReceipts, DEMO_WALLET, getSkillById } from "./demoFixtures";
-import { isStructuredReflectionControl } from "./commandCenterTimeline";
 
 const DEMO_EXPLORER_BASE: Record<SolanaCluster, string> = {
   devnet: "https://explorer.solana.com",

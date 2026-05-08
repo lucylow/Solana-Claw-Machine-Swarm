@@ -1,169 +1,150 @@
+# CLAW_MACHINE — Solana-native agent framework
 
-# CLAW_MACHINE — Solana-Native Agent Framework
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-CLAW_MACHINE is a **Solana-native agent framework** for building autonomous, self-improving AI agents that learn from failures, coordinate through verifiable proofs, and operate inside a reputation-driven economy.
+**CLAW_MACHINE** is a Solana-oriented framework for autonomous agents that learn from outcomes, coordinate with verifiable proofs, and operate in a reputation-aware economy. Agents connect a **Solana wallet**, pick **skills** from a registry, run tasks, reflect on results, persist **memory receipts**, and anchor **proofs** on-chain—with audit trails you can open in **Solana Explorer**.
 
-Agents connect a **Solana wallet**, select a **published skill** from a reputation-weighted registry, execute tasks, reflect on outcomes, store memory as durable receipts, and anchor proofs on-chain — all with full auditability via **Solana Explorer**.
+Built for **SWARM-style** coordination on Solana:
 
-Built for the **SWARM agent economy on Solana**, CLAW_MACHINE supports:
+| Capability | What it covers |
+| ---------- | -------------- |
+| **Discovery** | Skill registries, search, filtering, ranking |
+| **Coordination** | Multi-agent orchestration and delegation |
+| **Reputation** | Usage, success, and trust-weighted signals |
+| **Proofs** | PDA-backed receipts and execution history |
 
-- **Discovery** — skill registries, search, filtering, and ranking
-- **Coordination** — multi-agent orchestration and task delegation
-- **Reputation** — usage, success, and trust-weighted scoring
-- **Proofs** — PDA-backed receipts and verifiable execution history
-
-The framework is designed to run on **devnet**, **testnet**, and **mainnet**, with:
-- **Anchor** programs
-- **Rust** backend orchestration
-- **TypeScript** backend/client glue
-- **React** frontend command center
-- optional **0G** storage / data availability sidecar for durable artifacts
+**Stack (this repo):** React 19 + Vite, Express, tRPC, Drizzle (MySQL), Anchor/Rust programs, optional **0G** storage sidecar.
 
 ---
 
-## Table of Contents
+## Table of contents
 
-- [Why CLAW_MACHINE](#why-clawmachine)
-- [Quick Start](#quick-start)
-- [Core Loop](#core-loop)
-- [Architecture Overview](#architecture-overview)
-- [System Diagrams](#system-diagrams)
-- [Core Components](#core-components)
-- [Memory and Reflection](#memory-and-reflection)
-- [Receipts and Proofs](#receipts-and-proofs)
-- [Skills and Reputation](#skills-and-reputation)
-- [On-Chain / Off-Chain Split](#on-chain--off-chain-split)
-- [0G Integration](#0g-integration)
-- [OpenClaw Compatibility](#openclaw-compatibility)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Development](#development)
-- [Deployment](#deployment)
-- [API Reference](#api-reference)
-- [Demo Scenarios](#demo-scenarios)
+- [Why CLAW_MACHINE](#why-claw_machine)
+- [Quick start](#quick-start)
+- [Demo-style flows](#demo-style-flows)
+- [More docs in this repo](#more-docs-in-this-repo)
+- [Core loop](#core-loop)
+- [Architecture](#architecture)
+- [System diagrams](#system-diagrams)
+- [Core components](#core-components)
+- [Memory, receipts, and proofs](#memory-receipts-and-proofs)
+- [On-chain / off-chain split](#on-chain--off-chain-split)
+- [0G integration](#0g-integration)
+- [OpenClaw compatibility](#openclaw-compatibility)
+- [Repository layout](#repository-layout)
+- [Scripts & development](#scripts--development)
+- [Environment](#environment)
+- [Solana programs](#solana-programs)
+- [HTTP API overview](#http-api-overview)
+- [Anchor instructions (examples)](#anchor-instructions-examples)
+- [Reputation & economy](#reputation--economy)
+- [Demo scenarios](#demo-scenarios)
 - [Customization](#customization)
+- [Performance](#performance)
 - [Contributing](#contributing)
+- [Credits](#credits)
 - [License](#license)
 
 ---
 
 ## Why CLAW_MACHINE
 
-Most AI agents are stateless chatbots with no durable memory, no provenance, and no proof trail.
+Most agents are stateless chats with no durable memory or provenance trail. CLAW_MACHINE treats agents as **persistent economic actors** with wallet-native identity, skill-based execution, structured reflection, durable memory, on-chain proof, and reputation-weighted coordination.
 
-CLAW_MACHINE changes that.
-
-It turns agents into **persistent economic actors** with:
-- **wallet-native identity**
-- **skill-based execution**
-- **structured reflection**
-- **durable memory**
-- **on-chain proof**
-- **reputation-weighted coordination**
-
-This makes the system ideal for:
-- hackathons
-- agent economies
-- protocol demos
-- verifiable AI workflows
-- SWARM-style multi-agent systems
-- Solana-native products
+Good fits: hackathons, agent economies, protocol demos, verifiable AI workflows, multi-agent SWARM experiments, and Solana-native products.
 
 ---
 
-## Quick Start
+## Quick start
 
-Install, connect a wallet, and run your first agent in minutes.
-
-```bash
-git clone <YOUR_REPO_URL>
-cd CLAW_MACHINE
-npm install
-npm run dev
-````
-
-Then:
-
-1. Connect a **Phantom** or **Backpack** wallet
-2. Browse the **skill registry**
-3. Submit a goal
-4. Watch the agent plan and execute
-5. Inspect the reflection, memory, and receipt timeline
-6. Open the receipt in **Solana Explorer**
-
-### Demo mode
-
-If you want a fast experience without live on-chain actions, use demo mode:
+From the repository root:
 
 ```bash
-npm run dev:demo
+git clone https://github.com/<your-org>/Solana-Claw-Machine-Swarm.git
+cd Solana-Claw-Machine-Swarm
+pnpm install
+pnpm dev
 ```
 
-Demo mode seeds:
+Then open the URL printed in the console (default **http://localhost:3000**; the server may pick the next free port if `3000` is busy).
 
-* wallet state
-* skills
-* plans
-* execution history
-* reflections
-* memory receipts
-* proof anchors
+1. Connect a **Phantom** or **Backpack** wallet (devnet-friendly).
+2. Browse the **skill registry** and command-center UI.
+3. Submit a goal / run execution flows as exposed in the app.
+4. Inspect reflections, memory, and the receipt timeline.
+5. Open receipts in **Solana Explorer** when live proofs are available.
+
+This monorepo serves the **Vite frontend and Express API together** in development (`pnpm dev`).
 
 ---
 
-## Core Loop
+## Demo-style flows
 
-The product loop is intentionally simple and easy to explain:
+There is no separate `dev:demo` npm script. For scripted demos and tests, the backend exposes routes such as:
+
+| Area | Example endpoints |
+| ---- | ----------------- |
+| Swarm API | `POST /api/demo/story` |
+| Plans | `POST /api/plans/demo/run` |
+| 0G | `POST /api/zerog/demo/run` |
+
+Use these when you want a deterministic narrative without full wallet flows.
+
+---
+
+## More docs in this repo
+
+| File | Topic |
+| ---- | ----- |
+| [README_SWARM.md](./README_SWARM.md) | SWARM coordination |
+| [README_SOLANA_BRIDGE.md](./README_SOLANA_BRIDGE.md) | Solana bridge |
+| [README_NFT.md](./README_NFT.md) | NFT-related pieces |
+| [README_ONCHAIN.md](./README_ONCHAIN.md) | On-chain overview |
+
+---
+
+## Core loop
 
 ```text
-Wallet Connect → Skill Discovery → Plan / Execute → Reflect → Memory Receipt → Proof Anchor → Repeat (Smarter)
+Wallet connect → Skill discovery → Plan / execute → Reflect → Memory receipt → Proof anchor → repeat (smarter)
 ```
 
-Every cycle produces:
-
-* a plan
-* an execution trace
-* a reflection
-* a memory record
-* a receipt
-* a proof
-
-That means the agent gets better over time and the proof trail stays visible.
+Each cycle can produce: a plan, an execution trace, a reflection, a memory record, a receipt, and a proof—so learning is visible and auditable.
 
 ---
 
-## Architecture Overview
+## Architecture
 
-CLAW_MACHINE uses a layered architecture:
+Layers:
 
-* **Frontend command center** — React dashboard for skills, runs, memory, receipts, and proofs
-* **Backend orchestrator** — TypeScript services that build transactions, index events, and mirror state
-* **Anchor programs** — Solana on-chain accounts and instructions for skills, receipts, memory anchors, and proof records
-* **PDAs and accounts** — deterministic identity and durable state
-* **Off-chain storage** — long-form reflections, execution narratives, and replayable artifacts
-* **Optional 0G sidecar** — durable storage and data availability for large artifacts and logs
+- **Frontend command center** — React dashboard for skills, runs, memory, receipts, proofs.
+- **Backend** — Express services: REST routes, Solana bridge, plans/memory, DAO, 0G, OpenClaw; **tRPC** at `/api/trpc`.
+- **Anchor programs** — On-chain accounts and instructions for skills, receipts, memory anchors, and related state.
+- **PDAs** — Deterministic identity and durable pointers.
+- **Off-chain storage** — Reflections, narratives, replay artifacts (plus optional **S3**-style flows via the stack).
+- **Optional 0G** — Durable large artifacts and DA-style commitments.
 
 ---
 
-## System Diagrams
+## System diagrams
 
-### 1) High-level system architecture
+### High-level architecture
 
 ```mermaid
 flowchart TD
-    A[Solana Wallet<br/>Phantom / Backpack] --> B[Backend Orchestrator<br/>TypeScript]
+    A[Solana Wallet<br/>Phantom / Backpack] --> B[Backend<br/>Express + tRPC]
     B --> C[Anchor Programs<br/>Rust / Solana]
     C --> D[PDAs & Accounts<br/>Skills / Receipts / Memory]
     B --> E[Off-chain Storage<br/>Reflections / Narratives]
     B --> F[0G Storage / DA<br/>Durable Artifacts]
     D --> G[Solana Explorer<br/>Proof Verification]
-    E --> H[React Command Center<br/>Frontend]
+    E --> H[React Command Center]
     F --> H
     G --> H
     H --> I[User Timeline<br/>Audit / Replay]
 ```
 
-### 2) Product loop diagram
+### Product loop
 
 ```mermaid
 flowchart LR
@@ -180,7 +161,7 @@ flowchart LR
     Next --> Skills
 ```
 
-### 3) Multi-agent orchestration diagram
+### Multi-agent orchestration
 
 ```mermaid
 flowchart TD
@@ -195,7 +176,7 @@ flowchart TD
     T --> S[Solana Receipt]
 ```
 
-### 4) Memory and receipt chain
+### Memory and receipt chain (sequence)
 
 ```mermaid
 sequenceDiagram
@@ -217,7 +198,7 @@ sequenceDiagram
     Backend-->>User: Show timeline, memory, receipt, proof
 ```
 
-### 5) Receipt data model
+### Receipt data model
 
 ```mermaid
 classDiagram
@@ -253,61 +234,32 @@ classDiagram
 
 ---
 
-## Core Components
+## Core components
 
-### 1. Skill Registry (PDA-backed assets)
+### 1. Skill registry (PDA-backed assets)
 
-Skills are versioned, reputational assets on Solana.
-
-Each skill includes:
-
-* deterministic identity
-* version number
-* author wallet
-* content hash
-* usage count
-* success rate
-* status
-* proof/receipt links
-
-#### Skill registry flow
+Skills are versioned, reputational assets. Typical fields include deterministic identity, version, author, content hash, usage, success signals, status, and links to proofs/receipts.
 
 ```mermaid
 flowchart LR
     Search[Search / Filter] --> Rank[Rank by Reputation]
     Rank --> Card[Skill Card]
     Card --> Select[Select Skill]
-    Select --> Invoke[CPI / Execution]
+    Select --> Invoke[Execute / CPI]
 ```
 
-#### Skill fields
+| Field | Typical role |
+| ----- | ------------- |
+| skillId / PDA | Deterministic identity |
+| version | History |
+| author | Provenance |
+| hash | Content commitment |
+| success / usage | Reputation signals |
+| tags / narrative | Discovery (often off-chain or indexed) |
 
-| Field       | Type        | On-chain? | Purpose                    |
-| ----------- | ----------- | --------- | -------------------------- |
-| skillId     | PDA         | Yes       | Deterministic identity     |
-| version     | u64         | Yes       | Version history            |
-| author      | Pubkey      | Yes       | Provenance                 |
-| hash        | [u8;32]     | Yes       | Content proof              |
-| successRate | u16         | Yes       | Reputation signal          |
-| usage       | u64         | Yes       | Popularity                 |
-| tags        | Vec<String> | Off-chain | Discovery                  |
-| narrative   | String      | Off-chain | Human-readable explanation |
+### 2. Agent orchestrator (multi-role)
 
----
-
-### 2. Agent Orchestrator (multi-role system)
-
-The agent system supports explicit roles:
-
-* Planner
-* Researcher
-* Operator
-* Critic
-* Coordinator
-* Reflector
-* Memory Writer
-
-This makes coordination visible and auditable.
+Roles include Planner, Researcher, Operator, Critic, Coordinator, Reflector, and Memory Writer—so coordination stays explicit and auditable.
 
 ```mermaid
 graph LR
@@ -322,27 +274,9 @@ graph LR
     Coordinator --> Critic
 ```
 
-#### Autonomy spectrum
+**Autonomy spectrum:** automation-only → meaningful agency → full autonomy (surfaced per run with policy and proof context).
 
-* **Automation only**
-* **Meaningful agency**
-* **Full autonomy**
-
-Each run can show its autonomy level, policy state, and proof trail.
-
----
-
-### 3. Memory & Reflection (receipt chain)
-
-Failures become structured lessons.
-
-The memory chain is:
-
-1. Task outcome
-2. Reflection
-3. Memory receipt
-4. Proof anchor
-5. Next-turn improvement
+### 3. Memory & reflection (receipt chain)
 
 ```mermaid
 flowchart TD
@@ -355,78 +289,19 @@ flowchart TD
 
 ---
 
-### 4. Proofs and Receipts
+## Memory, receipts, and proofs
 
-Receipts are compact, verifiable objects that prove important events occurred.
+Memory is modeled as a **chain of receipts**, not a hidden note.
 
-Receipts can represent:
+**Memory lifecycle:** capture → summarize → store → index → retrieve → reuse → verify.
 
-* skill publication
-* skill update
-* plan creation
-* execution
-* reflection
-* memory write
-* proof anchor
+**Reflection lifecycle:** observe outcome → root cause → corrective advice → next action → store narrative off-chain → anchor compact proof on-chain.
 
-Each receipt should include:
-
-* receipt ID
-* subject ID
-* wallet
-* timestamp
-* tx signature
-* account / PDA
-* proof state
-* explorer link
-
----
-
-## Memory and Reflection
-
-CLAW_MACHINE treats memory as a **chain of receipts**, not a hidden note.
-
-### Memory lifecycle
-
-* captured
-* summarized
-* stored
-* indexed
-* retrieved
-* reused
-* verified
-
-### Reflection lifecycle
-
-* failure or success observed
-* root cause identified
-* corrective advice generated
-* next action proposed
-* narrative stored off-chain
-* compact proof anchored on-chain
-
-This allows the system to learn over time while keeping the proof trail auditable.
-
----
-
-## Receipts and Proofs
-
-Receipts are the backbone of the framework.
-
-A receipt should answer:
-
-* what happened
-* who initiated it
-* what was proven
-* where it was stored
-* where it can be verified
-
-### Receipt structure
+**Receipts** answer: what happened, who initiated it, what was proven, where it lives, and where to verify (e.g. Explorer, storage ref, DA root).
 
 ```text
 Receipt
-├── title
-├── summary
+├── title / summary
 ├── subject
 ├── wallet
 ├── tx signature
@@ -434,82 +309,26 @@ Receipt
 ├── storage ref
 ├── proof hash
 ├── explorer link
-└── verification state
+└── verification state (verified | pending | cached | degraded | demo)
 ```
 
-### Verification states
-
-* verified
-* pending
-* cached only
-* degraded
-* demo only
-
-Never present a claim as verified unless there is a proof artifact to support it.
+Never label something “verified” without a matching proof artifact.
 
 ---
 
-## On-Chain / Off-Chain Split
+## On-chain / off-chain split
 
-The architecture deliberately separates proof from narrative:
+**On Solana:** identities, PDAs, compact receipts, anchors, status flags, hashes, timestamps, version pointers.
 
-### On-chain
+**Off-chain (and optionally 0G):** full reflections, plan narratives, execution logs, replay bundles.
 
-Use Solana for:
-
-* identities
-* PDAs
-* receipts
-* proof anchors
-* status flags
-* hashes
-* timestamps
-* version pointers
-
-### Off-chain
-
-Use backend storage or 0G for:
-
-* full reflections
-* plan narratives
-* execution logs
-* replay bundles
-* human-readable artifact data
-
-### Why this matters
-
-Solana is best for compact commitments and verifiable state transitions.
-Off-chain storage is best for rich, replayable narratives.
-Together, they produce a system that is both **trustworthy** and **usable**.
+Solana excels at compact commitments; rich narratives live off-chain (or on 0G) and link back via hashes and receipts.
 
 ---
 
-## 0G Integration
+## 0G integration
 
-0G is used as a durable data layer for large agent artifacts.
-
-### Use 0G Storage for:
-
-* long reflections
-* execution summaries
-* plan details
-* skill manifests
-* replay bundles
-* memory narratives
-
-### Use 0G DA for:
-
-* availability roots
-* append-only provenance batches
-* log commitments
-* replay trace roots
-* artifact lineage anchors
-
-### 0G + Solana split
-
-* **Solana**: proof, identity, receipts
-* **0G Storage**: full artifact
-* **0G DA**: lineage and availability commitments
+Use **0G Storage** for large artifacts (reflections, plans, manifests, replay bundles). Use **0G DA** for availability roots, append-only batches, log commitments, replay trace roots.
 
 ```mermaid
 flowchart TD
@@ -523,20 +342,9 @@ flowchart TD
 
 ---
 
-## OpenClaw Compatibility
+## OpenCLaw compatibility
 
-CLAW_MACHINE is designed to interoperate with OpenClaw-style agent systems.
-
-### OpenClaw support includes:
-
-* importing skills
-* exporting skills
-* preserving provenance
-* preserving version history
-* preserving reputation signals
-* mapping tool manifests to skills
-
-### Bridge flow
+Designed to interoperate with OpenClaw-style systems: import/export skills, preserve provenance and versions, map tool manifests to skills.
 
 ```mermaid
 flowchart LR
@@ -546,167 +354,91 @@ flowchart LR
     Skill --> Export[OpenClaw Export]
 ```
 
+REST surface includes `/api/openclaw/status`, `/api/openclaw/bridge`, `/api/openclaw/manifests`, `/api/openclaw/import`, `/api/openclaw/export` (see `server/openclaw/bridge.ts`).
+
 ---
 
-## Project Structure
-
-A typical structure looks like this:
+## Repository layout
 
 ```text
-CLAW_MACHINE/
-├── client/
-│   └── src/
-│       ├── components/
-│       │   ├── solana/
-│       │   ├── evm/           # compatibility wrappers
-│       │   └── dashboard/
-│       ├── contexts/
-│       ├── hooks/
-│       ├── lib/
-│       │   ├── solana/
-│       │   ├── zerog/
-│       │   └── chain.ts
-│       └── pages/
-├── server/
-│   ├── solana/
-│   ├── zerog/
-│   ├── openclaw/
-│   ├── routers.ts
-│   └── db.ts
-├── programs/ or anchor/
-│   └── claw_machine/
-├── shared/
-│   ├── types.ts
-│   ├── wallet.ts
-│   ├── solana/
-│   └── zerog/
+Solana-Claw-Machine-Swarm/
+├── client/                 # React app (Vite)
+├── server/                 # Express entry (_core/), routes, orchestration, Solana, DAO, 0G, OpenClaw
+├── shared/                 # Shared TypeScript (types, timeline, Solana helpers, …)
+├── programs/               # Anchor programs (claw_machine, claw_nft, claw_dao, claw_onchain)
+├── packages/solana-sdk/    # Solana SDK package
+├── drizzle/                # Drizzle schema & migrations (MySQL)
+├── tests/
+├── vite.config.ts
+├── Anchor.toml
 └── README.md
 ```
 
 ---
 
-## Installation
+## Scripts & development
 
-### Prerequisites
+| Command | Purpose |
+| ------- | ------- |
+| `pnpm dev` | Dev server: Express API + Vite (watch via `tsx`) |
+| `pnpm build` | Production bundle (Vite + server esbuild) |
+| `pnpm start` | Run compiled server (`dist/index.js`) |
+| `pnpm check` | TypeScript `tsc --noEmit` |
+| `pnpm test` | Vitest |
+| `pnpm format` | Prettier |
+| `pnpm db:push` | Drizzle generate + migrate (needs `DATABASE_URL`) |
 
-* Node.js 20+
-* Rust 1.78+
-* Solana CLI
-* Anchor CLI
-* Phantom or Backpack wallet for devnet
-
-### Install
-
-```bash
-git clone <YOUR_REPO_URL>
-cd CLAW_MACHINE
-npm install
-```
-
-### Start development
+**Solana / Anchor (on-chain work):**
 
 ```bash
-npm run dev
-```
-
-If you want a faster presentation flow:
-
-```bash
-npm run dev:demo
-```
-
----
-
-## Development
-
-### Local Solana development
-
-```bash
-solana config set --url devnet
+solana config set --url devnet   # or localnet / mainnet-beta as appropriate
 anchor build
 anchor test
 ```
 
-### Frontend
-
-```bash
-cd client
-npm run dev
-```
-
-### Backend
-
-```bash
-cd server
-npm run dev
-```
-
-### Full stack
-
-```bash
-npm run dev
-```
+**Prerequisites:** Node.js **20+**, **pnpm**, Rust / Solana CLI / Anchor CLI when building programs; a **Phantom** or **Backpack** wallet for devnet flows.
 
 ---
 
-## Deployment
+## Environment
 
-### Devnet
+Common variables (non-exhaustive; inspect `server/` and `dotenv` usage for your deployment):
 
-1. Build the Anchor program
-2. Deploy to Solana devnet
-3. Start backend orchestration
-4. Build frontend
-5. Configure explorer links and cluster settings
-
-### Mainnet
-
-* ensure receipts are verified
-* ensure storage refs are durable
-* ensure proof anchors are indexed
-* ensure fallback/demo states are disabled or clearly labeled
+| Variable | Role |
+| -------- | ---- |
+| `PORT` | HTTP port (default `3000`; server may bump if busy) |
+| `NODE_ENV` | `development` vs `production` |
+| `DATABASE_URL` | MySQL URL for Drizzle CLI and DB-backed features |
 
 ---
 
-## API Reference
+## Solana programs
 
-### Skill registry
-
-* `GET /api/skills`
-* `GET /api/skills/:id`
-* `POST /api/skills/publish`
-* `POST /api/skills/:id/update`
-
-### Agent runs
-
-* `POST /api/agents/:id/run`
-* `POST /api/plans`
-* `POST /api/execution`
-
-### Memory and reflection
-
-* `POST /api/reflections`
-* `POST /api/memory`
-* `GET /api/memory/:id`
-
-### Receipts and proofs
-
-* `POST /api/receipts`
-* `GET /api/receipts/:id`
-* `GET /api/proofs/:id`
-* `GET /api/explorer/:tx`
-
-### Solana session
-
-* `POST /api/solana/session/nonce`
-* `POST /api/solana/session/verify`
-* `GET /api/solana/session`
+Programs live under `programs/` and are wired in `Anchor.toml` (example local program id for `claw_machine`: `CLAWM7dNyS1k1M7vP2kNQG6vcm2g4k84s8nTRWJ8NAT`). Adjust cluster, wallet, and deployed ids for devnet/mainnet.
 
 ---
 
-## Anchor Instructions
+## HTTP API overview
 
-Example instructions might include:
+The server exposes many REST modules in parallel with **tRPC** at **`/api/trpc`**.
+
+| Module | Prefix / notes | Source (entry) |
+| ------ | -------------- | ---------------- |
+| Health & session | `/api/health`, `/api/session` | `registerSwarmApiRoutes.ts` |
+| Swarm skills / execute / memory / receipts / proofs | `/api/skills`, `/api/execute`, `/api/memory`, `/api/receipts`, `/api/proofs`, `/api/reputation`, `/api/history` | `registerSwarmApiRoutes.ts` |
+| Plans & receipts | `/api/plans/...` | `server/plans/routes.ts` |
+| Solana identity & discovery | `/api/solana/...` | `server/solana/routes.ts` |
+| DAO | `/api/dao/...` | `server/dao/daoRoutes.ts` |
+| OpenClaw | `/api/openclaw/...` | `server/openclaw/bridge.ts` |
+| 0G | `/api/zerog/...` | `server/zerog/routes.ts` |
+
+Exact paths evolve—search for `app.get` / `app.post` under `server/` when in doubt.
+
+---
+
+## Anchor instructions (examples)
+
+Keep the on-chain layer compact and typed. Illustrative handlers:
 
 ```rust
 pub fn register_skill(ctx: Context<RegisterSkill>, input: SkillInput) -> Result<()> {
@@ -720,35 +452,17 @@ pub fn anchor_receipt(ctx: Context<AnchorReceipt>, hash: [u8; 32]) -> Result<()>
 }
 ```
 
-Use Anchor to keep the on-chain layer compact, typed, and auditable.
-
 ---
 
-## Reputation and Economy
+## Reputation & economy
 
-Skills and agents earn reputation based on:
-
-* usage
-* success rate
-* recency
-* proof completeness
-* memory reuse
-* human review
-* failure recovery
-
-### Reputation formula example
+Signals may include usage, success rate, recency, proof completeness, memory reuse, review, and recovery after failure.
 
 ```text
-reputation = weighted(success_rate, usage_count, recency, proof_completeness)
+reputation ≈ weighted(success_rate, usage_count, recency, proof_completeness)
 ```
 
-### Economic primitives
-
-* Solana wallets for identity
-* SPL tokens for optional coordination / payments
-* receipts for proof
-* reputation for discovery and ranking
-* PDAs for durable skill and memory identity
+Primitives: Solana wallets for identity, optional SPL flows for coordination/payments, receipts for proof, reputation for ranking, PDAs for durable skill/memory identity.
 
 ```mermaid
 flowchart TD
@@ -760,29 +474,12 @@ flowchart TD
 
 ---
 
-## Demo Scenarios
+## Demo scenarios
 
-### 1. Skill discovery
-
-Browse skills, sort by reputation, select a top-ranked capability.
-
-### 2. Multi-agent coordination
-
-A planner decomposes a goal; operator executes; critic evaluates; reflector writes a lesson.
-
-### 3. Learning loop
-
-A failure produces a reflection, which becomes memory, which improves the next run.
-
-### 4. Proof verification
-
-Open a receipt and inspect:
-
-* PDA
-* tx signature
-* Solana Explorer link
-* storage reference
-* DA root if present
+1. **Skill discovery** — Browse and sort by reputation; pick a capability.
+2. **Multi-agent coordination** — Planner decomposes; operator executes; critic evaluates; reflector records lessons.
+3. **Learning loop** — Failure → reflection → memory → improved next run.
+4. **Proof verification** — Inspect PDA, signature, Explorer URL, storage ref, DA root when present.
 
 ```mermaid
 sequenceDiagram
@@ -810,92 +507,35 @@ sequenceDiagram
 
 ## Customization
 
-### Add a new skill
-
-* define the skill metadata
-* compute the content hash
-* register the skill on-chain or in the registry
-* update reputation and versioning
-* expose it in the frontend
-
-### Add a new orchestrator role
-
-* define the role
-* emit role-specific receipts
-* include it in the execution timeline
-* add proof metadata
-
-### Add a new proof type
-
-* extend the receipt type
-* add a PDA or account
-* link it to the source artifact
-* display it in the proof explorer
+- **New skill:** Define metadata, content hash, register on-chain or via registry services, surface in UI.
+- **New orchestrator role:** Define the role, emit receipts, show on the timeline, extend proof metadata.
+- **New proof type:** Extend receipt types / PDAs, link to source artifacts, render in the explorer UI.
 
 ---
 
 ## Performance
 
-The architecture is designed for:
-
-* fast wallet verification
-* real-time receipt indexing
-* compact on-chain commitments
-* off-chain narrative retrieval
-* replayable timelines
-* scalable skill registries
-
-Targets:
-
-* sub-second UI state updates
-* low-latency receipt display
-* explorer-verifiable proof links
-* quick demo rendering
+Targets: fast wallet verification, responsive receipt indexing, compact on-chain commits, quick narrative retrieval, replayable timelines, scalable registries—aim for snappy UI updates and Explorer-verifiable links.
 
 ---
 
 ## Contributing
 
-Contributions are welcome.
+1. Fork the repo and create a feature branch.
+2. Add or update tests; run `pnpm check` and `pnpm test`.
+3. Keep receipts and proof shapes backward-compatible where possible.
+4. Open a PR.
 
-### Suggested workflow
-
-1. Fork the repo
-2. Create a feature branch
-3. Add or update tests
-4. Update shared types
-5. Update the frontend and backend together
-6. Ensure receipts and proofs remain structured
-7. Open a PR
-
-### Good contribution areas
-
-* Solana wallet UX
-* skill registry ranking
-* receipt structures
-* proof explorer
-* memory lineage
-* 0G storage integration
-* OpenClaw interoperability
-* demo mode improvements
+**High-value areas:** wallet UX, registry ranking, receipt schemas, proof explorer, memory lineage, 0G integration, OpenClaw bridge, demo endpoints.
 
 ---
 
 ## Credits
 
-Built for the Solana agent economy and SWARM-style multi-agent coordination.
-
-Inspired by:
-
-* Solana account and PDA design
-* Anchor program patterns
-* durable proof systems
-* memory-augmented agents
-* reflection-driven improvement
-* verifiable AI workflows
+Built for the Solana agent economy and SWARM-style coordination. Inspired by Solana account/PDA design, Anchor patterns, durable proofs, memory-augmented agents, and reflection-driven improvement.
 
 ---
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](./LICENSE).
