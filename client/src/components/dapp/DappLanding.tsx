@@ -1,600 +1,387 @@
 import {
   ArrowRight,
-  BookOpen,
+  CheckCircle2,
   Cpu,
-  Database,
   ExternalLink,
-  GitBranch,
   Layers,
-  LayoutGrid,
-  Link2,
-  PlayCircle,
-  ReceiptText,
+  Menu,
   ShieldCheck,
   Sparkles,
   Wallet,
   Workflow,
+  type LucideIcon,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useSolanaWalletContext } from "@/contexts/SolanaWalletContext";
 import { shortenAddress } from "@/lib/solana/format";
-import {
-  DEMO_AGENT_PLAN,
-  DEMO_CHAIN_RECEIPT,
-  DEMO_REFLECTION,
-  DEMO_SKILLS,
-} from "@shared/solana/demoCanonical";
-import { STORY_LOOP_LABELS } from "@shared/copy";
-import { StoryLoopRail } from "@/components/command-center/StoryLoopRail";
-import { DappShell } from "./DappShell";
-import { DappActionPanel } from "./DappActionPanel";
-import { DappActivityTimeline } from "./DappActivityTimeline";
-import type { DappActivityItem } from "./DappActivityTimeline";
-import { DappBalanceCard } from "./DappBalanceCard";
-import { DappCopyButton } from "./DappCopyButton";
-import { DappEmptyState } from "./DappEmptyState";
-import { DappExplorerLink } from "./DappExplorerLink";
-import { DappOnchainTag } from "./DappOnchainTag";
-import { DappProofPanel } from "./DappProofPanel";
-import { DappSectionHeader } from "./DappSectionHeader";
-import { DappWalletSummary } from "./DappWalletSummary";
 import { useDappChainState } from "./useDappChainState";
 
-/**
- * Solana dApp landing page.
- *
- * The hero is a wallet-first action surface (DappActionPanel) with the
- * proof rail in the same view, so the "wallet → action → tx → proof" loop
- * is visible above the fold instead of buried beneath marketing copy.
- */
-function navLinkActive(href: string, path: string) {
-  if (href === "/") return path === "/";
-  return path === href || path.startsWith(`${href}/`);
+function NavLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-full px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/8 hover:text-white"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function StepCard({
+  number,
+  title,
+  description,
+  active,
+  complete,
+  Icon,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  active?: boolean;
+  complete?: boolean;
+  Icon: LucideIcon;
+}) {
+  return (
+    <article
+      className={`rounded-3xl border p-6 transition ${
+        complete
+          ? "border-[#14f195]/35 bg-[#14f195]/10"
+          : active
+            ? "border-violet-400/35 bg-violet-500/10"
+            : "border-white/10 bg-white/[0.04]"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+          Step {number}
+        </span>
+        <span
+          className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+            complete
+              ? "bg-[#14f195]/15 text-[#9cf6d8]"
+              : active
+                ? "bg-violet-500/15 text-violet-100"
+                : "bg-white/8 text-slate-400"
+          }`}
+        >
+          <Icon className="h-5 w-5" aria-hidden />
+        </span>
+      </div>
+      <h3 className="mt-6 text-xl font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-slate-400">{description}</p>
+    </article>
+  );
+}
+
+function FeatureCard({
+  title,
+  description,
+  Icon,
+}: {
+  title: string;
+  description: string;
+  Icon: LucideIcon;
+}) {
+  return (
+    <article className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#14f195]/10 text-[#9cf6d8]">
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <h3 className="mt-5 text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+    </article>
+  );
 }
 
 export default function DappLanding() {
-  const [path, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const wallet = useSolanaWalletContext();
   const state = useDappChainState();
-
   const sessionVerified = state.sessionStatus === "verified";
 
-  const liveReceipts = wallet.txHistory.length > 0 ? wallet.txHistory : [DEMO_CHAIN_RECEIPT];
-  const demoIds = wallet.txHistory.length === 0 ? [DEMO_CHAIN_RECEIPT.id] : [];
+  const connectPhantom = () => {
+    wallet.connectAndVerify().catch(() => undefined);
+  };
 
-  const landingStoryIndex = useMemo(() => {
-    if (!state.connected) return 0;
-    if (!sessionVerified) return 1;
-    if (state.proofStatus === "verified") return STORY_LOOP_LABELS.length - 1;
-    if (state.txSignature) return Math.min(7, STORY_LOOP_LABELS.length - 2);
-    return 4;
-  }, [state.connected, sessionVerified, state.proofStatus, state.txSignature]);
+  const openDapp = () => {
+    setMobileMenuOpen(false);
+    setLocation("/dashboard?section=overview&demo=1");
+  };
 
-  const activity = useMemo<DappActivityItem[]>(() => {
-    const fallback: DappActivityItem = {
-      id: "fixture-receipt",
-      kind: "receipt_anchored",
-      status: "complete",
-      title: "Sample receipt anchored",
-      detail: "Demo fixture · sign your wallet to begin a live run.",
-      txSignature: DEMO_CHAIN_RECEIPT.txSignature,
-      account: DEMO_CHAIN_RECEIPT.account,
-      timestamp: DEMO_CHAIN_RECEIPT.createdAt,
-      demo: true,
-    };
-
-    const live: DappActivityItem[] = [
-      {
-        id: "wallet",
-        kind: "wallet_connect",
-        status: state.connected ? "complete" : "active",
-        title: state.connected ? "Wallet connected" : "Connect a Solana wallet",
-        detail: state.walletName ?? "Phantom · Solflare · Backpack",
-        timestamp: undefined,
-      },
-      {
-        id: "session",
-        kind: "session_verify",
-        status: sessionVerified
-          ? "complete"
-          : state.connected
-            ? "active"
-            : "pending",
-        title: sessionVerified ? "Session verified" : "Sign the session message",
-        detail: sessionVerified
-          ? "Backend bearer attached to your wallet identity."
-          : "Sign a human-readable message to authorize on-chain actions.",
-      },
-      {
-        id: "skill",
-        kind: "skill_selected",
-        status: "pending",
-        title: "Choose a published skill",
-        detail: "Skills carry author wallet, content hash, and reputation.",
-      },
-      {
-        id: "tx",
-        kind: "tx_submitted",
-        status: state.txSignature ? "complete" : "pending",
-        title: state.txSignature
-          ? "Last transaction submitted"
-          : "Transaction submitted",
-        detail: state.txSignature
-          ? `sig ${state.txSignature.slice(0, 10)}…`
-          : "The signed transaction goes to the cluster.",
-        txSignature: state.txSignature,
-      },
-      {
-        id: "anchor",
-        kind: "receipt_anchored",
-        status: state.txSignature ? "complete" : "pending",
-        title: "Receipt anchored on Solana",
-        detail: "Compact summary hash + storage ref settle on Solana.",
-      },
-      fallback,
-    ];
-
-    return live;
-  }, [
-    sessionVerified,
-    state.connected,
-    state.txSignature,
-    state.walletName,
-  ]);
-
-  const heroDescription =
-    "Connect a Solana wallet, sign a session, choose a published skill, and watch the on-chain receipt land in real time. Every action surface here is wallet-aware and explorer-verifiable.";
-
-  const navLinks = (
-    <nav
-      className="flex max-w-full flex-wrap items-center justify-end gap-1 text-[12px] lg:justify-start"
-      aria-label="Site sections"
-    >
-      {[
-        { href: "/skills", label: "Actions", Icon: LayoutGrid },
-        { href: "/receipts", label: "Receipts", Icon: ReceiptText },
-        { href: "/proofs", label: "Proofs", Icon: ShieldCheck },
-        { href: "/onchain", label: "Onchain", Icon: Link2 },
-        { href: "/how-it-works", label: "Docs", Icon: BookOpen },
-      ].map(({ href, label, Icon }) => {
-        const active = navLinkActive(href, path);
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#04060a] ${
-              active
-                ? "bg-[#14f195]/10 text-[#d6ffe9]"
-                : "text-slate-400 hover:bg-white/[0.04] hover:text-[#d6ffe9]"
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-
-  const sideRail = (
-    <>
-      <DappBalanceCard />
-      <DappWalletSummary variant="block" />
-      <DappProofPanel
-        receipts={liveReceipts}
-        cluster={state.cluster}
-        proofStatus={state.proofStatus}
-        demoIds={demoIds}
-        description="Receipts are first-class objects: hash, signature, PDA, storage ref."
-        extension={
-          <Link
-            href="/proofs"
-            className="mt-2 inline-flex items-center gap-1 self-start rounded-full border border-[#14f195]/30 bg-[#14f195]/[0.06] px-2.5 py-1 text-[11px] font-semibold text-[#d6ffe9] transition hover:bg-[#14f195]/12"
-          >
-            Open proof explorer
-            <ArrowRight className="h-3 w-3" aria-hidden />
-          </Link>
-        }
-      />
-      <DappActivityTimeline
-        items={activity}
-        cluster={state.cluster}
-        title="Onchain loop"
-        description="The dApp story, end-to-end."
-      />
-    </>
-  );
+  const walletLabel = state.walletAddress
+    ? shortenAddress(state.walletAddress, 4, 4)
+    : "Not connected";
 
   return (
-    <DappShell
-      brand="CLAW MACHINE · SWARM"
-      brandHref="/"
-      topNav={navLinks}
-      topRightSlot={
-        <Button
-          size="sm"
-          variant="outline"
-          className="hidden border-white/15 bg-white/[0.04] text-[11px] text-slate-200 hover:border-[#14f195]/40 hover:text-[#d6ffe9] sm:inline-flex"
-          onClick={() => setLocation("/dashboard?section=overview")}
-        >
-          <Cpu className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-          Command center
-        </Button>
-      }
-      sideRail={sideRail}
-    >
-      <DappActionPanel
-        eyebrow="Solana dApp · live action surface"
-        title="Connect wallet, sign session, run an onchain skill"
-        description={heroDescription}
-        Icon={Workflow}
-        scope="onchain"
-        primaryAction={{
-          label: state.connected
-            ? sessionVerified
-              ? "Open command center"
-              : "Sign session to continue"
-            : "Connect Solana wallet",
-          onClick: () => {
-            if (state.connected && sessionVerified) {
-              setLocation("/dashboard?section=overview");
-              return;
-            }
-            wallet.connectAndVerify().catch(() => undefined);
-          },
-          busy: state.busy,
-          walletHint:
-            "Wallet connection is required for any onchain action — the dApp will read balance, sign a session, and produce verifiable receipts.",
-        }}
-        secondaryAction={
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full border-white/15 bg-white/[0.04] text-[11px] text-slate-200 hover:border-[#14f195]/40 hover:text-[#d6ffe9]"
-            onClick={() => setLocation("/demo/hub")}
-          >
-            <PlayCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-            Replay demo loop
-          </Button>
-        }
-      >
-        <div className="grid gap-3 sm:grid-cols-3">
-          <ActionStat
-            label="Wallet"
-            value={
-              state.walletAddress
-                ? shortenAddress(state.walletAddress, 4, 4)
-                : "Not connected"
-            }
-            tone={state.connected ? "good" : "neutral"}
-          >
-            {state.walletName ? (
-              <span className="text-[10px] text-slate-400">{state.walletName}</span>
-            ) : null}
-            {state.walletAddress ? (
-              <DappCopyButton
-                value={state.walletAddress}
-                label="Copy"
-                variant="ghost"
-              />
-            ) : null}
-          </ActionStat>
-          <ActionStat
-            label="Cluster"
-            value={state.cluster}
-            tone={state.wrongCluster ? "warn" : "good"}
-          />
-          <ActionStat
-            label="Balance"
-            value={
-              state.balanceSol
-                ? `${Number(state.balanceSol).toFixed(4)} SOL`
-                : "—"
-            }
-            tone={state.connected ? "good" : "neutral"}
-          />
-          <ActionStat
-            label="Session"
-            value={sessionVerified ? "Verified" : state.sessionStatus}
-            tone={sessionVerified ? "good" : "warn"}
-            uppercase
-          />
-          <ActionStat
-            label="Last signature"
-            value={
-              state.txSignature
-                ? `${state.txSignature.slice(0, 6)}…${state.txSignature.slice(-4)}`
-                : "—"
-            }
-            tone={state.txSignature ? "good" : "neutral"}
-          >
-            {state.txSignature ? (
-              <DappExplorerLink
-                kind="tx"
-                value={state.txSignature}
-                cluster={state.cluster}
-                label="Open"
-                variant="inline"
-              />
-            ) : null}
-          </ActionStat>
-          <ActionStat
-            label="Proof"
-            value={state.proofStatus}
-            tone={
-              state.proofStatus === "verified"
-                ? "good"
-                : state.proofStatus === "demo_only"
-                  ? "demo"
-                  : "warn"
-            }
-            uppercase
-          />
-        </div>
-      </DappActionPanel>
+    <main className="min-h-screen overflow-hidden bg-[#05070c] text-white">
+      <div className="pointer-events-none fixed inset-0 opacity-80">
+        <div className="absolute left-1/2 top-[-18rem] h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-[#14f195]/12 blur-3xl" />
+        <div className="absolute right-[-10rem] top-64 h-[28rem] w-[28rem] rounded-full bg-violet-600/12 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(20,241,149,0.08),transparent_34%),linear-gradient(180deg,rgba(5,7,12,0)_0%,#05070c_78%)]" />
+      </div>
 
-      <section className="space-y-3" aria-labelledby="landing-story-heading">
-        <h2 id="landing-story-heading" className="sr-only">
-          Full Solana agent loop from wallet to explorer
-        </h2>
-        <StoryLoopRail
-          activeIndex={landingStoryIndex}
-          labels={STORY_LOOP_LABELS}
-          className="border-[#14f195]/15 bg-[#060a0f]/90"
-        />
-        <p className="text-center text-[11px] text-slate-500">
-          Wallet (on-chain identity) → verified session (backend) → plan and execution → reflection and memory
-          (off-chain narrative) → compact receipt and PDA on Solana → Solana Explorer.
-        </p>
-      </section>
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#05070c]/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 lg:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#14f195]/25 bg-[#14f195]/10 text-[#9cf6d8]">
+              <Sparkles className="h-5 w-5" aria-hidden />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold uppercase tracking-[0.18em] text-[#9cf6d8]">
+                Solana Claw Machine
+              </span>
+              <span className="block text-xs text-slate-500">SWARM demo</span>
+            </span>
+          </Link>
 
-      <section className="space-y-4">
-        <DappSectionHeader
-          eyebrow="dApp loop"
-          title="Wallet → action → transaction → receipt"
-          description="Six explicit steps surface the same way on every page so the dApp story is consistent. No hidden state, no toast-only notifications."
-          actions={
+          <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.035] p-1 md:flex">
+            <NavLink href="/">Home</NavLink>
+            <a
+              href="#how-it-works"
+              className="rounded-full px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/8 hover:text-white"
+            >
+              How it works
+            </a>
+            <button
+              type="button"
+              onClick={openDapp}
+              className="rounded-full px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/8 hover:text-white"
+            >
+              Launch dApp
+            </button>
+            <NavLink href="/submission">Submit</NavLink>
+          </nav>
+
+          <div className="flex items-center gap-3">
             <Button
               size="sm"
-              variant="outline"
-              className="rounded-full border-white/15 bg-white/[0.04] text-[11px] text-slate-200 hover:border-[#14f195]/40 hover:text-[#d6ffe9]"
-              onClick={() => setLocation("/dashboard?section=overview")}
+              onClick={connectPhantom}
+              className="rounded-full bg-[#14f195] px-5 text-sm font-semibold text-[#03120b] shadow-[0_0_28px_rgba(20,241,149,0.22)] hover:bg-[#7fffd0]"
             >
-              Open command center
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden />
+              <Wallet className="mr-2 h-4 w-4" aria-hidden />
+              {state.connected ? walletLabel : "Connect Phantom"}
             </Button>
-          }
-        />
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {[
-            {
-              label: "1 · Connect wallet",
-              detail: "Phantom, Solflare, Backpack — adapter-agnostic.",
-              Icon: Wallet,
-            },
-            {
-              label: "2 · Sign session",
-              detail: "Bearer token bound to your Solana public key.",
-              Icon: ShieldCheck,
-            },
-            {
-              label: "3 · Choose action",
-              detail: "Published skills with hash + reputation.",
-              Icon: Sparkles,
-            },
-            {
-              label: "4 · Sign + submit",
-              detail: "Transaction lifecycle visible in real time.",
-              Icon: GitBranch,
-            },
-            {
-              label: "5 · Anchor receipt",
-              detail: "Compact summary hash + PDA on Solana.",
-              Icon: ReceiptText,
-            },
-            {
-              label: "6 · Verify on Explorer",
-              detail: "One-click open into Solana Explorer.",
-              Icon: ExternalLink,
-            },
-          ].map((step) => (
-            <article
-              key={step.label}
-              className="group flex flex-col gap-2 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#14f195]/30 hover:shadow-[0_18px_36px_rgba(20,241,149,0.08)] motion-reduce:transform-none"
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 md:hidden"
+              aria-label="Menu"
+              aria-expanded={mobileMenuOpen}
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#14f195]/30 bg-[#14f195]/10 text-[#9cf6d8]">
-                <step.Icon className="h-4 w-4" aria-hidden />
-              </span>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7dccb8]">
-                {step.label}
-              </p>
-              <p className="text-[11px] leading-snug text-slate-300">
-                {step.detail}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <DappSectionHeader
-          eyebrow="Featured action"
-          title="Pick a skill, run a verified loop"
-          description="Each skill is a published asset with author wallet, content hash, and reputation. Selecting one starts a transaction-aware execution flow."
-          actions={
-            <Link
-              href="/skills"
-              className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-slate-200 transition hover:border-[#14f195]/40 hover:text-[#d6ffe9]"
-            >
-              Browse all actions
-            </Link>
-          }
-        />
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {DEMO_SKILLS.slice(0, 3).map((skill) => (
-            <article
-              key={skill.id}
-              className="flex flex-col gap-3 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#14f195]/30 hover:shadow-[0_14px_32px_rgba(0,0,0,0.35)] motion-reduce:transform-none"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#14f195]/35 bg-[#14f195]/10 text-[#9cf6d8]">
-                  <Layers className="h-4 w-4" aria-hidden />
-                </span>
-                <DappOnchainTag scope="onchain" size="sm" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{skill.name}</p>
-                <p className="mt-1 text-[11px] leading-snug text-slate-400">
-                  {skill.description}
-                </p>
-              </div>
-              <dl className="grid gap-1.5 text-[10px] uppercase tracking-wide text-slate-500">
-                <div className="flex items-center justify-between gap-2">
-                  <dt>Author</dt>
-                  <dd>
-                    <DappCopyButton
-                      value={skill.authorWallet}
-                      label={shortenAddress(skill.authorWallet, 4, 4)}
-                      variant="ghost"
-                    />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt>Hash</dt>
-                  <dd className="font-mono text-slate-300">
-                    {skill.contentHash}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt>Reputation</dt>
-                  <dd className="text-[#9cf6d8]">{skill.reputationScore}</dd>
-                </div>
-              </dl>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-1 rounded-full border-[#14f195]/40 bg-[#14f195]/[0.06] text-[11px] text-[#d6ffe9] hover:bg-[#14f195]/12"
-                onClick={() => setLocation(`/skills/${skill.id}`)}
-              >
-                Open action
-                <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
-              </Button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <article className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-5">
-          <DappSectionHeader
-            eyebrow="Plan receipt"
-            title="Latest plan · auditable from goal to anchor"
-          />
-          <p className="mt-2 text-[12px] leading-relaxed text-slate-300">
-            {DEMO_AGENT_PLAN.summary}
-          </p>
-          <div className="mt-3 grid gap-2 text-[11px] sm:grid-cols-2">
-            <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-              <p className="text-[9px] uppercase tracking-wider text-slate-500">
-                Plan hash
-              </p>
-              <p className="mt-0.5 font-mono text-slate-200">
-                {DEMO_AGENT_PLAN.planHash}
-              </p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
-              <p className="text-[9px] uppercase tracking-wider text-slate-500">
-                Anchor signature
-              </p>
-              <p className="mt-0.5 font-mono text-slate-200">
-                {DEMO_AGENT_PLAN.solana?.txSignature
-                  ? shortenAddress(DEMO_AGENT_PLAN.solana.txSignature, 8, 8)
-                  : "—"}
-              </p>
-            </div>
+              <Menu className="h-5 w-5" aria-hidden />
+            </button>
           </div>
-          {DEMO_AGENT_PLAN.solana?.txSignature ? (
-            <div className="mt-3">
-              <DappExplorerLink
-                kind="tx"
-                value={DEMO_AGENT_PLAN.solana.txSignature}
-                cluster={state.cluster}
-                label="Verify anchor on Solana Explorer"
-              />
+        </div>
+        {mobileMenuOpen ? (
+          <nav className="border-t border-white/10 px-5 py-4 md:hidden" aria-label="Mobile navigation">
+            <div className="grid gap-2 rounded-3xl border border-white/10 bg-white/[0.04] p-2">
+              <Link onClick={() => setMobileMenuOpen(false)} href="/" className="rounded-2xl px-4 py-3 text-sm font-semibold text-white hover:bg-white/10">
+                Home
+              </Link>
+              <a onClick={() => setMobileMenuOpen(false)} href="#how-it-works" className="rounded-2xl px-4 py-3 text-sm font-semibold text-white hover:bg-white/10">
+                How it works
+              </a>
+              <button type="button" onClick={openDapp} className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10">
+                Launch dApp
+              </button>
+              <Link onClick={() => setMobileMenuOpen(false)} href="/submission" className="rounded-2xl px-4 py-3 text-sm font-semibold text-white hover:bg-white/10">
+                Submit
+              </Link>
             </div>
-          ) : null}
-        </article>
+          </nav>
+        ) : null}
+      </header>
 
-        <article className="flex flex-col gap-3 rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#070b11]/95 to-[#040608]/95 p-5">
-          <DappSectionHeader
-            eyebrow="Reflection"
-            title="Why the last action mattered"
-          />
-          <p className="text-[12px] leading-snug text-slate-300">
-            {DEMO_REFLECTION.summary}
+      <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-16 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:pb-28 lg:pt-24">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#14f195]/25 bg-[#14f195]/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#9cf6d8]">
+            <span className="h-2 w-2 rounded-full bg-[#14f195]" />
+            Solana devnet · video-ready
+          </div>
+          <h1 className="mt-8 max-w-4xl text-5xl font-semibold tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl">
+            A clean Solana claw-machine agent demo.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+            Start with the landing page, connect Phantom, then open the dApp to show an agent action, Solana transaction receipt, memory write, and explorer-verifiable proof.
           </p>
-          <p className="rounded-lg border border-[#14f195]/25 bg-[#14f195]/[0.06] px-3 py-2 text-[11px] text-[#d6ffe9]">
-            Next action · {DEMO_REFLECTION.nextAction}
-          </p>
-          <DappEmptyState
-            title="Memory + reflection feed"
-            description="Open the command center to inspect every memory write and reflection chain."
-            tone="default"
-            Icon={Database}
-            action={
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-full border-white/15 text-[11px] text-slate-200 hover:border-[#14f195]/40 hover:text-[#d6ffe9]"
-                onClick={() => setLocation("/dashboard?section=memory")}
-              >
-                Open memory feed
-              </Button>
-            }
-          />
-        </article>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Button
+              size="lg"
+              onClick={connectPhantom}
+              className="rounded-full bg-[#14f195] px-7 text-base font-semibold text-[#03120b] shadow-[0_0_40px_rgba(20,241,149,0.24)] hover:bg-[#7fffd0]"
+            >
+              <Wallet className="mr-2 h-5 w-5" aria-hidden />
+              {state.connected ? "Phantom connected" : "Connect Phantom"}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={openDapp}
+              className="rounded-full border-white/15 bg-white/[0.04] px-7 text-base text-white hover:border-[#14f195]/40 hover:bg-white/[0.07]"
+            >
+              Open dApp
+              <ArrowRight className="ml-2 h-5 w-5" aria-hidden />
+            </Button>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-3 text-sm text-slate-400">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2">
+              <CheckCircle2 className="h-4 w-4 text-[#14f195]" aria-hidden />
+              Normal landing page first
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2">
+              <CheckCircle2 className="h-4 w-4 text-[#14f195]" aria-hidden />
+              Phantom before dApp
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2">
+              <CheckCircle2 className="h-4 w-4 text-[#14f195]" aria-hidden />
+              Explorer proof path
+            </span>
+          </div>
+        </div>
+
+        <aside className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="rounded-[1.5rem] border border-white/10 bg-[#080d14] p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Current step
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">
+                  {sessionVerified
+                    ? "Ready for dApp"
+                    : state.connected
+                      ? "Sign Phantom session"
+                      : "Connect Phantom"}
+                </h2>
+              </div>
+              <span className="rounded-full border border-[#14f195]/25 bg-[#14f195]/10 px-3 py-1 text-xs font-semibold text-[#9cf6d8]">
+                {state.cluster}
+              </span>
+            </div>
+
+            <div className="mt-7 space-y-3">
+              {[
+                ["Wallet", walletLabel],
+                ["Session", sessionVerified ? "Verified" : state.sessionStatus],
+                ["Proof", state.proofStatus],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3"
+                >
+                  <span className="text-sm text-slate-400">{label}</span>
+                  <span className="text-sm font-semibold text-white">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={openDapp}
+              className="mt-6 w-full rounded-full bg-white px-5 text-[#05070c] hover:bg-[#dfffee]"
+              disabled={state.busy}
+            >
+              Open demo dashboard
+              <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+            </Button>
+          </div>
+        </aside>
       </section>
-    </DappShell>
-  );
-}
 
-function ActionStat({
-  label,
-  value,
-  tone = "neutral",
-  uppercase = false,
-  children,
-}: {
-  label: string;
-  value: string;
-  tone?: "good" | "warn" | "neutral" | "demo";
-  uppercase?: boolean;
-  children?: React.ReactNode;
-}) {
-  const toneClass =
-    tone === "good"
-      ? "border-[#14f195]/35 bg-[#14f195]/[0.06] text-[#d6ffe9]"
-      : tone === "warn"
-        ? "border-amber-400/40 bg-amber-500/[0.06] text-amber-100"
-        : tone === "demo"
-          ? "border-violet-400/40 bg-violet-500/[0.06] text-violet-100"
-          : "border-white/10 bg-white/[0.04] text-slate-200";
-  return (
-    <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-70">
-        {label}
-      </p>
-      <p
-        className={`mt-1 truncate text-sm font-semibold ${uppercase ? "uppercase tracking-wide" : ""}`}
+      <section
+        id="how-it-works"
+        className="relative z-10 mx-auto max-w-7xl px-5 py-16 lg:px-8"
       >
-        {value}
-      </p>
-      {children ? (
-        <div className="mt-1 text-[11px] opacity-80">{children}</div>
-      ) : null}
-    </div>
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#9cf6d8]">
+            Simple recording flow
+          </p>
+          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-white">
+            Three screens that make sense.
+          </h2>
+          <p className="mt-4 text-base leading-7 text-slate-400">
+            The public website now explains the product before opening the technical dApp dashboard. This keeps the video easy to follow for judges and viewers.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <StepCard
+            number="01"
+            title="Landing page"
+            description="Explain the Solana claw-machine agent, SWARM submission, and proof story in normal website language."
+            Icon={Sparkles}
+            complete
+          />
+          <StepCard
+            number="02"
+            title="Connect Phantom"
+            description="Use Phantom as the Solana identity layer before opening the working dApp experience."
+            Icon={Wallet}
+            active={!sessionVerified}
+            complete={state.connected}
+          />
+          <StepCard
+            number="03"
+            title="Open the dApp"
+            description="Run the proof-linked demo loop, show receipts, and open Solana Explorer from the dashboard."
+            Icon={Cpu}
+            active
+            complete={sessionVerified}
+          />
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-7xl px-5 py-16 lg:px-8">
+        <div className="grid gap-4 md:grid-cols-3">
+          <FeatureCard
+            title="Solana-native flow"
+            description="The UI frames wallet identity, devnet status, transaction receipts, and explorer verification around Solana, not Ethereum."
+            Icon={ShieldCheck}
+          />
+          <FeatureCard
+            title="Agent action loop"
+            description="The dashboard can still show skill selection, execution, reflection, memory, and proof anchoring after the clean landing page."
+            Icon={Workflow}
+          />
+          <FeatureCard
+            title="Submission ready"
+            description="Navigation includes a dedicated submission page and a clean recording path for SWARM judges."
+            Icon={Layers}
+          />
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-24 pt-10 lg:px-8">
+        <div className="rounded-[2rem] border border-[#14f195]/20 bg-[#14f195]/10 p-8 text-center md:p-12">
+          <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-4xl">
+            Ready to record the working Solana frontend?
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-300">
+            Start here, connect Phantom, then enter the dApp dashboard when you are ready to demonstrate the full proof-linked loop.
+          </p>
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button
+              size="lg"
+              onClick={connectPhantom}
+              className="rounded-full bg-[#14f195] px-7 text-[#03120b] hover:bg-[#7fffd0]"
+            >
+              Connect Phantom
+            </Button>
+            <Link
+              href="/dashboard?section=overview&demo=1"
+              className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.04] px-7 py-3 text-sm font-semibold text-white transition hover:border-[#14f195]/40 hover:bg-white/[0.07]"
+            >
+              Open demo dashboard
+              <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

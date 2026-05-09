@@ -18,7 +18,15 @@ import { DemoReputationPanel } from "../components/DemoReputationPanel";
 import { DemoSkillCard } from "../components/DemoSkillCard";
 import { DemoWalletCard } from "../components/DemoWalletCard";
 
-function Shell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
+function Shell({
+  children,
+  title,
+  subtitle,
+}: {
+  children: ReactNode;
+  title: string;
+  subtitle: string;
+}) {
   return (
     <div className="space-y-4">
       <DemoMockModeBanner />
@@ -34,7 +42,10 @@ function Shell({ children, title, subtitle }: { children: ReactNode; title: stri
 export function DemoWalletPage() {
   const { presentationMode } = useDemo();
   return (
-    <Shell title="Solana wallet (demo)" subtitle="First action in the loop — connect, balances, explorer, signing state.">
+    <Shell
+      title="Solana wallet (demo)"
+      subtitle="First action in the loop — connect, balances, explorer, signing state."
+    >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <DemoWalletCard presentationMode={presentationMode} />
         <DemoPreviewPanel presentationMode={presentationMode} />
@@ -49,12 +60,16 @@ export function DemoSkillsPage() {
   const [sort, setSort] = useState<"reputation" | "usage">("reputation");
   const filtered = useMemo(() => {
     const list = DEMO_SKILLS.filter(
-      s =>
+      (s) =>
         !q.trim() ||
         s.name.toLowerCase().includes(q.toLowerCase()) ||
-        s.tags.some(t => t.toLowerCase().includes(q.toLowerCase()))
+        s.tags.some((t) => t.toLowerCase().includes(q.toLowerCase())),
     );
-    return [...list].sort((a, b) => (sort === "reputation" ? b.reputationScore - a.reputationScore : b.usageCount - a.usageCount));
+    return [...list].sort((a, b) =>
+      sort === "reputation"
+        ? b.reputationScore - a.reputationScore
+        : b.usageCount - a.usageCount,
+    );
   }, [q, sort]);
 
   return (
@@ -69,7 +84,7 @@ export function DemoSkillsPage() {
               <Label className="text-xs text-slate-500">Search</Label>
               <Input
                 value={q}
-                onChange={e => setQ(e.target.value)}
+                onChange={(e) => setQ(e.target.value)}
                 className="mt-1 border-white/10 bg-black/40 text-white"
                 placeholder="Skill name or tag…"
               />
@@ -77,17 +92,25 @@ export function DemoSkillsPage() {
             <div>
               <Label className="text-xs text-slate-500">Sort</Label>
               <div className="mt-1 flex gap-1">
-                <Button size="sm" variant={sort === "reputation" ? "secondary" : "outline"} onClick={() => setSort("reputation")}>
+                <Button
+                  size="sm"
+                  variant={sort === "reputation" ? "secondary" : "outline"}
+                  onClick={() => setSort("reputation")}
+                >
                   Reputation
                 </Button>
-                <Button size="sm" variant={sort === "usage" ? "secondary" : "outline"} onClick={() => setSort("usage")}>
+                <Button
+                  size="sm"
+                  variant={sort === "usage" ? "secondary" : "outline"}
+                  onClick={() => setSort("usage")}
+                >
                   Usage
                 </Button>
               </div>
             </div>
           </div>
           <div className="grid max-h-[560px] gap-2 overflow-y-auto sm:grid-cols-2">
-            {filtered.map(s => (
+            {filtered.map((s) => (
               <DemoSkillCard
                 key={s.id}
                 skill={s}
@@ -107,11 +130,17 @@ export function DemoSkillsPage() {
 export function DemoExecutionPage() {
   const { presentationMode, plan, steps } = useDemo();
   return (
-    <Shell title="Plan & execution" subtitle="Durable plan artifact and a live execution rail with active step highlighting.">
+    <Shell
+      title="Plan & execution"
+      subtitle="Durable plan artifact and a live execution rail with active step highlighting."
+    >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
           <DemoPlanCard plan={plan} presentationMode={presentationMode} />
-          <DemoExecutionTimeline steps={steps} presentationMode={presentationMode} />
+          <DemoExecutionTimeline
+            steps={steps}
+            presentationMode={presentationMode}
+          />
         </div>
         <DemoPreviewPanel presentationMode={presentationMode} />
       </div>
@@ -122,9 +151,15 @@ export function DemoExecutionPage() {
 export function DemoReflectionPage() {
   const { presentationMode, reflection } = useDemo();
   return (
-    <Shell title="Reflection" subtitle="Structured post-mortem: root cause, advice, next action, linked memory and Solana receipt.">
+    <Shell
+      title="Reflection"
+      subtitle="Structured post-mortem: root cause, advice, next action, linked memory and Solana receipt."
+    >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <DemoReflectionCard reflection={reflection} presentationMode={presentationMode} />
+        <DemoReflectionCard
+          reflection={reflection}
+          presentationMode={presentationMode}
+        />
         <DemoPreviewPanel presentationMode={presentationMode} />
       </div>
     </Shell>
@@ -134,7 +169,10 @@ export function DemoReflectionPage() {
 export function DemoMemoryPage() {
   const { presentationMode, memory, memoryTimeline } = useDemo();
   return (
-    <Shell title="Memory" subtitle="Durable records with storage references, proof links, and lifecycle timeline.">
+    <Shell
+      title="Memory"
+      subtitle="Durable records with storage references, proof links, and lifecycle timeline."
+    >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
           <DemoMemoryCard memory={memory} presentationMode={presentationMode} />
@@ -149,12 +187,19 @@ export function DemoMemoryPage() {
 export function DemoReceiptsPage() {
   const { presentationMode, receipts } = useDemo();
   return (
-    <Shell title="Receipts & proof" subtitle="Expandable Solana receipts — explorer handoff and verification copy.">
+    <Shell
+      title="Receipts & proof"
+      subtitle="Expandable Solana receipts — explorer handoff and verification copy."
+    >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
           <DemoReceiptChain receipts={receipts} />
           {receipts.map((r, i) => (
-            <DemoReceiptCard key={r.id} receipt={r} defaultOpen={i === receipts.length - 1} />
+            <DemoReceiptCard
+              key={r.id}
+              receipt={r}
+              defaultOpen={i === receipts.length - 1}
+            />
           ))}
           <DemoProofPanel receipt={receipts[receipts.length - 1]} />
         </div>
@@ -168,7 +213,10 @@ export function DemoReputationPage() {
   const { presentationMode, activeSkill } = useDemo();
   const compare = getSkillById("skill-proof-publisher");
   return (
-    <Shell title="Reputation" subtitle="Usage-weighted trust signals that reorder discovery on the next run.">
+    <Shell
+      title="Reputation"
+      subtitle="Usage-weighted trust signals that reorder discovery on the next run."
+    >
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <DemoReputationPanel skill={activeSkill} compare={compare ?? null} />
         <DemoPreviewPanel presentationMode={presentationMode} />

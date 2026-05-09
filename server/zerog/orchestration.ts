@@ -52,7 +52,11 @@ export async function orchestrateReflectionSidecar(input: {
       createdAt: now,
     },
     contentHash: hashValue(fullText),
-    checksum: hashValue({ id: input.reflectionId, fullText, wallet: input.wallet }),
+    checksum: hashValue({
+      id: input.reflectionId,
+      fullText,
+      wallet: input.wallet,
+    }),
     contentType: "application/json",
     sizeBytes: Buffer.byteLength(fullText, "utf8"),
     createdAt: now,
@@ -65,7 +69,11 @@ export async function orchestrateReflectionSidecar(input: {
     id: `job_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`,
     taskType: "summarize_reflection",
     inputRef: artifact.storageRef,
-    input: { summary: input.correctiveAction, fullTextLen: fullText.length, kind: input.kind },
+    input: {
+      summary: input.correctiveAction,
+      fullTextLen: fullText.length,
+      kind: input.kind,
+    },
     status: "queued",
     createdAt: now,
     updatedAt: now,
@@ -80,7 +88,9 @@ export async function orchestrateReflectionSidecar(input: {
     metadata: { storageRef: artifact.storageRef },
   });
 
-  const summaryHash = hashValue(computeJob.output ?? { summary: artifact.summary });
+  const summaryHash = hashValue(
+    computeJob.output ?? { summary: artifact.summary },
+  );
 
   const receipt = module.store.createSolanaReceipt({
     subjectType: "reflection",

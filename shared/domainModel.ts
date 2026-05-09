@@ -100,7 +100,14 @@ export interface ReflectionRecord {
   offchainStorageRef?: string;
   onchainReceiptId?: string;
   proofHash?: string;
-  status: "captured" | "stored" | "anchored" | "linked" | "verified" | "failed" | "degraded";
+  status:
+    | "captured"
+    | "stored"
+    | "anchored"
+    | "linked"
+    | "verified"
+    | "failed"
+    | "degraded";
 }
 
 export type MemoryKind =
@@ -158,7 +165,13 @@ export interface ReceiptRecord {
   accountAddress?: string;
   storageRef?: string;
   summaryHash: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
+  status:
+    | "draft"
+    | "submitted"
+    | "confirmed"
+    | "verified"
+    | "failed"
+    | "degraded";
   createdAt: string;
   updatedAt: string;
   explorerUrl?: string;

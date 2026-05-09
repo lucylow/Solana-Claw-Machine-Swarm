@@ -23,7 +23,10 @@ describe("memory receipt service", () => {
       tags: ["failure", "schema"],
     });
 
-    const anchored = await service.anchorReflection(created.reflection.id, "wallet_demo");
+    const anchored = await service.anchorReflection(
+      created.reflection.id,
+      "wallet_demo",
+    );
     expect(anchored.solanaTxSig).toBeTruthy();
     expect(anchored.reflectionHash).toBe(created.reflection.payloadHash);
 

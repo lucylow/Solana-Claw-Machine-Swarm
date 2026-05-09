@@ -38,7 +38,7 @@ export function DappReceiptCard({
         highlight
           ? "border-[#14f195]/45 shadow-[0_0_0_1px_rgba(20,241,149,0.15),0_18px_40px_rgba(20,241,149,0.2)] motion-safe:animate-[receiptGlow_1.6s_ease-out]"
           : "border-white/[0.08] hover:border-[#14f195]/30",
-        className
+        className,
       )}
     >
       <header className="flex items-start justify-between gap-3">
@@ -48,7 +48,7 @@ export function DappReceiptCard({
               "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border",
               onchain
                 ? "border-[#14f195]/45 bg-[#14f195]/10 text-[#9cf6d8]"
-                : "border-amber-400/35 bg-amber-500/10 text-amber-100"
+                : "border-amber-400/35 bg-amber-500/10 text-amber-100",
             )}
           >
             <ReceiptText className="h-4 w-4" aria-hidden />

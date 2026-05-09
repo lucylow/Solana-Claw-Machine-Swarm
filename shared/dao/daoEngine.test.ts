@@ -38,7 +38,7 @@ describe("dao engine", () => {
         threshold: 0.5,
         finalized: false,
         executed: false,
-      })
+      }),
     ).toBe("voting");
 
     expect(
@@ -50,7 +50,7 @@ describe("dao engine", () => {
         threshold: 0.5,
         finalized: false,
         executed: false,
-      })
+      }),
     ).toBe("quorum_reached");
   });
 
@@ -64,7 +64,7 @@ describe("dao engine", () => {
         threshold: 0.5,
         finalized: true,
         executed: true,
-      })
+      }),
     ).toBe("executed");
 
     expect(
@@ -76,7 +76,7 @@ describe("dao engine", () => {
         threshold: 0.5,
         finalized: true,
         executed: false,
-      })
+      }),
     ).toBe("rejected");
   });
 });

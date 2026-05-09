@@ -1,11 +1,18 @@
 import type { DemoMemoryFixture, DemoReflectionFixture } from "./demoTypes";
 import type { MemoryRecord, ReflectionRecord } from "./domainModel";
 
-export function reflectionRecordToDemoFixture(r: ReflectionRecord): DemoReflectionFixture {
+export function reflectionRecordToDemoFixture(
+  r: ReflectionRecord,
+): DemoReflectionFixture {
   const proofStatus: DemoReflectionFixture["proofStatus"] =
-    r.status === "verified" ? "verified" : r.status === "failed" || r.status === "degraded" ? "failed" : "pending";
+    r.status === "verified"
+      ? "verified"
+      : r.status === "failed" || r.status === "degraded"
+        ? "failed"
+        : "pending";
   const outcome: DemoReflectionFixture["outcome"] =
-    r.summary.toLowerCase().includes("lesson") || r.summary.toLowerCase().includes("retry")
+    r.summary.toLowerCase().includes("lesson") ||
+    r.summary.toLowerCase().includes("retry")
       ? "lesson"
       : r.status === "failed"
         ? "failure"
@@ -28,7 +35,9 @@ export function memoryRecordToDemoFixture(m: MemoryRecord): DemoMemoryFixture {
   return {
     id: m.id,
     memoryType: m.kind,
-    source: m.sourceReflectionId ? `Reflection ${m.sourceReflectionId}` : "Orchestration",
+    source: m.sourceReflectionId
+      ? `Reflection ${m.sourceReflectionId}`
+      : "Orchestration",
     summary: m.summary,
     storageReference: m.storageRef ?? "",
     proofReference: m.proofReceiptId ?? "",

@@ -131,12 +131,24 @@ export interface SolanaProofReceipt {
   zeroGComputeRef?: string;
   zeroGAvailabilityRef?: string;
   createdAt: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
+  status:
+    | "draft"
+    | "submitted"
+    | "confirmed"
+    | "verified"
+    | "failed"
+    | "degraded";
 }
 
 export interface SolanaZeroGLink {
   id: string;
-  subjectType: "reflection" | "memory" | "plan" | "execution" | "skill" | "proof";
+  subjectType:
+    | "reflection"
+    | "memory"
+    | "plan"
+    | "execution"
+    | "skill"
+    | "proof";
   subjectId: string;
   solanaReceiptId?: string;
   solanaTxSignature?: string;
@@ -217,10 +229,21 @@ export interface ZeroGHealthStatus {
 }
 
 /** Lifecycle of a blob inside 0G Storage (shown in receipts + wallets). */
-export type StorageStatus = "not_stored" | "stored" | "retrieved" | "failed" | "degraded";
+export type StorageStatus =
+  | "not_stored"
+  | "stored"
+  | "retrieved"
+  | "failed"
+  | "degraded";
 
 /** Lifecycle of DA lineage commitments (shown in explorers + timelines). */
-export type DaStatus = "not_batched" | "batched" | "rooted" | "verified" | "failed" | "degraded";
+export type DaStatus =
+  | "not_batched"
+  | "batched"
+  | "rooted"
+  | "verified"
+  | "failed"
+  | "degraded";
 
 /** Proof posture for mirrored receipts / UI badges (never inflate beyond evidence). */
 export type ProofIntegrityStatus =

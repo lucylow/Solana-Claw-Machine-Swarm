@@ -21,7 +21,14 @@ import {
   buildExplorerTxUrl,
 } from "@/components/command-center";
 import { PlanReceiptCard } from "@/components/PlanReceiptCard";
-import { ArrowRight, CheckCircle2, Link2, Sparkles, Workflow, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Link2,
+  Sparkles,
+  Workflow,
+  Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getPlanTimeline, listPlans } from "@/plans/planClient";
 import type {
@@ -73,7 +80,9 @@ export default function ReceiptsPage() {
   const [timeline, setTimeline] = useState<MemoryLifecycleEvent[]>([]);
   const [chain, setChain] = useState<ChainResponse | null>(null);
   const [plans, setPlans] = useState<PlanReceipt[]>([]);
-  const [activePlanTimeline, setActivePlanTimeline] = useState<PlanTimelineEvent[]>([]);
+  const [activePlanTimeline, setActivePlanTimeline] = useState<
+    PlanTimelineEvent[]
+  >([]);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -88,19 +97,26 @@ export default function ReceiptsPage() {
     fullText:
       "The tool invocation failed because the required input schema was assumed instead of validated. The full reflection is persisted off-chain and the compact proof should be anchored on Solana.",
     rootCause: "Tool schema assumptions were incorrect.",
-    correctiveAdvice: "Always load and validate the tool descriptor before execution.",
+    correctiveAdvice:
+      "Always load and validate the tool descriptor before execution.",
     nextAction: "Inject schema-first checklist into the next turn.",
     tags: "failure,schema,lesson",
   });
 
-  const selected = useMemo(() => items.find(item => item.reflection.id === selectedId) || null, [items, selectedId]);
+  const selected = useMemo(
+    () => items.find((item) => item.reflection.id === selectedId) || null,
+    [items, selectedId],
+  );
 
   const loadList = useCallback(async () => {
     setBusy(true);
     try {
-      const data = await fetchJSON<{ items: ReflectionItem[] }>("/api/memory/reflections");
+      const data = await fetchJSON<{ items: ReflectionItem[] }>(
+        "/api/memory/reflections",
+      );
       setItems(data.items);
-      if (!selectedId && data.items[0]) setSelectedId(data.items[0].reflection.id);
+      if (!selectedId && data.items[0])
+        setSelectedId(data.items[0].reflection.id);
     } finally {
       setBusy(false);
     }
@@ -118,7 +134,9 @@ export default function ReceiptsPage() {
   const loadChain = useCallback(async (id: string) => {
     const [nextChain, nextTimeline] = await Promise.all([
       fetchJSON<ChainResponse>(`/api/memory/reflections/${id}/chain`),
-      fetchJSON<MemoryLifecycleEvent[]>(`/api/memory/reflections/${id}/timeline`),
+      fetchJSON<MemoryLifecycleEvent[]>(
+        `/api/memory/reflections/${id}/timeline`,
+      ),
     ]);
     setChain(nextChain);
     setTimeline(nextTimeline);
@@ -179,7 +197,7 @@ export default function ReceiptsPage() {
           ...form,
           tags: form.tags
             .split(",")
-            .map(x => x.trim())
+            .map((x) => x.trim())
             .filter(Boolean),
           autoAnchor: true,
           autoVerify: false,
@@ -195,7 +213,10 @@ export default function ReceiptsPage() {
     if (!selected) return;
     setBusy(true);
     try {
-      await fetchJSON(`/api/memory/reflections/${selected.reflection.id}/verify`, { method: "POST" });
+      await fetchJSON(
+        `/api/memory/reflections/${selected.reflection.id}/verify`,
+        { method: "POST" },
+      );
       await loadList();
       await loadChain(selected.reflection.id);
     } finally {
@@ -237,7 +258,9 @@ export default function ReceiptsPage() {
 
   const filteredItems = useMemo(() => {
     if (!agentIdFilter.trim()) return items;
-    return items.filter(item => item.reflection.agentId.includes(agentIdFilter.trim()));
+    return items.filter((item) =>
+      item.reflection.agentId.includes(agentIdFilter.trim()),
+    );
   }, [agentIdFilter, items]);
 
   const selectedReflectionState: ReflectionState | null = selected
@@ -280,7 +303,12 @@ export default function ReceiptsPage() {
       brand="Receipts & memory trail"
       sideRail={sideRail}
       topRightSlot={
-        <Button asChild size="sm" variant="outline" className="rounded-full border-white/15 text-[11px] text-slate-200">
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="rounded-full border-white/15 text-[11px] text-slate-200"
+        >
           <Link href="/dashboard?section=receipts">
             {SOLANA_COPY.navigation.backCommandCenter}
             <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
@@ -294,11 +322,19 @@ export default function ReceiptsPage() {
         description="Full reflections live off-chain. Compact hashes, turn links, wallet proofs, and tx signatures are anchored on Solana."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button onClick={runDemo} className="rounded-full bg-[#14f195] text-black hover:bg-[#3bff96]" disabled={busy}>
+            <Button
+              onClick={runDemo}
+              className="rounded-full bg-[#14f195] text-black hover:bg-[#3bff96]"
+              disabled={busy}
+            >
               <Sparkles className="w-4 h-4 mr-1.5" aria-hidden />
               Memory demo
             </Button>
-            <Button onClick={runPlanDemo} className="rounded-full bg-cyan-500 text-black hover:bg-cyan-400" disabled={busy}>
+            <Button
+              onClick={runPlanDemo}
+              className="rounded-full bg-cyan-500 text-black hover:bg-cyan-400"
+              disabled={busy}
+            >
               <Workflow className="w-4 h-4 mr-1.5" aria-hidden />
               Planner demo
             </Button>
@@ -311,30 +347,43 @@ export default function ReceiptsPage() {
 
         <Card className="bg-[#07140f] border-[#2af08b]/30 p-5">
           <p className="text-sm text-slate-300">
-            Full reflections are stored off-chain. Compact hashes, turn links, wallet proofs, and tx references are anchored on Solana.
+            Full reflections are stored off-chain. Compact hashes, turn links,
+            wallet proofs, and tx references are anchored on Solana.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <DappOnchainTag scope="offchain" />
-            <Badge className="bg-[#153827] border-[#2af08b]/40">Reflection stored</Badge>
+            <Badge className="bg-[#153827] border-[#2af08b]/40">
+              Reflection stored
+            </Badge>
             <DappOnchainTag scope="onchain" />
-            <Badge className="bg-[#153827] border-[#2af08b]/40">Receipt anchored on Solana</Badge>
-            <Badge className="bg-[#153827] border-[#2af08b]/40">Injected into next turn</Badge>
-            <Badge className="bg-[#153827] border-[#2af08b]/40">Lesson verified</Badge>
+            <Badge className="bg-[#153827] border-[#2af08b]/40">
+              Receipt anchored on Solana
+            </Badge>
+            <Badge className="bg-[#153827] border-[#2af08b]/40">
+              Injected into next turn
+            </Badge>
+            <Badge className="bg-[#153827] border-[#2af08b]/40">
+              Lesson verified
+            </Badge>
           </div>
         </Card>
 
         <Card className="bg-[#07140f] border-[#2af08b]/30 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-[#6dffb3]">Planner receipt lifecycle</h2>
+              <h2 className="text-lg font-semibold text-[#6dffb3]">
+                Planner receipt lifecycle
+              </h2>
               <p className="text-xs text-slate-400 mt-1">
                 goal → breakdown → execution → result → memory
               </p>
             </div>
-            <Badge className="bg-[#153827] border-[#2af08b]/40">durable plan artifacts</Badge>
+            <Badge className="bg-[#153827] border-[#2af08b]/40">
+              durable plan artifacts
+            </Badge>
           </div>
           <div className="mt-4 grid md:grid-cols-2 gap-3">
-            {plans.slice(0, 4).map(plan => (
+            {plans.slice(0, 4).map((plan) => (
               <PlanReceiptCard
                 key={plan.id}
                 plan={plan}
@@ -346,13 +395,15 @@ export default function ReceiptsPage() {
             ))}
             {plans.length === 0 ? (
               <div className="text-xs text-slate-500">
-                No planner receipts yet. Create one with `POST /api/plans/receipt` and this timeline will render immediately.
+                No planner receipts yet. Create one with `POST
+                /api/plans/receipt` and this timeline will render immediately.
               </div>
             ) : null}
           </div>
           {activePlanId && activePlanTimeline.length > 0 ? (
             <div className="mt-3 rounded border border-[#2af08b]/30 bg-black/40 p-2 text-xs text-slate-300">
-              Active plan timeline loaded ({activePlanTimeline.length} events) for {activePlanId}.
+              Active plan timeline loaded ({activePlanTimeline.length} events)
+              for {activePlanId}.
             </div>
           ) : null}
         </Card>
@@ -362,31 +413,44 @@ export default function ReceiptsPage() {
             <Card className="bg-black/60 border-cyan-500/30 p-4">
               <div className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <label className="text-xs text-slate-400">Filter by agent</label>
+                  <label className="text-xs text-slate-400">
+                    Filter by agent
+                  </label>
                   <input
                     value={agentIdFilter}
-                    onChange={e => setAgentIdFilter(e.target.value)}
+                    onChange={(e) => setAgentIdFilter(e.target.value)}
                     className="mt-1 w-full bg-black/60 border border-cyan-500/30 rounded px-3 py-2 text-sm"
                   />
                 </div>
-                <Button variant="outline" className="border-cyan-500/40" onClick={() => loadList()} disabled={busy}>
+                <Button
+                  variant="outline"
+                  className="border-cyan-500/40"
+                  onClick={() => loadList()}
+                  disabled={busy}
+                >
                   Refresh
                 </Button>
               </div>
             </Card>
 
             <Card className="bg-black/60 border-purple-500/30 p-4">
-              <h3 className="text-purple-300 font-semibold mb-3">Create Reflection + Anchor Receipt</h3>
+              <h3 className="text-purple-300 font-semibold mb-3">
+                Create Reflection + Anchor Receipt
+              </h3>
               <div className="grid md:grid-cols-2 gap-3">
                 <input
                   value={form.agentId}
-                  onChange={e => setForm(prev => ({ ...prev, agentId: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, agentId: e.target.value }))
+                  }
                   placeholder="agentId"
                   className="bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <select
                   value={form.kind}
-                  onChange={e => setForm(prev => ({ ...prev, kind: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, kind: e.target.value }))
+                  }
                   className="bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 >
                   <option value="failure">failure</option>
@@ -397,72 +461,100 @@ export default function ReceiptsPage() {
                 </select>
                 <input
                   value={form.sourceTurnId}
-                  onChange={e => setForm(prev => ({ ...prev, sourceTurnId: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      sourceTurnId: e.target.value,
+                    }))
+                  }
                   placeholder="sourceTurnId"
                   className="bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <input
                   value={form.wallet}
-                  onChange={e => setForm(prev => ({ ...prev, wallet: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, wallet: e.target.value }))
+                  }
                   placeholder="wallet"
                   className="bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <input
                   value={form.title}
-                  onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   placeholder="title"
                   className="md:col-span-2 bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <textarea
                   value={form.summary}
-                  onChange={e => setForm(prev => ({ ...prev, summary: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, summary: e.target.value }))
+                  }
                   placeholder="summary"
                   rows={2}
                   className="md:col-span-2 bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <textarea
                   value={form.rootCause}
-                  onChange={e => setForm(prev => ({ ...prev, rootCause: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, rootCause: e.target.value }))
+                  }
                   placeholder="root cause"
                   rows={2}
                   className="bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <textarea
                   value={form.correctiveAdvice}
-                  onChange={e => setForm(prev => ({ ...prev, correctiveAdvice: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      correctiveAdvice: e.target.value,
+                    }))
+                  }
                   placeholder="corrective advice"
                   rows={2}
                   className="bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <textarea
                   value={form.nextAction}
-                  onChange={e => setForm(prev => ({ ...prev, nextAction: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, nextAction: e.target.value }))
+                  }
                   placeholder="next action"
                   rows={2}
                   className="md:col-span-2 bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <textarea
                   value={form.fullText}
-                  onChange={e => setForm(prev => ({ ...prev, fullText: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, fullText: e.target.value }))
+                  }
                   placeholder="full reflection text"
                   rows={3}
                   className="md:col-span-2 bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
                 <input
                   value={form.tags}
-                  onChange={e => setForm(prev => ({ ...prev, tags: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, tags: e.target.value }))
+                  }
                   placeholder="tags comma-separated"
                   className="md:col-span-2 bg-black/60 border border-purple-500/30 rounded px-3 py-2 text-sm"
                 />
               </div>
-              <Button className="mt-3 bg-purple-600 hover:bg-purple-700" onClick={createReflection} disabled={busy}>
+              <Button
+                className="mt-3 bg-purple-600 hover:bg-purple-700"
+                onClick={createReflection}
+                disabled={busy}
+              >
                 <Zap className="w-4 h-4 mr-2" />
                 Reflection Stored + Receipt Anchored
               </Button>
             </Card>
 
             <div className="space-y-3">
-              {filteredItems.map(item => (
+              {filteredItems.map((item) => (
                 <Card
                   key={item.reflection.id}
                   className={`cursor-pointer p-4 border ${
@@ -474,8 +566,12 @@ export default function ReceiptsPage() {
                 >
                   <div className="flex justify-between gap-3">
                     <div>
-                      <div className="text-sm text-slate-300">{item.reflection.title}</div>
-                      <div className="text-xs text-slate-500 mt-1">{item.reflection.sourceTurnId}</div>
+                      <div className="text-sm text-slate-300">
+                        {item.reflection.title}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {item.reflection.sourceTurnId}
+                      </div>
                     </div>
                     <Badge
                       className={
@@ -487,11 +583,16 @@ export default function ReceiptsPage() {
                       {item.receipt?.status || "stored"}
                     </Badge>
                   </div>
-                  <div className="mt-2 text-xs text-slate-400">{item.reflection.summary}</div>
+                  <div className="mt-2 text-xs text-slate-400">
+                    {item.reflection.summary}
+                  </div>
                 </Card>
               ))}
               {!filteredItems.length ? (
-                <EmptyState title="No reflections yet" message="Run memory demo or create a reflection to start the timeline." />
+                <EmptyState
+                  title="No reflections yet"
+                  message="Run memory demo or create a reflection to start the timeline."
+                />
               ) : null}
             </div>
           </div>
@@ -501,21 +602,37 @@ export default function ReceiptsPage() {
               <div className="flex justify-between">
                 <h3 className="text-[#6dffb3] font-semibold">Proof controls</h3>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={verifySelected} disabled={!selected || busy}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={verifySelected}
+                    disabled={!selected || busy}
+                  >
                     <CheckCircle2 className="w-4 h-4 mr-1" />
                     Verify
                   </Button>
-                  <Button size="sm" variant="outline" onClick={injectNextTurn} disabled={!selected || busy}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={injectNextTurn}
+                    disabled={!selected || busy}
+                  >
                     <Link2 className="w-4 h-4 mr-1" />
                     Inject
                   </Button>
                 </div>
               </div>
               {!selected || !selectedReflectionState ? (
-                <p className="text-sm text-slate-400 mt-2">Select a reflection to inspect its chain.</p>
+                <p className="text-sm text-slate-400 mt-2">
+                  Select a reflection to inspect its chain.
+                </p>
               ) : (
                 <div className="mt-3 space-y-3">
-                  <ReflectionCard reflection={selectedReflectionState} record={selected.reflection} receipt={selected.receipt} />
+                  <ReflectionCard
+                    reflection={selectedReflectionState}
+                    record={selected.reflection}
+                    receipt={selected.receipt}
+                  />
                   <OnchainReceiptCard
                     receipt={{
                       id: selected.receipt?.id,
@@ -526,7 +643,9 @@ export default function ReceiptsPage() {
                       verified: selected.receipt?.verified,
                       storageRef: selected.reflection.storageRef,
                     }}
-                    explorerUrl={buildExplorerTxUrl(selected.receipt?.solanaTxSig)}
+                    explorerUrl={buildExplorerTxUrl(
+                      selected.receipt?.solanaTxSig,
+                    )}
                   />
                 </div>
               )}
@@ -535,16 +654,27 @@ export default function ReceiptsPage() {
             <Card className="bg-black/60 border-cyan-500/30 p-4">
               <h3 className="text-cyan-300 font-semibold">Memory Timeline</h3>
               <div className="mt-3 space-y-2">
-                {timeline.map(event => (
-                  <div key={event.id} className="rounded border border-cyan-500/20 bg-black/40 p-2 text-xs">
+                {timeline.map((event) => (
+                  <div
+                    key={event.id}
+                    className="rounded border border-cyan-500/20 bg-black/40 p-2 text-xs"
+                  >
                     <div className="flex justify-between gap-2">
-                      <span className="text-cyan-200">{event.kind.replace(/_/g, " ")}</span>
-                      <span className="text-slate-500">{new Date(event.createdAt).toLocaleTimeString()}</span>
+                      <span className="text-cyan-200">
+                        {event.kind.replace(/_/g, " ")}
+                      </span>
+                      <span className="text-slate-500">
+                        {new Date(event.createdAt).toLocaleTimeString()}
+                      </span>
                     </div>
                     <p className="text-slate-300 mt-1">{event.message}</p>
                   </div>
                 ))}
-                {!timeline.length ? <p className="text-xs text-slate-500">Timeline will appear after selection.</p> : null}
+                {!timeline.length ? (
+                  <p className="text-xs text-slate-500">
+                    Timeline will appear after selection.
+                  </p>
+                ) : null}
               </div>
             </Card>
 
@@ -567,7 +697,10 @@ export default function ReceiptsPage() {
               <div className="mt-2 space-y-2 text-xs">
                 <p>Source turn: {chain?.reflection.sourceTurnId || "n/a"}</p>
                 <p>Parent receipt: {chain?.parentReceipt?.id || "none"}</p>
-                <p>Linked next turn hash: {shortHash(chain?.receipt?.nextTurnIdHash, 30)}</p>
+                <p>
+                  Linked next turn hash:{" "}
+                  {shortHash(chain?.receipt?.nextTurnIdHash, 30)}
+                </p>
                 <p>Link records: {chain?.links.length || 0}</p>
               </div>
             </Card>

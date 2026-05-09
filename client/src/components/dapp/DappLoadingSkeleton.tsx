@@ -29,7 +29,7 @@ export function DappLoadingSkeleton({
         "bg-gradient-to-r from-white/[0.04] via-[#14f195]/[0.06] to-white/[0.04]",
         pulse && "motion-safe:animate-pulse",
         r,
-        className
+        className,
       )}
       aria-hidden
     />

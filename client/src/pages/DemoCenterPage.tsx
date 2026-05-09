@@ -67,21 +67,35 @@ function DemoLayoutBody() {
             <div className="flex items-center gap-2 border-l border-white/10 pl-3">
               <Sparkles className="h-5 w-5 text-[#3bff96]" />
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">Demo system</p>
-                <p className="font-semibold tracking-tight">CLAW_MACHINE · Solana narrative</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">
+                  Demo system
+                </p>
+                <p className="font-semibold tracking-tight">
+                  CLAW_MACHINE · Solana narrative
+                </p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500">Presentation</span>
-            <Switch checked={presentationMode} onCheckedChange={setPresentationMode} />
+            <Switch
+              checked={presentationMode}
+              onCheckedChange={setPresentationMode}
+            />
           </div>
         </div>
         <div className="container pb-4">
           <DemoNav presentationMode={presentationMode} />
         </div>
       </header>
-      <main className={cn("container relative z-10 py-8", presentationMode && "max-w-6xl")}>{content}</main>
+      <main
+        className={cn(
+          "container relative z-10 py-8",
+          presentationMode && "max-w-6xl",
+        )}
+      >
+        {content}
+      </main>
     </div>
   );
 }

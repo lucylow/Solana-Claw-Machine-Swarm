@@ -35,7 +35,7 @@ export function DappNetworkBadge({
 }) {
   const tone = wrong
     ? "border-amber-400/55 bg-amber-500/15 text-amber-100"
-    : CLUSTER_TONE[cluster] ?? "border-white/15 bg-white/5 text-slate-200";
+    : (CLUSTER_TONE[cluster] ?? "border-white/15 bg-white/5 text-slate-200");
 
   return (
     <span
@@ -43,7 +43,7 @@ export function DappNetworkBadge({
         "inline-flex items-center gap-1.5 rounded-full border font-semibold uppercase tracking-wide",
         size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
         tone,
-        className
+        className,
       )}
       aria-label={wrong ? "Wrong cluster" : `Solana ${cluster} cluster`}
     >
@@ -51,21 +51,17 @@ export function DappNetworkBadge({
         <span
           className={cn(
             "absolute inline-flex h-full w-full animate-ping rounded-full opacity-50",
-            wrong
-              ? "bg-amber-300"
-              : rpcOk
-                ? "bg-[#3bff96]"
-                : "bg-rose-400"
+            wrong ? "bg-amber-300" : rpcOk ? "bg-[#3bff96]" : "bg-rose-400",
           )}
         />
         <span
           className={cn(
             "relative inline-flex h-2 w-2 rounded-full",
-            wrong ? "bg-amber-300" : rpcOk ? "bg-[#3bff96]" : "bg-rose-400"
+            wrong ? "bg-amber-300" : rpcOk ? "bg-[#3bff96]" : "bg-rose-400",
           )}
         />
       </span>
-      {wrong ? "Cluster mismatch" : CLUSTER_LABEL[cluster] ?? cluster}
+      {wrong ? "Cluster mismatch" : (CLUSTER_LABEL[cluster] ?? cluster)}
     </span>
   );
 }

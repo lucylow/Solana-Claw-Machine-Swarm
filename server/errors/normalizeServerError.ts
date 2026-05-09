@@ -1,6 +1,9 @@
 import { HttpError } from "@shared/_core/errors";
 import type { AppError, ErrorCode } from "@shared/errorTypes";
-import { inferCodeFromLegacyMessage, normalizeError } from "@shared/normalizeError";
+import {
+  inferCodeFromLegacyMessage,
+  normalizeError,
+} from "@shared/normalizeError";
 
 export interface ServerErrorContext {
   route?: string;
@@ -11,16 +14,21 @@ export interface ServerErrorContext {
 }
 
 function httpStatusToCode(status: number, message: string): ErrorCode {
-  if (status === 400) return inferCodeFromLegacyMessage(message) ?? "VALIDATION_FAILED";
+  if (status === 400)
+    return inferCodeFromLegacyMessage(message) ?? "VALIDATION_FAILED";
   if (status === 401) return "SESSION_VERIFICATION_FAILED";
   if (status === 403) return "INSUFFICIENT_PERMISSIONS";
-  if (status === 404) return inferCodeFromLegacyMessage(message) ?? "VALIDATION_FAILED";
+  if (status === 404)
+    return inferCodeFromLegacyMessage(message) ?? "VALIDATION_FAILED";
   if (status === 429) return "RPC_RATE_LIMITED";
   if (status >= 500) return "UNEXPECTED_ROUTE_ERROR";
   return inferCodeFromLegacyMessage(message) ?? "UNEXPECTED_ROUTE_ERROR";
 }
 
-export function normalizeServerError(error: unknown, ctx: ServerErrorContext = {}): AppError {
+export function normalizeServerError(
+  error: unknown,
+  ctx: ServerErrorContext = {},
+): AppError {
   if (error instanceof HttpError) {
     const code = httpStatusToCode(error.statusCode, error.message);
     return normalizeError(error.message, {

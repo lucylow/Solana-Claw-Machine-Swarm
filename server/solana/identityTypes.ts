@@ -15,8 +15,18 @@ export type MemoryAnchorKind =
   | "other";
 
 export type MemoryAnchorResult = "success" | "failure" | "mixed" | "unknown";
-export type PlannerOutcome = "planned" | "running" | "succeeded" | "failed" | "aborted";
-export type DeploymentStatus = "pending" | "uploaded" | "anchored" | "confirmed" | "failed";
+export type PlannerOutcome =
+  | "planned"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "aborted";
+export type DeploymentStatus =
+  | "pending"
+  | "uploaded"
+  | "anchored"
+  | "confirmed"
+  | "failed";
 export type ReputationEventKind =
   | "memory_anchor"
   | "planner_run"

@@ -16,9 +16,14 @@ const NFT_TYPES: { value: NftMintRecord["nftType"]; label: string }[] = [
   { value: "collectible", label: "Collectible" },
 ];
 
-export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecord) => void }) {
+export default function NftMintPanel({
+  onMinted,
+}: {
+  onMinted?: (m: NftMintRecord) => void;
+}) {
   const wallet = useWallet();
-  const [collection, setCollection] = useState<Awaited<ReturnType<typeof nftApi.getCollection>>>(null);
+  const [collection, setCollection] =
+    useState<Awaited<ReturnType<typeof nftApi.getCollection>>>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({
@@ -80,7 +85,7 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
         nftType: form.nftType,
         tags: form.tags
           .split(",")
-          .map(s => s.trim())
+          .map((s) => s.trim())
           .filter(Boolean),
       });
       setMessage(`Minted ${data.name}`);
@@ -114,27 +119,50 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
     <Card className="border-white/10 bg-[#070b11]/90 p-6 text-white shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">Solana NFT</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">
+            Solana NFT
+          </p>
           <h2 className="mt-1 text-xl font-semibold">Mint a CLAW NFT</h2>
           <p className="mt-2 max-w-xl text-sm text-slate-400">
-            Demo flow uses a local catalog backed by <code className="text-[#9dfbf5]">data/claw-nft.json</code>. Wire{" "}
-            <code className="text-[#9dfbf5]">ClawNftClient</code> to your deployed program for real mints.
+            Demo flow uses a local catalog backed by{" "}
+            <code className="text-[#9dfbf5]">data/claw-nft.json</code>. Wire{" "}
+            <code className="text-[#9dfbf5]">ClawNftClient</code> to your
+            deployed program for real mints.
           </p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">{shortPk}</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+          {shortPk}
+        </span>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="outline" className="border-white/20" disabled={loading} onClick={() => loadCollection()}>
+        <Button
+          variant="outline"
+          className="border-white/20"
+          disabled={loading}
+          onClick={() => loadCollection()}
+        >
           Load collection
         </Button>
-        <Button className="bg-[#3bff96] text-black hover:bg-[#6bffbc]" disabled={loading} onClick={() => createCollection()}>
+        <Button
+          className="bg-[#3bff96] text-black hover:bg-[#6bffbc]"
+          disabled={loading}
+          onClick={() => createCollection()}
+        >
           Create collection
         </Button>
-        <Button className="bg-[#38d7d0] text-black hover:bg-[#6bf5ee]" disabled={loading} onClick={() => mint()}>
+        <Button
+          className="bg-[#38d7d0] text-black hover:bg-[#6bf5ee]"
+          disabled={loading}
+          onClick={() => mint()}
+        >
           Mint NFT
         </Button>
-        <Button variant="destructive" disabled={loading} onClick={() => freeze()}>
+        <Button
+          variant="destructive"
+          disabled={loading}
+          onClick={() => freeze()}
+        >
           Freeze collection
         </Button>
       </div>
@@ -144,7 +172,7 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
           <Label>Name</Label>
           <Input
             value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             className="border-white/10 bg-white/5"
           />
         </div>
@@ -152,7 +180,7 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
           <Label>Symbol</Label>
           <Input
             value={form.symbol}
-            onChange={e => setForm(f => ({ ...f, symbol: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, symbol: e.target.value }))}
             className="border-white/10 bg-white/5"
           />
         </div>
@@ -160,7 +188,7 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
           <Label>Metadata URI</Label>
           <Input
             value={form.uri}
-            onChange={e => setForm(f => ({ ...f, uri: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, uri: e.target.value }))}
             className="border-white/10 bg-white/5"
           />
         </div>
@@ -168,10 +196,15 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
           <Label>Type</Label>
           <select
             value={form.nftType}
-            onChange={e => setForm(f => ({ ...f, nftType: e.target.value as NftMintRecord["nftType"] }))}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                nftType: e.target.value as NftMintRecord["nftType"],
+              }))
+            }
             className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white"
           >
-            {NFT_TYPES.map(t => (
+            {NFT_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
@@ -183,7 +216,9 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
           <Textarea
             rows={4}
             value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, description: e.target.value }))
+            }
             className="border-white/10 bg-white/5"
           />
         </div>
@@ -191,7 +226,7 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
           <Label>Tags (comma-separated)</Label>
           <Input
             value={form.tags}
-            onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
             className="border-white/10 bg-white/5"
           />
         </div>
@@ -211,8 +246,12 @@ export default function NftMintPanel({ onMinted }: { onMinted?: (m: NftMintRecor
               {collection.totalMinted}/{collection.maxSupply}
             </span>
           </div>
-          <p className="mt-2 break-all text-xs text-slate-400">Mint: {collection.collectionMint}</p>
-          <p className="mt-1 text-xs text-slate-400">Frozen: {String(collection.frozen)}</p>
+          <p className="mt-2 break-all text-xs text-slate-400">
+            Mint: {collection.collectionMint}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Frozen: {String(collection.frozen)}
+          </p>
         </div>
       ) : null}
     </Card>

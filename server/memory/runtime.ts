@@ -22,7 +22,9 @@ export async function getMemoryReceiptService(input?: {
   if (servicePromise) return servicePromise;
 
   servicePromise = (async () => {
-    const store = new MemoryReceiptStore(path.join(process.cwd(), "data", "memory-receipts.json"));
+    const store = new MemoryReceiptStore(
+      path.join(process.cwd(), "data", "memory-receipts.json"),
+    );
     await store.init();
     return new MemoryReceiptService(store, {
       chainId: Number(process.env.SOLANA_CHAIN_ID || 101),

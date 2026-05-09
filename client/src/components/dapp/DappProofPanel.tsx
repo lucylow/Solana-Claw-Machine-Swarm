@@ -46,7 +46,7 @@ export function DappProofPanel({
     <aside
       className={cn(
         "flex flex-col gap-3 rounded-3xl border border-white/[0.06] bg-gradient-to-b from-[#040608]/95 to-[#02040a]/95 p-4 sm:p-5",
-        className
+        className,
       )}
       aria-label="Proof and receipts"
     >

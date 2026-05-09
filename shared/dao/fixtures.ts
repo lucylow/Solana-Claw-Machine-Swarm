@@ -20,7 +20,7 @@ function m(
   role: DaoMember["role"],
   weight: number,
   rep: number,
-  label: string
+  label: string,
 ): DaoMember {
   return {
     id: `mem_${wallet.slice(0, 8)}`,
@@ -36,15 +36,19 @@ function m(
       canVote: true,
       canDelegate: true,
       canPropose: role !== "agent",
-      canExecute: role === "treasurer" || role === "admin" || role === "council",
+      canExecute:
+        role === "treasurer" || role === "admin" || role === "council",
       canViewTreasury: true,
-      canReviewProposals: role === "council" || role === "moderator" || role === "admin",
+      canReviewProposals:
+        role === "council" || role === "moderator" || role === "admin",
     },
     metadata: { demo: true },
   };
 }
 
-export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPayload, "explorerBaseUrl" | "walletAddress"> {
+export function buildDaoDemoFixtures(
+  now = Date.now(),
+): Omit<DaoCommandCenterPayload, "explorerBaseUrl" | "walletAddress"> {
   const w1 = "CLAWGov111111111111111111111111111111111111";
   const w2 = "CLAWDel222222222222222222222222222222222222";
   const w3 = "CLAWMem333333333333333333333333333333333333";
@@ -75,7 +79,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
     {
       id: "prop_demo_treasury",
       title: "Treasury allocation — agent safety buffer",
-      summary: "Allocate 12 SOL to a claw-agent incident buffer with dual-sig treasurer release.",
+      summary:
+        "Allocate 12 SOL to a claw-agent incident buffer with dual-sig treasurer release.",
       fullDescription: undefined,
       proposalType: "treasury_allocation",
       status: "voting",
@@ -99,7 +104,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
         pda: "DaoPropPDA22222222222222222222222222222222",
         programId: PROGRAM,
         cluster: CLUSTER,
-        txSignature: "5demoTreasuryProposalSigBase58Encoded111111111111111111111111111111111111111111111111111111111",
+        txSignature:
+          "5demoTreasuryProposalSigBase58Encoded111111111111111111111111111111111111111111111111111111111",
       },
       offchain: {
         storageRef: "zerog://dao/discussion/prop_demo_treasury",
@@ -116,7 +122,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
     {
       id: "prop_demo_skill",
       title: "Skill listing — Claw Planner v3",
-      summary: "List the planner skill with elevated policy checks for treasury-touching plans.",
+      summary:
+        "List the planner skill with elevated policy checks for treasury-touching plans.",
       proposalType: "skill_listing",
       status: "review",
       createdAt: new Date(now - 86400000).toISOString(),
@@ -179,17 +186,22 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       voteVeto: 100,
       totalVotingPower: 11700,
       executionReady: true,
-      executionTxSignature: "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
+      executionTxSignature:
+        "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
       executionReceiptId: "rcpt_exec_grant",
       proposalReceiptId: "rcpt_prop_grant",
       proofStatus: "demo_only",
       onchain: {
         cluster: CLUSTER,
         programId: PROGRAM,
-        txSignature: "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
+        txSignature:
+          "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
         pda: "DaoPropPDAexec333333333333333333333333333333",
       },
-      treasuryImpact: { amount: 4_000_000_000, budgetCategory: "ecosystem_grant" },
+      treasuryImpact: {
+        amount: 4_000_000_000,
+        budgetCategory: "ecosystem_grant",
+      },
       metadata: { demo: true },
     },
   ];
@@ -226,8 +238,17 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
     totalBalanceLamports: "84200000000",
     totalBalanceSol: "84.2000",
     tokenBalances: [
-      { mint: "So11111111111111111111111111111111111111112", symbol: "SOL", balance: "84.2" },
-      { mint: "USDCxaQ111111111111111111111111111111111111", symbol: "USDC", balance: "125000", valueUsd: 125000 },
+      {
+        mint: "So11111111111111111111111111111111111111112",
+        symbol: "SOL",
+        balance: "84.2",
+      },
+      {
+        mint: "USDCxaQ111111111111111111111111111111111111",
+        symbol: "USDC",
+        balance: "125000",
+        valueUsd: 125000,
+      },
     ],
     lastUpdatedAt: new Date(now - 600000).toISOString(),
     proofReceiptId: "rcpt_treasury_snap",
@@ -241,7 +262,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       proposalId: "prop_demo_executed",
       walletAddress: w4,
       cluster: CLUSTER,
-      txSignature: "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
+      txSignature:
+        "5demoExecGrantSigBase58Encoded222222222222222222222222222222222222222222222222222222222",
       title: "Grant transfer executed",
       summary: "4 SOL routed to grant multisig; memo hash anchored.",
       status: "demo_only",
@@ -260,10 +282,15 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       agentId: "agent_risk",
       agentName: "Risk Analyst",
       role: "risk_analyst",
-      summary: "Treasury draw is within spend limit but concentrates authority on treasurer path.",
-      recommendation: "Approve with dual-sig enforcement and 24h timelock in execution coordinator steps.",
+      summary:
+        "Treasury draw is within spend limit but concentrates authority on treasurer path.",
+      recommendation:
+        "Approve with dual-sig enforcement and 24h timelock in execution coordinator steps.",
       confidence: 0.82,
-      risks: ["Single treasurer path if multisig misconfigured", "Buffer underfunded for multi-incident week"],
+      risks: [
+        "Single treasurer path if multisig misconfigured",
+        "Buffer underfunded for multi-incident week",
+      ],
       supportingEvidence: ["spend_limit_lamports_ok", "policy_high_treasury"],
       createdAt: new Date(now - 3400000).toISOString(),
       status: "demo_only",
@@ -276,7 +303,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       agentName: "Policy Reviewer",
       role: "policy_reviewer",
       summary: "Proposal satisfies quorum and policy level high review.",
-      recommendation: "Require council co-sign for allocations >10 SOL equivalent.",
+      recommendation:
+        "Require council co-sign for allocations >10 SOL equivalent.",
       confidence: 0.77,
       risks: ["Threshold drift if parameters change mid-vote"],
       supportingEvidence: ["quorum_config_snapshot"],
@@ -290,8 +318,10 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       agentId: "agent_treasury",
       agentName: "Treasury Analyst",
       role: "treasury_analyst",
-      summary: "Post-transfer liquidity remains above 60 SOL liquid policy band.",
-      recommendation: "Safe to proceed; schedule follow-on snapshot after execution.",
+      summary:
+        "Post-transfer liquidity remains above 60 SOL liquid policy band.",
+      recommendation:
+        "Safe to proceed; schedule follow-on snapshot after execution.",
       confidence: 0.74,
       risks: ["Token price volatility not modeled in demo"],
       supportingEvidence: ["snapshot_snap_demo_1"],
@@ -306,7 +336,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       id: "mem_demo_1",
       proposalId: "prop_demo_executed",
       title: "Grant executions anchor well with dual receipts",
-      lesson: "Keep execution coordinator memo hash + treasury snapshot hash paired for explorer audits.",
+      lesson:
+        "Keep execution coordinator memo hash + treasury snapshot hash paired for explorer audits.",
       outcome: "executed",
       createdAt: new Date(now - 86400000 * 8).toISOString(),
       linkedReceiptIds: ["rcpt_exec_grant", "rcpt_prop_grant"],
@@ -318,7 +349,8 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
       id: "mem_demo_2",
       proposalId: "prop_demo_failed_quorum",
       title: "Ranking parameter changes need earlier delegate activation",
-      lesson: "Failed quorum when delegates travel; surface push notifications to delegators.",
+      lesson:
+        "Failed quorum when delegates travel; surface push notifications to delegators.",
       outcome: "rejected",
       createdAt: new Date(now - 86400000 * 3).toISOString(),
       linkedReceiptIds: [],
@@ -327,14 +359,53 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
   ];
 
   const timeline: DaoTimelineStage[] = [
-    { id: "draft", label: "Proposal drafted", at: new Date(now - 3600000 * 6).toISOString(), done: true, artifact: "offchain" },
-    { id: "agents", label: "Agent council review", at: new Date(now - 3600000 * 5).toISOString(), done: true, artifact: "offchain" },
-    { id: "publish", label: "Published to members", at: new Date(now - 3600000 * 4).toISOString(), done: true, artifact: "receipt" },
-    { id: "vote", label: "Voting open", at: new Date(now - 3600000 * 3).toISOString(), done: true, artifact: "chain" },
+    {
+      id: "draft",
+      label: "Proposal drafted",
+      at: new Date(now - 3600000 * 6).toISOString(),
+      done: true,
+      artifact: "offchain",
+    },
+    {
+      id: "agents",
+      label: "Agent council review",
+      at: new Date(now - 3600000 * 5).toISOString(),
+      done: true,
+      artifact: "offchain",
+    },
+    {
+      id: "publish",
+      label: "Published to members",
+      at: new Date(now - 3600000 * 4).toISOString(),
+      done: true,
+      artifact: "receipt",
+    },
+    {
+      id: "vote",
+      label: "Voting open",
+      at: new Date(now - 3600000 * 3).toISOString(),
+      done: true,
+      artifact: "chain",
+    },
     { id: "quorum", label: "Quorum progress", done: false, artifact: "chain" },
-    { id: "finalize", label: "Finalize proposal", done: false, artifact: "receipt" },
-    { id: "execute", label: "Execute on Solana", done: false, artifact: "chain" },
-    { id: "memory", label: "Write governance memory", done: false, artifact: "offchain" },
+    {
+      id: "finalize",
+      label: "Finalize proposal",
+      done: false,
+      artifact: "receipt",
+    },
+    {
+      id: "execute",
+      label: "Execute on Solana",
+      done: false,
+      artifact: "chain",
+    },
+    {
+      id: "memory",
+      label: "Write governance memory",
+      done: false,
+      artifact: "offchain",
+    },
   ];
 
   return {
@@ -343,7 +414,7 @@ export function buildDaoDemoFixtures(now = Date.now()): Omit<DaoCommandCenterPay
     demoMode: true,
     member: null,
     effectiveVoteWeight: 0,
-    delegationsIncoming: delegations.filter(d => d.toWallet === w2),
+    delegationsIncoming: delegations.filter((d) => d.toWallet === w2),
     delegationsOutgoing: [],
     configSummary: {
       name: "CLAW Governance (demo)",

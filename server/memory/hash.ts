@@ -9,12 +9,17 @@ type CanonicalValue =
   | { [k: string]: CanonicalValue };
 
 function normalizeValue(input: unknown): CanonicalValue {
-  if (input === null || typeof input === "boolean" || typeof input === "number" || typeof input === "string") {
+  if (
+    input === null ||
+    typeof input === "boolean" ||
+    typeof input === "number" ||
+    typeof input === "string"
+  ) {
     return input;
   }
 
   if (Array.isArray(input)) {
-    return input.map(item => normalizeValue(item));
+    return input.map((item) => normalizeValue(item));
   }
 
   if (input && typeof input === "object") {

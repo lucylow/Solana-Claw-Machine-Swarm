@@ -79,32 +79,32 @@
 }
 
 .dark {
-  --primary: oklch(0.6 0.2 262);  /* Cyan/Purple */
-  --primary-foreground: oklch(0.05 0 0);  /* Black */
+  --primary: oklch(0.6 0.2 262); /* Cyan/Purple */
+  --primary-foreground: oklch(0.05 0 0); /* Black */
   --sidebar-primary: oklch(0.55 0.2 262);
   --sidebar-primary-foreground: oklch(0.05 0 0);
-  --background: oklch(0.05 0 0);  /* Deep black */
-  --foreground: oklch(0.9 0.01 262);  /* Bright cyan-white */
-  --card: oklch(0.1 0.01 262);  /* Very dark blue-black */
+  --background: oklch(0.05 0 0); /* Deep black */
+  --foreground: oklch(0.9 0.01 262); /* Bright cyan-white */
+  --card: oklch(0.1 0.01 262); /* Very dark blue-black */
   --card-foreground: oklch(0.85 0.01 262);
   --popover: oklch(0.1 0.01 262);
   --popover-foreground: oklch(0.85 0.01 262);
-  --secondary: oklch(0.15 0.02 262);  /* Dark purple */
+  --secondary: oklch(0.15 0.02 262); /* Dark purple */
   --secondary-foreground: oklch(0.8 0.02 262);
   --muted: oklch(0.2 0.02 262);
   --muted-foreground: oklch(0.7 0.02 262);
-  --accent: oklch(0.6 0.2 262);  /* Cyan accent */
+  --accent: oklch(0.6 0.2 262); /* Cyan accent */
   --accent-foreground: oklch(0.05 0 0);
-  --destructive: oklch(0.6 0.2 25);  /* Neon red */
+  --destructive: oklch(0.6 0.2 25); /* Neon red */
   --destructive-foreground: oklch(0.05 0 0);
-  --border: oklch(0.4 0.15 262 / 30%);  /* Cyan border */
+  --border: oklch(0.4 0.15 262 / 30%); /* Cyan border */
   --input: oklch(0.1 0.01 262 / 50%);
-  --ring: oklch(0.6 0.2 262);  /* Cyan ring */
-  --chart-1: oklch(0.6 0.2 262);  /* Cyan */
-  --chart-2: oklch(0.55 0.2 280);  /* Purple */
-  --chart-3: oklch(0.5 0.2 300);  /* Blue */
-  --chart-4: oklch(0.6 0.2 25);  /* Red */
-  --chart-5: oklch(0.55 0.2 140);  /* Green */
+  --ring: oklch(0.6 0.2 262); /* Cyan ring */
+  --chart-1: oklch(0.6 0.2 262); /* Cyan */
+  --chart-2: oklch(0.55 0.2 280); /* Purple */
+  --chart-3: oklch(0.5 0.2 300); /* Blue */
+  --chart-4: oklch(0.6 0.2 25); /* Red */
+  --chart-5: oklch(0.55 0.2 140); /* Green */
   --sidebar: oklch(0.08 0.01 262);
   --sidebar-foreground: oklch(0.85 0.01 262);
   --sidebar-accent: oklch(0.6 0.2 262);
@@ -160,7 +160,7 @@
   --cc-surface-1: rgba(12, 17, 23, 0.92);
   --cc-surface-2: rgba(16, 22, 30, 0.92);
   --cc-border-soft: rgba(255, 255, 255, 0.06);
-  --cc-border-mid: rgba(255, 255, 255, 0.10);
+  --cc-border-mid: rgba(255, 255, 255, 0.1);
   --cc-border-strong: rgba(255, 255, 255, 0.14);
 
   --cc-green: #14f195;
@@ -240,15 +240,8 @@
   /** Subtle Solana scan grid (used behind hero / mission stage). */
   .cc-grid {
     background-image:
-      linear-gradient(
-        rgba(20, 241, 149, 0.045) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        90deg,
-        rgba(20, 241, 149, 0.045) 1px,
-        transparent 1px
-      );
+      linear-gradient(rgba(20, 241, 149, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20, 241, 149, 0.045) 1px, transparent 1px);
     background-size: 32px 32px;
     background-position: -1px -1px;
   }
@@ -286,8 +279,15 @@
 
   /** Slow ambient pulse used on verified / live status indicators. */
   @keyframes cc-pulse {
-    0%, 100% { opacity: 0.85; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.08); }
+    0%,
+    100% {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
   }
   .cc-pulse {
     animation: cc-pulse 2.4s ease-in-out infinite;
@@ -295,8 +295,12 @@
 
   /** Soft proof shimmer used to draw attention to anchored receipts. */
   @keyframes cc-shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
   .cc-shimmer {
     background-image: linear-gradient(
@@ -311,8 +315,12 @@
 
   /** Orbit ring used in the mini-loop visualization. */
   @keyframes cc-orbit {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
   .cc-orbit {
     animation: cc-orbit 18s linear infinite;
@@ -339,5 +347,36 @@
         0 0 0 1px rgba(20, 241, 149, 0.18),
         0 18px 40px rgba(20, 241, 149, 0.2);
     }
+  }
+}
+
+/* Recording polish: deeper black, premium Solana glow, reference-style hero atmosphere. */
+@layer components {
+  .cc-stage {
+    background:
+      radial-gradient(
+        circle at 50% 8%,
+        rgba(20, 241, 149, 0.12),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 62% 42%,
+        rgba(56, 215, 208, 0.07),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 18% 80%,
+        rgba(153, 69, 255, 0.08),
+        transparent 32%
+      ),
+      linear-gradient(180deg, #020403 0%, #020304 46%, #000 100%);
+  }
+
+  .cc-grid {
+    mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
+  }
+
+  .swarm-hero-wordmark {
+    letter-spacing: -0.08em;
   }
 }

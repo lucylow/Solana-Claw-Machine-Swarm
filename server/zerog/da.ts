@@ -1,7 +1,11 @@
 import crypto from "crypto";
 import { ZeroGOrchestratorStore } from "./artifacts";
 import { getZeroGConfig } from "./config";
-import type { ZeroGDataAvailabilityAdapter, ZeroGDataAvailabilityRecord, ZeroGHealthStatus } from "./types";
+import type {
+  ZeroGDataAvailabilityAdapter,
+  ZeroGDataAvailabilityRecord,
+  ZeroGHealthStatus,
+} from "./types";
 
 function randomId(prefix: string) {
   return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
@@ -11,7 +15,9 @@ function now() {
   return new Date().toISOString();
 }
 
-export class ZeroGDataAvailabilityService implements ZeroGDataAvailabilityAdapter {
+export class ZeroGDataAvailabilityService
+  implements ZeroGDataAvailabilityAdapter
+{
   constructor(private readonly store: ZeroGOrchestratorStore) {}
 
   async publish(input: {
@@ -29,10 +35,17 @@ export class ZeroGDataAvailabilityService implements ZeroGDataAvailabilityAdapte
       artifactKind: input.artifactKind,
       availabilityRef: `zg://da/records/${id}`,
       rootHash: input.rootHash,
-      chunkCount: typeof input.sizeBytes === "number" ? Math.max(1, Math.ceil(input.sizeBytes / 4096)) : 1,
+      chunkCount:
+        typeof input.sizeBytes === "number"
+          ? Math.max(1, Math.ceil(input.sizeBytes / 4096))
+          : 1,
       sizeBytes: input.sizeBytes,
       createdAt: now(),
-      status: config.enabled ? (config.mode === "degraded" ? "degraded" : "available") : "failed",
+      status: config.enabled
+        ? config.mode === "degraded"
+          ? "degraded"
+          : "available"
+        : "failed",
       metadata: {
         mode: config.mode,
         ...input.metadata,
@@ -41,7 +54,9 @@ export class ZeroGDataAvailabilityService implements ZeroGDataAvailabilityAdapte
     return this.store.putAvailability(record);
   }
 
-  async getByRef(availabilityRef: string): Promise<ZeroGDataAvailabilityRecord | null> {
+  async getByRef(
+    availabilityRef: string,
+  ): Promise<ZeroGDataAvailabilityRecord | null> {
     return this.store.getAvailabilityByRef(availabilityRef);
   }
 

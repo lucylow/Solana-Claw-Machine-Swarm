@@ -15,25 +15,41 @@ export class ClawNftClient {
   }
 
   deriveCollectionConfigPda(): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync([Buffer.from("claw-collection")], this.programId);
-  }
-
-  deriveMintAuthorityPda(): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync([Buffer.from("claw-mint-authority")], this.programId);
-  }
-
-  /** `collectionConfig` is the `NftCollectionConfig` PDA, not the collection mint. */
-  deriveReceiptPda(collectionConfig: PublicKey, mint: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
-      [Buffer.from("claw-nft-receipt"), collectionConfig.toBuffer(), mint.toBuffer()],
-      this.programId
+      [Buffer.from("claw-collection")],
+      this.programId,
     );
   }
 
-  deriveMintStatePda(collectionConfig: PublicKey, mint: PublicKey): [PublicKey, number] {
+  deriveMintAuthorityPda(): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("claw-mint-authority")],
+      this.programId,
+    );
+  }
+
+  /** `collectionConfig` is the `NftCollectionConfig` PDA, not the collection mint. */
+  deriveReceiptPda(
+    collectionConfig: PublicKey,
+    mint: PublicKey,
+  ): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("claw-nft-receipt"),
+        collectionConfig.toBuffer(),
+        mint.toBuffer(),
+      ],
+      this.programId,
+    );
+  }
+
+  deriveMintStatePda(
+    collectionConfig: PublicKey,
+    mint: PublicKey,
+  ): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("claw-nft"), collectionConfig.toBuffer(), mint.toBuffer()],
-      this.programId
+      this.programId,
     );
   }
 
@@ -57,7 +73,7 @@ export class ClawNftClient {
         args.symbol,
         args.uri,
         args.description,
-        new anchor.BN(args.maxSupply)
+        new anchor.BN(args.maxSupply),
       )
       .accounts({
         collectionConfig,
@@ -70,7 +86,9 @@ export class ClawNftClient {
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        tokenMetadataProgram: new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
+        tokenMetadataProgram: new PublicKey(
+          "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+        ),
       })
       .rpc();
   }
@@ -104,7 +122,7 @@ export class ClawNftClient {
         args.uri,
         args.description,
         args.nftType as never,
-        args.tags
+        args.tags,
       )
       .accounts({
         collectionConfig,
@@ -124,7 +142,9 @@ export class ClawNftClient {
         associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        tokenMetadataProgram: new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"),
+        tokenMetadataProgram: new PublicKey(
+          "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+        ),
       })
       .rpc();
   }
@@ -140,7 +160,11 @@ export class ClawNftClient {
       .rpc();
   }
 
-  async recordReceipt(args: { receipt: PublicKey; authority: PublicKey; txSig: string }) {
+  async recordReceipt(args: {
+    receipt: PublicKey;
+    authority: PublicKey;
+    txSig: string;
+  }) {
     return this.program.methods
       .recordReceipt(args.txSig)
       .accounts({

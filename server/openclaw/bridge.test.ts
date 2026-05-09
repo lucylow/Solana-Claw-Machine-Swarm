@@ -18,7 +18,7 @@ describe("OpenClawBridgeService", () => {
         provenanceHash: "prov_test",
         createdAt: Date.now(),
       },
-      "Wallet11111111111111111111111111111111111111"
+      "Wallet11111111111111111111111111111111111111",
     );
 
     expect(result.receipt.direction).toBe("import");

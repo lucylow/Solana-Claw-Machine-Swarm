@@ -41,7 +41,12 @@ export type MemoryProofStatus =
   | "demo_only"
   | "degraded";
 
-export type ExecutionStepStatus = "pending" | "running" | "succeeded" | "failed" | "skipped";
+export type ExecutionStepStatus =
+  | "pending"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "skipped";
 
 export interface ExecutionToolCall {
   id: string;
@@ -115,7 +120,13 @@ export interface StoryReflectionRecord {
   memoryId?: string;
   storageRef?: string;
   proofRef?: string;
-  status: "captured" | "stored" | "anchored" | "linked" | "verified" | "degraded";
+  status:
+    | "captured"
+    | "stored"
+    | "anchored"
+    | "linked"
+    | "verified"
+    | "degraded";
 }
 
 export interface TraceableMemoryRecord {
@@ -161,7 +172,15 @@ export interface CommandReceiptRecord {
   cluster: "devnet" | "testnet" | "mainnet-beta" | "localnet";
   title: string;
   summary: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded" | "cached" | "pending";
+  status:
+    | "draft"
+    | "submitted"
+    | "confirmed"
+    | "verified"
+    | "failed"
+    | "degraded"
+    | "cached"
+    | "pending";
   txSignature?: string;
   accountAddress?: string;
   storageRef?: string;

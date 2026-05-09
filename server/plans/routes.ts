@@ -52,21 +52,30 @@ const createReceiptSchema = z.object({
         dependencies: z.array(z.string()).default([]),
         chosenSkills: z.array(z.string()).default([]),
         expectedResult: z.string().optional(),
-        status: z.enum(["pending", "running", "done", "failed", "skipped"]).default("pending"),
+        status: z
+          .enum(["pending", "running", "done", "failed", "skipped"])
+          .default("pending"),
         resultSummary: z.string().optional(),
         resultHash: z.string().optional(),
-      })
+      }),
     )
     .min(1),
   dependencies: z
     .array(
       z.object({
         id: z.string().min(1),
-        type: z.enum(["skill", "memory", "artifact", "queue", "contract", "tool"]),
+        type: z.enum([
+          "skill",
+          "memory",
+          "artifact",
+          "queue",
+          "contract",
+          "tool",
+        ]),
         ref: z.string().min(1),
         label: z.string().optional(),
         required: z.boolean(),
-      })
+      }),
     )
     .optional(),
   chosenSkills: z
@@ -77,7 +86,7 @@ const createReceiptSchema = z.object({
         version: z.string().optional(),
         hash: z.string().optional(),
         active: z.boolean().optional(),
-      })
+      }),
     )
     .optional(),
   expectedOutcome: z.string().min(2).max(2000),
@@ -109,22 +118,26 @@ const planQuerySchema = z.object({
       "degraded",
     ])
     .optional(),
-  outcomeStatus: z.enum(["pending", "success", "partial", "failed", "degraded"]).optional(),
+  outcomeStatus: z
+    .enum(["pending", "success", "partial", "failed", "degraded"])
+    .optional(),
   agentId: z.string().optional(),
   wallet: z.string().optional(),
   conversationId: z.string().optional(),
   verified: z
     .string()
     .optional()
-    .transform(v => (v === "true" ? true : v === "false" ? false : undefined)),
+    .transform((v) =>
+      v === "true" ? true : v === "false" ? false : undefined,
+    ),
   limit: z
     .string()
     .optional()
-    .transform(v => (v ? Number(v) : undefined)),
+    .transform((v) => (v ? Number(v) : undefined)),
   offset: z
     .string()
     .optional()
-    .transform(v => (v ? Number(v) : undefined)),
+    .transform((v) => (v ? Number(v) : undefined)),
 });
 
 const executeSchema = z.object({
@@ -138,7 +151,7 @@ const executeSchema = z.object({
         tool: z.string().min(1),
         status: z.enum(["success", "failed"]),
         summary: z.string().optional(),
-      })
+      }),
     )
     .optional(),
   stepProgress: z
@@ -146,12 +159,14 @@ const executeSchema = z.object({
       z.object({
         stepId: z.string().min(1),
         status: z.enum(["pending", "running", "done", "failed", "skipped"]),
-      })
+      }),
     )
     .optional(),
   failedSteps: z.array(z.string()).optional(),
   finalResult: z.string().optional(),
-  status: z.enum(["pending", "running", "success", "partial", "failed", "degraded"]).optional(),
+  status: z
+    .enum(["pending", "running", "success", "partial", "failed", "degraded"])
+    .optional(),
   outputHash: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
@@ -216,7 +231,7 @@ export function registerPlanRoutes(
     resultService: PlanResultService;
     verificationService: PlanVerificationService;
     timelineService: PlanTimelineService;
-  }
+  },
 ) {
   app.post("/api/plans/receipt", async (req, res) => {
     try {
@@ -245,7 +260,9 @@ export function registerPlanRoutes(
   app.post("/api/plans/receipt/store", async (req, res) => {
     try {
       const body = storeSchema.parse(req.body);
-      const receipt = await services.receiptService.storeReceipt(body.receiptId);
+      const receipt = await services.receiptService.storeReceipt(
+        body.receiptId,
+      );
       ok(res, receipt);
     } catch (error) {
       fail(res, error);
@@ -265,7 +282,9 @@ export function registerPlanRoutes(
   app.post("/api/plans/receipt/verify", async (req, res) => {
     try {
       const body = verifySchema.parse(req.body);
-      const verification = await services.verificationService.verify(body.planId);
+      const verification = await services.verificationService.verify(
+        body.planId,
+      );
       ok(res, verification);
     } catch (error) {
       fail(res, error);
@@ -286,7 +305,9 @@ export function registerPlanRoutes(
     try {
       const body = resultSchema.parse(req.body);
       const created = await services.resultService.createResult(body);
-      const planReceipt = await services.receiptService.applyResult(created.result);
+      const planReceipt = await services.receiptService.applyResult(
+        created.result,
+      );
       ok(res, {
         result: created.result,
         planReceipt,
@@ -303,7 +324,7 @@ export function registerPlanRoutes(
       const result = await services.resultService.linkReflection(
         body.planId,
         body.reflectionId,
-        body.reflectionReceiptId
+        body.reflectionReceiptId,
       );
       const planReceipt = await services.receiptService.applyResult(result);
       ok(res, { result, planReceipt });
@@ -315,7 +336,10 @@ export function registerPlanRoutes(
   app.post("/api/plans/result/memory-link", async (req, res) => {
     try {
       const body = memoryLinkSchema.parse(req.body);
-      const result = await services.resultService.linkMemory(body.planId, body.memoryId);
+      const result = await services.resultService.linkMemory(
+        body.planId,
+        body.memoryId,
+      );
       const planReceipt = await services.receiptService.applyResult(result);
       ok(res, { result, planReceipt });
     } catch (error) {
@@ -351,10 +375,27 @@ export function registerPlanRoutes(
             status: "pending",
           },
         ],
-        dependencies: [{ id: "dep_skill", type: "skill", ref: "planner-core@1.0.0", required: true }],
+        dependencies: [
+          {
+            id: "dep_skill",
+            type: "skill",
+            ref: "planner-core@1.0.0",
+            required: true,
+          },
+        ],
         chosenSkills: [
-          { id: "goal-parser", name: "Goal parser", version: "1.0.0", active: true },
-          { id: "planner-core", name: "Planner core", version: "1.0.0", active: true },
+          {
+            id: "goal-parser",
+            name: "Goal parser",
+            version: "1.0.0",
+            active: true,
+          },
+          {
+            id: "planner-core",
+            name: "Planner core",
+            version: "1.0.0",
+            active: true,
+          },
         ],
         expectedOutcome: "A verifiable plan lifecycle",
         agentId: body.agentId,
@@ -386,7 +427,9 @@ export function registerPlanRoutes(
         },
       });
       const finalPlan = await services.receiptService.applyResult(result);
-      const verification = await services.verificationService.verify(created.planId);
+      const verification = await services.verificationService.verify(
+        created.planId,
+      );
 
       ok(res, {
         plan: finalPlan,
@@ -433,7 +476,9 @@ export function registerPlanRoutes(
 
   app.get("/api/plans/:id/timeline", async (req, res) => {
     try {
-      const raw = await services.store.listTimelineForPlan(String(req.params.id));
+      const raw = await services.store.listTimelineForPlan(
+        String(req.params.id),
+      );
       const timeline = services.timelineService.toTimelineEvents(raw);
       ok(res, timeline);
     } catch (error) {
@@ -443,7 +488,9 @@ export function registerPlanRoutes(
 
   app.get("/api/plans/:id/result", async (req, res) => {
     try {
-      const result = await services.store.getLatestResultByPlanId(String(req.params.id));
+      const result = await services.store.getLatestResultByPlanId(
+        String(req.params.id),
+      );
       ok(res, result || null);
     } catch (error) {
       fail(res, error, 404);
@@ -452,7 +499,9 @@ export function registerPlanRoutes(
 
   app.get("/api/plans/:id/reflection", async (req, res) => {
     try {
-      const result = await services.store.getLatestResultByPlanId(String(req.params.id));
+      const result = await services.store.getLatestResultByPlanId(
+        String(req.params.id),
+      );
       ok(res, result?.reflection || null);
     } catch (error) {
       fail(res, error, 404);
@@ -461,7 +510,9 @@ export function registerPlanRoutes(
 
   app.get("/api/plans/:id/verify", async (req, res) => {
     try {
-      const verification = await services.verificationService.verify(String(req.params.id));
+      const verification = await services.verificationService.verify(
+        String(req.params.id),
+      );
       ok(res, verification);
     } catch (error) {
       fail(res, error, 404);

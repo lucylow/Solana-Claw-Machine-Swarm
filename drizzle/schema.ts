@@ -1,4 +1,11 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 const skillStatusValues = [
   "draft",
@@ -53,7 +60,9 @@ export const agents = mysqlTable("agents", {
   userId: int("user_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   role: varchar("role", { length: 128 }).notNull(),
-  status: mysqlEnum("status", ["active", "inactive", "paused"]).default("inactive"),
+  status: mysqlEnum("status", ["active", "inactive", "paused"]).default(
+    "inactive",
+  ),
   description: text("description"),
   onchainAddress: varchar("onchain_address", { length: 64 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -65,7 +74,9 @@ export const clawSkills = mysqlTable("claw_skills", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("user_id").notNull(),
   skillUid: varchar("skill_uid", { length: 64 }),
-  programId: varchar("program_id", { length: 128 }).default("CLAW_SKILL_PROGRAM_V1"),
+  programId: varchar("program_id", { length: 128 }).default(
+    "CLAW_SKILL_PROGRAM_V1",
+  ),
   registryAccount: varchar("registry_account", { length: 128 }),
   skillAccount: varchar("skill_account", { length: 128 }),
   currentVersionAccount: varchar("current_version_account", { length: 128 }),
@@ -96,7 +107,9 @@ export const clawSkills = mysqlTable("claw_skills", {
   lastUsedAt: timestamp("last_used_at"),
   lastResolvedAt: timestamp("last_resolved_at"),
   lastVerifiedAt: timestamp("last_verified_at"),
-  syncState: mysqlEnum("sync_state", ["ok", "degraded", "offline"]).default("ok").notNull(),
+  syncState: mysqlEnum("sync_state", ["ok", "degraded", "offline"])
+    .default("ok")
+    .notNull(),
   openClawCompatible: int("openclaw_compatible").default(0),
   manifestUrl: text("manifest_url"),
   onchainMetadata: text("onchain_metadata"),
@@ -205,8 +218,16 @@ export const autonomyRunSummaries = mysqlTable("autonomy_run_summaries", {
     "fully_autonomous",
   ]).notNull(),
   score: int("score").notNull(),
-  trend: mysqlEnum("trend", ["rising", "stable", "falling"]).default("stable").notNull(),
-  status: mysqlEnum("status", ["queued", "running", "blocked", "completed", "failed"])
+  trend: mysqlEnum("trend", ["rising", "stable", "falling"])
+    .default("stable")
+    .notNull(),
+  status: mysqlEnum("status", [
+    "queued",
+    "running",
+    "blocked",
+    "completed",
+    "failed",
+  ])
     .default("queued")
     .notNull(),
   policyStatus: mysqlEnum("policy_status", [
@@ -307,7 +328,12 @@ export const policyGateEvents = mysqlTable("policy_gate_events", {
   reason: text("reason").notNull(),
   policyId: varchar("policy_id", { length: 128 }),
   policyName: varchar("policy_name", { length: 128 }),
-  riskLevel: mysqlEnum("risk_level", ["low", "medium", "high", "critical"]).notNull(),
+  riskLevel: mysqlEnum("risk_level", [
+    "low",
+    "medium",
+    "high",
+    "critical",
+  ]).notNull(),
   requiredAction: mysqlEnum("required_action", [
     "none",
     "confirm",
@@ -395,7 +421,8 @@ export type InsertAutonomyConfig = typeof autonomyConfigs.$inferInsert;
 export type AutonomyRunSummary = typeof autonomyRunSummaries.$inferSelect;
 export type InsertAutonomyRunSummary = typeof autonomyRunSummaries.$inferInsert;
 export type AgentDecisionRecordRow = typeof agentDecisionRecords.$inferSelect;
-export type InsertAgentDecisionRecordRow = typeof agentDecisionRecords.$inferInsert;
+export type InsertAgentDecisionRecordRow =
+  typeof agentDecisionRecords.$inferInsert;
 export type DecisionNarrativeRow = typeof decisionNarratives.$inferSelect;
 export type InsertDecisionNarrativeRow = typeof decisionNarratives.$inferInsert;
 export type PolicyGateEvent = typeof policyGateEvents.$inferSelect;

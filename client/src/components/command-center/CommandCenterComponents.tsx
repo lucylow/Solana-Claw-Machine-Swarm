@@ -1,7 +1,11 @@
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { SkillAsset, SkillVersionRecord } from "@shared/skills";
-import type { MemoryLifecycleEvent, MemoryReceiptOnChain, ReflectionRecordOffchain } from "@shared/memoryReceipts";
+import type {
+  MemoryLifecycleEvent,
+  MemoryReceiptOnChain,
+  ReflectionRecordOffchain,
+} from "@shared/memoryReceipts";
 import type {
   DemoStoryStepPayload,
   ExplorerPayload,
@@ -71,7 +75,7 @@ export function SolanaStatusBadge({
           ? "border-[#3bff96]/60 bg-[#3bff96]/10 text-[#b8ffd8]"
           : subtle
             ? "border-slate-700 bg-slate-900/70 text-slate-300"
-            : "border-cyan-500/40 bg-cyan-500/10 text-cyan-200"
+            : "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
       )}
     >
       {label}
@@ -79,7 +83,11 @@ export function SolanaStatusBadge({
   );
 }
 
-export function ProofVerificationBadge({ verification }: { verification: VerificationState }) {
+export function ProofVerificationBadge({
+  verification,
+}: {
+  verification: VerificationState;
+}) {
   if (verification.status === "verified") {
     return (
       <Badge className="border-[#3bff96]/60 bg-[#3bff96]/10 text-[#b8ffd8]">
@@ -115,7 +123,12 @@ export function ProofVerificationBadge({ verification }: { verification: Verific
 export function ExplorerLinkButton({ payload }: { payload: ExplorerPayload }) {
   if (!payload.url) {
     return (
-      <Button variant="outline" size="sm" className="border-slate-700 text-slate-400" disabled>
+      <Button
+        variant="outline"
+        size="sm"
+        className="border-slate-700 text-slate-400"
+        disabled
+      >
         Explorer unavailable (Solana)
       </Button>
     );
@@ -144,12 +157,14 @@ export function StoryLoopStrip({ activeStep }: { activeStep?: number }) {
                 "rounded-full border px-2.5 py-1",
                 activeStep === idx
                   ? "border-[#3bff96]/70 bg-[#3bff96]/10 text-[#b8ffd8]"
-                  : "border-slate-700 bg-slate-950 text-slate-300"
+                  : "border-slate-700 bg-slate-950 text-slate-300",
               )}
             >
               {step}
             </span>
-            {idx < STORY_LOOP_LABELS.length - 1 ? <span className="text-slate-500">→</span> : null}
+            {idx < STORY_LOOP_LABELS.length - 1 ? (
+              <span className="text-slate-500">→</span>
+            ) : null}
           </div>
         ))}
       </div>
@@ -172,8 +187,12 @@ export function CommandCenterPanel({
     <Card className="border-slate-800 bg-[#070b10] p-4 md:p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-white md:text-lg">{title}</h3>
-          {subtitle ? <p className="mt-1 text-xs text-slate-400 md:text-sm">{subtitle}</p> : null}
+          <h3 className="text-base font-semibold text-white md:text-lg">
+            {title}
+          </h3>
+          {subtitle ? (
+            <p className="mt-1 text-xs text-slate-400 md:text-sm">{subtitle}</p>
+          ) : null}
         </div>
         {Icon ? <Icon className="h-5 w-5 text-cyan-300" /> : null}
       </div>
@@ -213,7 +232,9 @@ export function SolanaWalletCard({
 }) {
   const wallet = useWallet();
   const { connection } = useConnection();
-  const [balanceSol, setBalanceSol] = useState<number | undefined>(state.balanceSol);
+  const [balanceSol, setBalanceSol] = useState<number | undefined>(
+    state.balanceSol,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -272,13 +293,21 @@ export function SolanaWalletCard({
           <div className="rounded-lg border border-slate-800 bg-black/40 p-2.5">
             <p className="text-xs text-slate-500">Wallet</p>
             <div className="mt-1 flex items-center gap-2 text-white">
-              <span>{short(state.walletAddress || wallet.publicKey?.toBase58(), 8, 8)}</span>
+              <span>
+                {short(
+                  state.walletAddress || wallet.publicKey?.toBase58(),
+                  8,
+                  8,
+                )}
+              </span>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 text-slate-300"
                 onClick={() =>
-                  navigator.clipboard.writeText(state.walletAddress || wallet.publicKey?.toBase58() || "")
+                  navigator.clipboard.writeText(
+                    state.walletAddress || wallet.publicKey?.toBase58() || "",
+                  )
                 }
                 disabled={!state.walletAddress && !wallet.publicKey}
               >
@@ -292,10 +321,21 @@ export function SolanaWalletCard({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <SolanaStatusBadge label={state.canPublish ? "Can publish" : "Publish locked"} active={state.canPublish} />
-          <SolanaStatusBadge label={state.canRun ? "Can run" : "Run locked"} active={state.canRun} />
-          <SolanaStatusBadge label={state.canAnchor ? "Can anchor" : "Anchor locked"} active={state.canAnchor} />
-          {state.signing ? <SolanaStatusBadge label="Signing..." active /> : null}
+          <SolanaStatusBadge
+            label={state.canPublish ? "Can publish" : "Publish locked"}
+            active={state.canPublish}
+          />
+          <SolanaStatusBadge
+            label={state.canRun ? "Can run" : "Run locked"}
+            active={state.canRun}
+          />
+          <SolanaStatusBadge
+            label={state.canAnchor ? "Can anchor" : "Anchor locked"}
+            active={state.canAnchor}
+          />
+          {state.signing ? (
+            <SolanaStatusBadge label="Signing..." active />
+          ) : null}
         </div>
         {state.readOnlyReason ? (
           <LiveStateBanner state="read-only" message={state.readOnlyReason} />
@@ -322,66 +362,127 @@ export function SkillAssetCard({
       <div className="flex items-start justify-between gap-2">
         <div>
           <h4 className="text-base font-semibold text-white">{skill.name}</h4>
-          <p className="mt-1 text-xs text-slate-400">{skill.description || "No description."}</p>
+          <p className="mt-1 text-xs text-slate-400">
+            {skill.description || "No description."}
+          </p>
         </div>
         <ProofVerificationBadge
           verification={{
             status: statusVerified ? "verified" : "pending",
-            label: statusVerified ? "Published on Solana" : "Awaiting publication",
+            label: statusVerified
+              ? "Published on Solana"
+              : "Awaiting publication",
           }}
         />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">Version {skill.currentVersion}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">{skill.status}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">Success {skill.successRate}%</div>
-        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">Usage {skill.usageCount}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">Reputation {skill.reputationScore}</div>
         <div className="rounded border border-slate-800 bg-slate-950/80 p-2">
-          Last used {skill.lastUsedAt ? new Date(skill.lastUsedAt).toLocaleDateString() : "Never"}
+          Version {skill.currentVersion}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">
+          {skill.status}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">
+          Success {skill.successRate}%
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">
+          Usage {skill.usageCount}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">
+          Reputation {skill.reputationScore}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/80 p-2">
+          Last used{" "}
+          {skill.lastUsedAt
+            ? new Date(skill.lastUsedAt).toLocaleDateString()
+            : "Never"}
         </div>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        {skill.tags.slice(0, 4).map(tag => (
+        {skill.tags.slice(0, 4).map((tag) => (
           <SolanaStatusBadge key={tag} label={tag} subtle />
         ))}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" className="border-cyan-500/40 text-cyan-200" onClick={() => onRun?.(skill)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-cyan-500/40 text-cyan-200"
+          onClick={() => onRun?.(skill)}
+        >
           Run
         </Button>
-        <Button size="sm" variant="outline" className="border-slate-600 text-slate-200" onClick={() => onPublish?.(skill)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-slate-600 text-slate-200"
+          onClick={() => onPublish?.(skill)}
+        >
           Publish
         </Button>
-        <Button size="sm" variant="outline" className="border-slate-600 text-slate-200" onClick={() => onVerify?.(skill)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-slate-600 text-slate-200"
+          onClick={() => onVerify?.(skill)}
+        >
           Verify
         </Button>
-        <ExplorerLinkButton payload={{ label: "Open explorer", url: skill.explorerUrl }} />
+        <ExplorerLinkButton
+          payload={{ label: "Open explorer", url: skill.explorerUrl }}
+        />
       </div>
     </Card>
   );
 }
 
-export function SkillAssetTimeline({ versions }: { versions: SkillVersionRecord[] }) {
-  if (!versions.length) return <EmptyState title="No versions yet" message="Publish the first version to start lineage." />;
+export function SkillAssetTimeline({
+  versions,
+}: {
+  versions: SkillVersionRecord[];
+}) {
+  if (!versions.length)
+    return (
+      <EmptyState
+        title="No versions yet"
+        message="Publish the first version to start lineage."
+      />
+    );
   return (
     <div className="space-y-2">
-      {versions.map(version => (
-        <div key={version.id} className="rounded-lg border border-slate-800 bg-black/40 p-3 text-xs">
+      {versions.map((version) => (
+        <div
+          key={version.id}
+          className="rounded-lg border border-slate-800 bg-black/40 p-3 text-xs"
+        >
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-white">v{version.version}</span>
-            <span className="text-slate-400">{new Date(version.publishedAt).toLocaleString()}</span>
+            <span className="text-slate-400">
+              {new Date(version.publishedAt).toLocaleString()}
+            </span>
           </div>
-          <p className="mt-1 text-slate-300">{version.changelog || version.description || "No changelog."}</p>
-          <p className="mt-1 font-mono text-slate-400">{short(version.hash, 12, 10)}</p>
+          <p className="mt-1 text-slate-300">
+            {version.changelog || version.description || "No changelog."}
+          </p>
+          <p className="mt-1 font-mono text-slate-400">
+            {short(version.hash, 12, 10)}
+          </p>
         </div>
       ))}
     </div>
   );
 }
 
-export function TaskExecutionRail({ execution }: { execution: TaskExecutionState }) {
-  const stages: Array<{ id: TaskExecutionState["phase"]; label: string; icon: LucideIcon }> = [
+export function TaskExecutionRail({
+  execution,
+}: {
+  execution: TaskExecutionState;
+}) {
+  const stages: Array<{
+    id: TaskExecutionState["phase"];
+    label: string;
+    icon: LucideIcon;
+  }> = [
     { id: "start", label: "Start", icon: PlayCircle },
     { id: "plan", label: "Plan", icon: Radar },
     { id: "execute", label: "Execute", icon: Wrench },
@@ -390,7 +491,7 @@ export function TaskExecutionRail({ execution }: { execution: TaskExecutionState
     { id: "store", label: "Store", icon: MemoryStick },
     { id: "receipt", label: "Receipt", icon: ReceiptText },
   ];
-  const activeIndex = stages.findIndex(x => x.id === execution.phase);
+  const activeIndex = stages.findIndex((x) => x.id === execution.phase);
   return (
     <div className="space-y-3">
       <div className="grid gap-2 md:grid-cols-7">
@@ -402,22 +503,34 @@ export function TaskExecutionRail({ execution }: { execution: TaskExecutionState
               key={stage.id}
               className={cn(
                 "rounded-lg border p-2 text-xs",
-                active ? "border-[#3bff96]/40 bg-[#3bff96]/10 text-[#d7ffe9]" : "border-slate-800 bg-black/40 text-slate-400"
+                active
+                  ? "border-[#3bff96]/40 bg-[#3bff96]/10 text-[#d7ffe9]"
+                  : "border-slate-800 bg-black/40 text-slate-400",
               )}
             >
               <div className="mb-1 flex items-center gap-1.5">
                 <Icon className="h-3.5 w-3.5" />
                 <span>{stage.label}</span>
               </div>
-              <p>{idx === activeIndex ? execution.stepLabel || "Current stage" : "Waiting"}</p>
+              <p>
+                {idx === activeIndex
+                  ? execution.stepLabel || "Current stage"
+                  : "Waiting"}
+              </p>
             </div>
           );
         })}
       </div>
       <div className="rounded-lg border border-slate-800 bg-black/50 p-3 text-sm text-slate-200">
         <p className="font-medium text-white">{execution.goal}</p>
-        <p className="mt-1 text-xs text-slate-400">Skill: {execution.skillName || "Not selected"}</p>
-        {execution.toolCallSummary ? <p className="mt-1 text-xs text-slate-300">{execution.toolCallSummary}</p> : null}
+        <p className="mt-1 text-xs text-slate-400">
+          Skill: {execution.skillName || "Not selected"}
+        </p>
+        {execution.toolCallSummary ? (
+          <p className="mt-1 text-xs text-slate-300">
+            {execution.toolCallSummary}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -435,11 +548,15 @@ export function ReflectionCard({
   return (
     <Card className="border-slate-800 bg-black/40 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h4 className="text-base font-semibold text-white">Reflection artifact</h4>
+        <h4 className="text-base font-semibold text-white">
+          Reflection artifact
+        </h4>
         <ProofVerificationBadge
           verification={{
             status: reflection.anchored ? "verified" : "pending",
-            label: reflection.anchored ? "Receipt anchored on Solana" : "Not anchored yet",
+            label: reflection.anchored
+              ? "Receipt anchored on Solana"
+              : "Not anchored yet",
           }}
         />
       </div>
@@ -454,16 +571,43 @@ export function ReflectionCard({
         </div>
       </div>
       <div className="mt-3 space-y-2 text-sm">
-        <p className="text-slate-300"><span className="text-slate-500">Root cause:</span> {reflection.rootCause}</p>
-        <p className="text-slate-300"><span className="text-slate-500">Corrective advice:</span> {reflection.correctiveAdvice}</p>
-        <p className="text-slate-300"><span className="text-slate-500">Next action:</span> {reflection.nextAction}</p>
+        <p className="text-slate-300">
+          <span className="text-slate-500">Root cause:</span>{" "}
+          {reflection.rootCause}
+        </p>
+        <p className="text-slate-300">
+          <span className="text-slate-500">Corrective advice:</span>{" "}
+          {reflection.correctiveAdvice}
+        </p>
+        <p className="text-slate-300">
+          <span className="text-slate-500">Next action:</span>{" "}
+          {reflection.nextAction}
+        </p>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <SolanaStatusBadge label={reflection.storedAsMemory ? "Stored as memory" : "Memory pending"} active={reflection.storedAsMemory} />
-        <SolanaStatusBadge label={reflection.injectedNextTurn ? "Injected into next turn" : "Not injected"} active={reflection.injectedNextTurn} />
+        <SolanaStatusBadge
+          label={
+            reflection.storedAsMemory ? "Stored as memory" : "Memory pending"
+          }
+          active={reflection.storedAsMemory}
+        />
+        <SolanaStatusBadge
+          label={
+            reflection.injectedNextTurn
+              ? "Injected into next turn"
+              : "Not injected"
+          }
+          active={reflection.injectedNextTurn}
+        />
       </div>
-      {record?.storageRef ? <p className="mt-3 text-xs text-slate-500">Storage ref: {record.storageRef}</p> : null}
-      {receipt?.id ? <p className="mt-1 text-xs text-slate-500">Receipt ID: {receipt.id}</p> : null}
+      {record?.storageRef ? (
+        <p className="mt-3 text-xs text-slate-500">
+          Storage ref: {record.storageRef}
+        </p>
+      ) : null}
+      {receipt?.id ? (
+        <p className="mt-1 text-xs text-slate-500">Receipt ID: {receipt.id}</p>
+      ) : null}
     </Card>
   );
 }
@@ -487,17 +631,29 @@ export function MemoryArtifactCard({
       <h4 className="text-base font-semibold text-white">Memory artifact</h4>
       <p className="mt-2 text-sm text-slate-300">{memory.summary}</p>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">{memory.kind}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">{formatTs(memory.createdAt)}</div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          {memory.kind}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          {formatTs(memory.createdAt)}
+        </div>
       </div>
       {memory.correctiveAdvice ? (
-        <p className="mt-2 text-xs text-slate-400">Lesson: {memory.correctiveAdvice}</p>
+        <p className="mt-2 text-xs text-slate-400">
+          Lesson: {memory.correctiveAdvice}
+        </p>
       ) : null}
       {timeline?.length ? (
         <div className="mt-3 space-y-1.5">
-          {timeline.slice(0, 4).map(event => (
-            <div key={event.id} className="rounded border border-slate-800 bg-black/60 p-2 text-xs text-slate-300">
-              <span className="text-slate-500">{event.kind.replaceAll("_", " ")}</span> · {event.message}
+          {timeline.slice(0, 4).map((event) => (
+            <div
+              key={event.id}
+              className="rounded border border-slate-800 bg-black/60 p-2 text-xs text-slate-300"
+            >
+              <span className="text-slate-500">
+                {event.kind.replaceAll("_", " ")}
+              </span>{" "}
+              · {event.message}
             </div>
           ))}
         </div>
@@ -534,13 +690,23 @@ export function OnchainReceiptCard({
         <ProofVerificationBadge verification={verification} />
       </div>
       <div className="grid gap-2 text-xs md:grid-cols-2">
-        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">Receipt {short(receipt.id, 12, 8)}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">Wallet {short(receipt.wallet, 8, 8)}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">TX {short(receipt.txSignature, 12, 10)}</div>
-        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">{formatTs(receipt.createdAt)}</div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          Receipt {short(receipt.id, 12, 8)}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          Wallet {short(receipt.wallet, 8, 8)}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          TX {short(receipt.txSignature, 12, 10)}
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          {formatTs(receipt.createdAt)}
+        </div>
       </div>
       {receipt.summaryHash ? (
-        <p className="mt-2 font-mono text-xs text-slate-400">Summary hash {short(receipt.summaryHash, 14, 12)}</p>
+        <p className="mt-2 font-mono text-xs text-slate-400">
+          Summary hash {short(receipt.summaryHash, 14, 12)}
+        </p>
       ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <ExplorerLinkButton
@@ -570,7 +736,10 @@ export function DemoStoryStepper({ steps }: { steps: DemoStoryStepPayload[] }) {
   return (
     <div className="space-y-2">
       {steps.map((step, idx) => (
-        <div key={step.id} className="flex items-start gap-2 rounded-lg border border-slate-800 bg-black/40 p-2.5">
+        <div
+          key={step.id}
+          className="flex items-start gap-2 rounded-lg border border-slate-800 bg-black/40 p-2.5"
+        >
           <div
             className={cn(
               "mt-0.5 h-5 w-5 rounded-full border text-center text-[10px] leading-5",
@@ -578,7 +747,7 @@ export function DemoStoryStepper({ steps }: { steps: DemoStoryStepPayload[] }) {
                 ? "border-[#3bff96]/60 bg-[#3bff96]/15 text-[#b8ffd8]"
                 : step.status === "active"
                   ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-200"
-                  : "border-slate-700 bg-slate-950 text-slate-400"
+                  : "border-slate-700 bg-slate-950 text-slate-400",
             )}
           >
             {idx + 1}
@@ -593,7 +762,15 @@ export function DemoStoryStepper({ steps }: { steps: DemoStoryStepPayload[] }) {
   );
 }
 
-export function EmptyState({ title, message, action }: { title: string; message: string; action?: React.ReactNode }) {
+export function EmptyState({
+  title,
+  message,
+  action,
+}: {
+  title: string;
+  message: string;
+  action?: React.ReactNode;
+}) {
   return (
     <Card className="border-slate-800 bg-black/40 p-5 text-center">
       <p className="text-sm font-medium text-white">{title}</p>
@@ -603,7 +780,11 @@ export function EmptyState({ title, message, action }: { title: string; message:
   );
 }
 
-export function LoadingSkeleton({ label = "Loading command center state..." }: { label?: string }) {
+export function LoadingSkeleton({
+  label = "Loading command center state...",
+}: {
+  label?: string;
+}) {
   return (
     <Card className="border-slate-800 bg-black/40 p-5">
       <div className="flex items-center gap-2 text-slate-300">
@@ -628,7 +809,12 @@ export function ErrorState({
       <p className="text-sm font-medium text-red-100">{title}</p>
       <p className="mt-1 text-xs text-red-200/80">{message}</p>
       {onRetry ? (
-        <Button size="sm" variant="outline" className="mt-3 border-red-400/50 text-red-100" onClick={onRetry}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-3 border-red-400/50 text-red-100"
+          onClick={onRetry}
+        >
           Retry
         </Button>
       ) : null}
@@ -636,7 +822,10 @@ export function ErrorState({
   );
 }
 
-export function buildExplorerTxUrl(txSignature?: string, cluster = SOLANA_CLUSTER) {
+export function buildExplorerTxUrl(
+  txSignature?: string,
+  cluster = SOLANA_CLUSTER,
+) {
   if (!txSignature) return undefined;
   return `https://explorer.solana.com/tx/${txSignature}?cluster=${cluster}`;
 }
@@ -660,7 +849,8 @@ export function buildDemoSteps(): DemoStoryStepPayload[] {
     {
       id: "wallet",
       title: STORY_LOOP_LABELS[0],
-      detail: "Authorize your Solana wallet to sign the session and anchor receipts.",
+      detail:
+        "Authorize your Solana wallet to sign the session and anchor receipts.",
       status: "completed",
     },
     {
@@ -672,7 +862,8 @@ export function buildDemoSteps(): DemoStoryStepPayload[] {
     {
       id: "task",
       title: STORY_LOOP_LABELS[2],
-      detail: "Planner, tools, and execution rail update against your Solana session.",
+      detail:
+        "Planner, tools, and execution rail update against your Solana session.",
       status: "active",
     },
     {
@@ -684,13 +875,15 @@ export function buildDemoSteps(): DemoStoryStepPayload[] {
     {
       id: "memory",
       title: STORY_LOOP_LABELS[4],
-      detail: "Lesson persists via 0G Storage; Solana anchors a compact checksum.",
+      detail:
+        "Lesson persists via 0G Storage; Solana anchors a compact checksum.",
       status: "pending",
     },
     {
       id: "zg-storage",
       title: STORY_LOOP_LABELS[5],
-      detail: "Reflection + execution narrative written as canonical blob payloads.",
+      detail:
+        "Reflection + execution narrative written as canonical blob payloads.",
       status: "pending",
     },
     {
@@ -702,13 +895,15 @@ export function buildDemoSteps(): DemoStoryStepPayload[] {
     {
       id: "anchor",
       title: STORY_LOOP_LABELS[7],
-      detail: "Compact PDAs / receipts on Solana; long text never lands on-chain here.",
+      detail:
+        "Compact PDAs / receipts on Solana; long text never lands on-chain here.",
       status: "pending",
     },
     {
       id: "explorer",
       title: STORY_LOOP_LABELS[8],
-      detail: "Open Solana Explorer when tx is live — demo SIM sigs stay labeled demo-only.",
+      detail:
+        "Open Solana Explorer when tx is live — demo SIM sigs stay labeled demo-only.",
       status: "pending",
     },
   ];

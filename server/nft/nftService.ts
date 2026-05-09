@@ -1,5 +1,9 @@
 import { Keypair } from "@solana/web3.js";
-import type { CreateNftCollectionRequest, CreateNftRequest, NftMintRecord } from "@shared/nft/types";
+import type {
+  CreateNftCollectionRequest,
+  CreateNftRequest,
+  NftMintRecord,
+} from "@shared/nft/types";
 import { NftStore } from "./nftStore";
 
 export class NftService {
@@ -30,7 +34,8 @@ export class NftService {
     const collection = this.store.getCollection();
     if (!collection) throw new Error("Collection not initialized");
     if (collection.frozen) throw new Error("Collection is frozen");
-    if (collection.totalMinted >= collection.maxSupply) throw new Error("Max supply reached");
+    if (collection.totalMinted >= collection.maxSupply)
+      throw new Error("Max supply reached");
 
     const now = Date.now();
     const mint = Keypair.generate().publicKey.toBase58();

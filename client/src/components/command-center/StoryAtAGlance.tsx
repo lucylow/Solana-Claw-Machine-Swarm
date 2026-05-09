@@ -13,7 +13,7 @@ export function StoryAtAGlance({ items }: { items: UXTimelineItem[] }) {
       className="mt-2 max-h-[220px] space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]"
       aria-label="Execution story checkpoints"
     >
-      {items.map(item => {
+      {items.map((item) => {
         const Icon =
           item.status === "completed"
             ? CheckCircle2
@@ -35,7 +35,10 @@ export function StoryAtAGlance({ items }: { items: UXTimelineItem[] }) {
             key={item.id}
             className="flex gap-2 rounded-lg border border-white/[0.06] bg-black/25 px-2 py-1.5"
           >
-            <Icon className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", iconClass)} aria-hidden />
+            <Icon
+              className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", iconClass)}
+              aria-hidden
+            />
             <div className="min-w-0">
               <p
                 className={cn(
@@ -45,10 +48,14 @@ export function StoryAtAGlance({ items }: { items: UXTimelineItem[] }) {
               >
                 {item.label}
               </p>
-              <p className="line-clamp-2 text-[10px] text-slate-500">{item.description}</p>
+              <p className="line-clamp-2 text-[10px] text-slate-500">
+                {item.description}
+              </p>
               <span className="sr-only">
                 Status: {item.status}
-                {item.proofStatus ? `. Proof: ${item.proofStatus.replaceAll("_", " ")}` : ""}
+                {item.proofStatus
+                  ? `. Proof: ${item.proofStatus.replaceAll("_", " ")}`
+                  : ""}
               </span>
             </div>
           </li>

@@ -4,7 +4,7 @@ import type { DemoPlaybackFrame } from "./demoEngineTypes";
 function seq(
   indices: number[],
   delayMs: number,
-  extras?: Partial<DemoPlaybackFrame>[]
+  extras?: Partial<DemoPlaybackFrame>[],
 ): DemoPlaybackFrame[] {
   return indices.map((beatIndex, i) => ({
     beatIndex,
@@ -16,26 +16,29 @@ function seq(
 /** Full failure arc (degraded terminal) — 11 beats. */
 export const FAILURE_PLAYBACK_FRAMES: DemoPlaybackFrame[] = seq(
   Array.from({ length: 11 }, (_, i) => i),
-  850
+  850,
 );
 
 /** Full recovery arc — 15 beats. */
 export const RECOVERY_PLAYBACK_FRAMES: DemoPlaybackFrame[] = seq(
   Array.from({ length: 15 }, (_, i) => i),
-  800
+  800,
 );
 
 /** Clean success arc — 9 beats. */
 export const SUCCESS_PLAYBACK_FRAMES: DemoPlaybackFrame[] = seq(
   Array.from({ length: 9 }, (_, i) => i),
-  750
+  750,
 );
 
 /**
  * Scenario-specific playback frames (beat indices into getUnifiedStoryBeats(outcome)).
  * Outcome is scenario.preferredOutcome unless forceError (failure beats).
  */
-export const DEMO_SCENARIO_PLAYBACK: Record<DemoScenarioId, DemoPlaybackFrame[]> = {
+export const DEMO_SCENARIO_PLAYBACK: Record<
+  DemoScenarioId,
+  DemoPlaybackFrame[]
+> = {
   "wallet-skill-discovery": seq([0, 1, 2, 3, 4], 720),
   "publish-skill": seq([2, 3, 4, 5, 6, 7, 8], 780),
   "execute-task": SUCCESS_PLAYBACK_FRAMES,
@@ -53,7 +56,8 @@ export const DEMO_SCENARIO_PLAYBACK: Record<DemoScenarioId, DemoPlaybackFrame[]>
     {
       beatIndex: 4,
       delayMs: 900,
-      annotation: "OpenClaw import — skill manifest translated with compatibility checks.",
+      annotation:
+        "OpenClaw import — skill manifest translated with compatibility checks.",
       openclaw: {
         connected: true,
         mode: "import",
@@ -94,7 +98,8 @@ export const DEMO_SCENARIO_PLAYBACK: Record<DemoScenarioId, DemoPlaybackFrame[]>
     {
       beatIndex: 7,
       delayMs: 920,
-      annotation: "Bridge export — CLAW skill mirrored back to OpenClaw with provenance hash.",
+      annotation:
+        "Bridge export — CLAW skill mirrored back to OpenClaw with provenance hash.",
       openclaw: {
         connected: true,
         mode: "export",
@@ -119,7 +124,7 @@ export const DEMO_SCENARIO_PLAYBACK: Record<DemoScenarioId, DemoPlaybackFrame[]>
 
 export function getPlaybackFramesForScenario(
   scenarioId: DemoScenarioId,
-  forceError: boolean
+  forceError: boolean,
 ): DemoPlaybackFrame[] {
   if (forceError) {
     return FAILURE_PLAYBACK_FRAMES;

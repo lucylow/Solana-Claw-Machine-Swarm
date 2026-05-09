@@ -8,7 +8,12 @@ export type ReflectionStatus =
   | "failed"
   | "degraded";
 
-export type ReflectionKind = "success" | "failure" | "retry" | "correction" | "lesson";
+export type ReflectionKind =
+  | "success"
+  | "failure"
+  | "retry"
+  | "correction"
+  | "lesson";
 
 export interface StructuredReflection {
   rootCause: string;

@@ -8,7 +8,8 @@ function ok(res: Response, data: unknown) {
 }
 
 function fail(res: Response, error: unknown, status = 400) {
-  const message = error instanceof Error ? error.message : "memory_route_failed";
+  const message =
+    error instanceof Error ? error.message : "memory_route_failed";
   res.status(status).json({ ok: false, error: message });
 }
 
@@ -50,26 +51,40 @@ const listQuerySchema = z.object({
   sourceTurnId: z.string().optional(),
   nextTurnId: z.string().optional(),
   status: z
-    .enum(["captured", "stored", "anchored", "linked", "injected", "verified", "failed", "degraded"])
+    .enum([
+      "captured",
+      "stored",
+      "anchored",
+      "linked",
+      "injected",
+      "verified",
+      "failed",
+      "degraded",
+    ])
     .optional(),
   verified: z
     .string()
     .optional()
-    .transform(v => (v === "true" ? true : v === "false" ? false : undefined)),
+    .transform((v) =>
+      v === "true" ? true : v === "false" ? false : undefined,
+    ),
   receiptHash: z.string().optional(),
   storageRef: z.string().optional(),
   txSig: z.string().optional(),
   limit: z
     .string()
     .optional()
-    .transform(v => (v ? Number(v) : undefined)),
+    .transform((v) => (v ? Number(v) : undefined)),
   offset: z
     .string()
     .optional()
-    .transform(v => (v ? Number(v) : undefined)),
+    .transform((v) => (v ? Number(v) : undefined)),
 });
 
-export function registerMemoryRoutes(app: Express, service: MemoryReceiptService) {
+export function registerMemoryRoutes(
+  app: Express,
+  service: MemoryReceiptService,
+) {
   app.get("/api/memory/reflections", async (req, res) => {
     try {
       const query = listQuerySchema.parse(req.query);
@@ -92,17 +107,20 @@ export function registerMemoryRoutes(app: Express, service: MemoryReceiptService
     }
   });
 
-  app.get("/api/memory/reflections/conversation/:conversationId", async (req, res) => {
-    try {
-      const data = await service.listReflections({
-        ...listQuerySchema.parse(req.query),
-        conversationId: String(req.params.conversationId),
-      });
-      ok(res, data);
-    } catch (error) {
-      fail(res, error);
-    }
-  });
+  app.get(
+    "/api/memory/reflections/conversation/:conversationId",
+    async (req, res) => {
+      try {
+        const data = await service.listReflections({
+          ...listQuerySchema.parse(req.query),
+          conversationId: String(req.params.conversationId),
+        });
+        ok(res, data);
+      } catch (error) {
+        fail(res, error);
+      }
+    },
+  );
 
   app.post("/api/memory/reflections", async (req, res) => {
     try {
@@ -127,7 +145,10 @@ export function registerMemoryRoutes(app: Express, service: MemoryReceiptService
 
       let receipt = null;
       if (body.autoAnchor) {
-        receipt = await service.anchorReflection(created.reflection.id, body.wallet);
+        receipt = await service.anchorReflection(
+          created.reflection.id,
+          body.wallet,
+        );
       }
       let verification = null;
       if (body.autoVerify) {
@@ -160,7 +181,10 @@ export function registerMemoryRoutes(app: Express, service: MemoryReceiptService
 
   app.post("/api/memory/reflections/:id/anchor", async (req, res) => {
     try {
-      const receipt = await service.anchorReflection(String(req.params.id), req.body?.wallet);
+      const receipt = await service.anchorReflection(
+        String(req.params.id),
+        req.body?.wallet,
+      );
       ok(res, receipt);
     } catch (error) {
       fail(res, error, 404);

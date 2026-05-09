@@ -2,7 +2,11 @@ import { ProofStateBadge } from "@/components/solana/ProofStateBadge";
 import { Badge } from "@/components/ui/badge";
 import { proofStatusHint } from "@/lib/copy/renderProofClaim";
 import { SOLANA_COPY } from "@shared/copy";
-import { getClaimText, getReceiptTruthLine, solanaTxRecordToStructured } from "@shared/proofTruth";
+import {
+  getClaimText,
+  getReceiptTruthLine,
+  solanaTxRecordToStructured,
+} from "@shared/proofTruth";
 import type { SolanaTxRecord } from "@shared/solana/types";
 import { ReceiptText } from "lucide-react";
 
@@ -21,15 +25,19 @@ export function SolanaReceiptPanel({
     <div className="rounded-xl border border-white/10 bg-black/35 p-4">
       <div className="flex items-center gap-2">
         <ReceiptText className="h-4 w-4 text-[#3bff96]" aria-hidden />
-        <p className="text-xs uppercase tracking-[0.14em] text-slate-500">{SOLANA_COPY.receipts.panelTitle}</p>
+        <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+          {SOLANA_COPY.receipts.panelTitle}
+        </p>
       </div>
       <div className="mt-3 space-y-2">
         {rows.length === 0 ? (
           <p className="text-sm text-slate-400">{SOLANA_COPY.receipts.empty}</p>
         ) : (
-          rows.map(r => {
+          rows.map((r) => {
             const demo = demoSet?.has(r.id) === true;
-            const structured = solanaTxRecordToStructured(r, { demoMode: demo });
+            const structured = solanaTxRecordToStructured(r, {
+              demoMode: demo,
+            });
             const truth = getReceiptTruthLine(structured);
             const claim = getClaimText(structured);
             return (
@@ -39,9 +47,15 @@ export function SolanaReceiptPanel({
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-100">{structured.title}</p>
-                    <p className="text-[11px] text-slate-500">{new Date(r.createdAt).toLocaleString()}</p>
-                    <p className="mt-1 text-[11px] leading-snug text-slate-400">{structured.summary}</p>
+                    <p className="text-sm font-medium text-slate-100">
+                      {structured.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {new Date(r.createdAt).toLocaleString()}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-snug text-slate-400">
+                      {structured.summary}
+                    </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <ProofStateBadge status={structured.proofStatus} />
@@ -71,7 +85,10 @@ export function SolanaReceiptPanel({
                     </span>
                   ) : null}
                 </div>
-                <p className="text-[11px] text-[#8fd9c4]" title={proofStatusHint(structured.proofStatus)}>
+                <p
+                  className="text-[11px] text-[#8fd9c4]"
+                  title={proofStatusHint(structured.proofStatus)}
+                >
                   {truth}
                 </p>
                 <p className="text-[11px] text-slate-500">{claim}</p>
@@ -85,7 +102,9 @@ export function SolanaReceiptPanel({
                     {SOLANA_COPY.receipts.explorerVerifiable}
                   </a>
                 ) : (
-                  <span className="text-[11px] text-slate-600">Explorer link not set for this row.</span>
+                  <span className="text-[11px] text-slate-600">
+                    Explorer link not set for this row.
+                  </span>
                 )}
               </div>
             );

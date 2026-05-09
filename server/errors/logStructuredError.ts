@@ -1,6 +1,9 @@
 import type { AppError } from "@shared/errorTypes";
 
-export function logStructuredError(appError: AppError, ctx: Record<string, unknown> = {}) {
+export function logStructuredError(
+  appError: AppError,
+  ctx: Record<string, unknown> = {},
+) {
   const payload = {
     ts: new Date().toISOString(),
     kind: "claw_app_error",

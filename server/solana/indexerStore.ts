@@ -73,7 +73,11 @@ export class SolanaIndexerStore {
 
   private async persist() {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.state, null, 2), "utf8");
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(this.state, null, 2),
+      "utf8",
+    );
   }
 
   async saveAccount(account: MirrorAccountRecord) {
@@ -83,18 +87,28 @@ export class SolanaIndexerStore {
   }
 
   async saveHistory(item: MirrorHistoryRecord) {
-    this.state.history = this.state.history.filter(existing => existing.id !== item.id);
+    this.state.history = this.state.history.filter(
+      (existing) => existing.id !== item.id,
+    );
     this.state.history.unshift(item);
     this.state.history = this.state.history.slice(0, 5_000);
     await this.persist();
     return item;
   }
 
-  async listAccounts(filter?: { wallet?: string; kind?: MirrorAccountKind; status?: string }) {
-    let rows = Object.values(this.state.accounts).sort((a, b) => b.updatedAt - a.updatedAt);
-    if (filter?.wallet) rows = rows.filter(row => row.ownerWallet === filter.wallet);
-    if (filter?.kind) rows = rows.filter(row => row.kind === filter.kind);
-    if (filter?.status) rows = rows.filter(row => row.status === filter.status);
+  async listAccounts(filter?: {
+    wallet?: string;
+    kind?: MirrorAccountKind;
+    status?: string;
+  }) {
+    let rows = Object.values(this.state.accounts).sort(
+      (a, b) => b.updatedAt - a.updatedAt,
+    );
+    if (filter?.wallet)
+      rows = rows.filter((row) => row.ownerWallet === filter.wallet);
+    if (filter?.kind) rows = rows.filter((row) => row.kind === filter.kind);
+    if (filter?.status)
+      rows = rows.filter((row) => row.status === filter.status);
     return rows;
   }
 
@@ -109,9 +123,12 @@ export class SolanaIndexerStore {
     limit?: number;
   }) {
     let rows = [...this.state.history];
-    if (filter?.wallet) rows = rows.filter(row => row.walletAddress === filter.wallet);
-    if (filter?.account) rows = rows.filter(row => row.accountAddress === filter.account);
-    if (filter?.status) rows = rows.filter(row => row.status === filter.status);
+    if (filter?.wallet)
+      rows = rows.filter((row) => row.walletAddress === filter.wallet);
+    if (filter?.account)
+      rows = rows.filter((row) => row.accountAddress === filter.account);
+    if (filter?.status)
+      rows = rows.filter((row) => row.status === filter.status);
     return rows.slice(0, filter?.limit || 250);
   }
 }

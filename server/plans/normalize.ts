@@ -29,7 +29,7 @@ export function normalizeSteps(input: CreatePlanReceiptInput["steps"]) {
 
 export function normalizeTags(tags?: string[]) {
   return (tags || [])
-    .map(tag => tag.trim())
+    .map((tag) => tag.trim())
     .filter(Boolean)
     .slice(0, 32);
 }

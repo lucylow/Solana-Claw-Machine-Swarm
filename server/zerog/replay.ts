@@ -1,4 +1,8 @@
-import type { ZeroGComputeJob, ZeroGDataAvailabilityRecord, ZeroGStorageArtifact } from "./types";
+import type {
+  ZeroGComputeJob,
+  ZeroGDataAvailabilityRecord,
+  ZeroGStorageArtifact,
+} from "./types";
 import { ZeroGOrchestratorStore } from "./artifacts";
 
 export function createZeroGReplayService(store: ZeroGOrchestratorStore) {
@@ -9,7 +13,9 @@ export function createZeroGReplayService(store: ZeroGOrchestratorStore) {
     getComputeJob(jobId: string): ZeroGComputeJob | null {
       return store.getJobById(jobId);
     },
-    getAvailability(availabilityRef: string): ZeroGDataAvailabilityRecord | null {
+    getAvailability(
+      availabilityRef: string,
+    ): ZeroGDataAvailabilityRecord | null {
       return store.getAvailabilityByRef(availabilityRef);
     },
     getGraph() {

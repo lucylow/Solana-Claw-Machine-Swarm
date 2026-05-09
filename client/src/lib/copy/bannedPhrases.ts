@@ -16,5 +16,7 @@ export const BANNED_VAGUE_PHRASES = [
 
 export function isVagueCopy(text: string): boolean {
   const lower = text.toLowerCase();
-  return BANNED_VAGUE_PHRASES.some(phrase => lower.includes(phrase.toLowerCase()));
+  return BANNED_VAGUE_PHRASES.some((phrase) =>
+    lower.includes(phrase.toLowerCase()),
+  );
 }

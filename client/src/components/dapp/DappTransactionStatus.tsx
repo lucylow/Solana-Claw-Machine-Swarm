@@ -81,7 +81,7 @@ export function DappTransactionStatus({
         className={cn(
           "relative inline-flex items-center gap-1.5 rounded-full border font-semibold",
           size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
-          TONE[status]
+          TONE[status],
         )}
         title={DAPP_TX_STATUS_HINT[status]}
       >
@@ -132,7 +132,7 @@ export function DappTransactionLifecycle({
     <div
       className={cn(
         "rounded-xl border border-white/10 bg-black/30 p-3",
-        className
+        className,
       )}
       role="status"
       aria-live="polite"
@@ -159,7 +159,7 @@ export function DappTransactionLifecycle({
                 key={step}
                 className={cn(
                   "flex flex-col items-center gap-1 text-center text-[9px] uppercase tracking-wide",
-                  reached ? "text-[#9cf6d8]" : "text-slate-600"
+                  reached ? "text-[#9cf6d8]" : "text-slate-600",
                 )}
               >
                 <span
@@ -169,7 +169,7 @@ export function DappTransactionLifecycle({
                       ? "bg-[#14f195] shadow-[0_0_10px_rgba(20,241,149,0.55)]"
                       : reached
                         ? "bg-[#14f195]/55"
-                        : "bg-white/10"
+                        : "bg-white/10",
                   )}
                 />
                 {DAPP_TX_STATUS_LABEL[step]}

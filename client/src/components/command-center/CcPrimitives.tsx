@@ -69,7 +69,8 @@ export function CcStatusDot({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const dim = size === "sm" ? "h-1.5 w-1.5" : size === "lg" ? "h-3 w-3" : "h-2 w-2";
+  const dim =
+    size === "sm" ? "h-1.5 w-1.5" : size === "lg" ? "h-3 w-3" : "h-2 w-2";
   return (
     <span
       aria-hidden
@@ -78,14 +79,14 @@ export function CcStatusDot({
         dim,
         TONE_FILL[tone],
         TONE_GLOW[tone],
-        className
+        className,
       )}
     >
       {pulse ? (
         <span
           className={cn(
             "absolute inset-0 inline-flex animate-ping rounded-full opacity-50",
-            TONE_FILL[tone]
+            TONE_FILL[tone],
           )}
         />
       ) : null}
@@ -111,7 +112,7 @@ export function CcPanel({
   return (
     <div
       className={cn(
-        "relative rounded-2xl border bg-gradient-to-br from-[#0a0e14]/95 to-[#06080c]/98 shadow-[0_20px_50px_rgba(0,0,0,0.55)]",
+        "relative rounded-2xl border bg-gradient-to-br from-[#0b1118]/95 via-[#070b10]/96 to-[#040609]/98 shadow-[0_24px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.035)]",
         tone === "idle" && "border-white/[0.08]",
         tone === "live" && "border-[#38d7d0]/25",
         tone === "proof" && "border-[#14f195]/25",
@@ -120,7 +121,7 @@ export function CcPanel({
         tone === "info" && "border-sky-400/20",
         glow && tone === "proof" && "cc-proof-glow",
         glow && tone === "live" && "cc-live-glow",
-        className
+        className,
       )}
     >
       {children}
@@ -146,7 +147,12 @@ export function CcSectionHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-start justify-between gap-2", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-start justify-between gap-2",
+        className,
+      )}
+    >
       <div className="flex items-start gap-2.5 min-w-0">
         {Icon ? (
           <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40 text-[#14f195]">
@@ -193,22 +199,22 @@ export function CcMetric({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/8 bg-black/35 px-3 py-2.5",
-        className
+        "rounded-2xl border border-white/10 bg-black/38 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:border-[#14f195]/25 hover:bg-black/48",
+        className,
       )}
     >
-      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 font-mono text-base font-semibold tabular-nums",
+          "mt-1 font-mono text-lg font-semibold tabular-nums",
           tone === "proof" && "text-[#bcffd9]",
           tone === "live" && "text-[#bdf6f0]",
           tone === "warn" && "text-amber-200",
           tone === "fail" && "text-rose-200",
           tone === "idle" && "text-slate-100",
-          tone === "info" && "text-sky-100"
+          tone === "info" && "text-sky-100",
         )}
       >
         {value}
@@ -260,7 +266,9 @@ export function CcMiniLoopOrbit({
   caption?: string;
 }) {
   const radius = size * 0.42;
-  const safeIdx = ((activeIndex % ORBIT_NODES.length) + ORBIT_NODES.length) % ORBIT_NODES.length;
+  const safeIdx =
+    ((activeIndex % ORBIT_NODES.length) + ORBIT_NODES.length) %
+    ORBIT_NODES.length;
 
   return (
     <div
@@ -308,13 +316,13 @@ export function CcMiniLoopOrbit({
           >
             <div
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full border text-[9px] font-semibold tracking-wider transition",
+                "flex h-8 w-8 items-center justify-center rounded-full border text-[8px] font-bold tracking-wider transition",
                 active &&
                   "border-[#14f195] bg-[#14f195]/15 text-[#c8ffe8] shadow-[0_0_18px_rgba(20,241,149,0.45)]",
-                done &&
-                  "border-[#14f195]/45 bg-[#14f195]/10 text-[#a4f5cd]",
-                !active && !done &&
-                  "border-white/15 bg-black/50 text-slate-500"
+                done && "border-[#14f195]/45 bg-[#14f195]/10 text-[#a4f5cd]",
+                !active &&
+                  !done &&
+                  "border-white/15 bg-black/50 text-slate-500",
               )}
             >
               {node.short}
@@ -329,7 +337,7 @@ export function CcMiniLoopOrbit({
           <motion.div
             animate={{ scale: [1, 1.06, 1] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-[#14f195]/40 bg-[#14f195]/10 text-[#c8ffe8] shadow-[0_0_22px_rgba(20,241,149,0.32)]"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14f195]/45 bg-[#14f195]/12 text-[#c8ffe8] shadow-[0_0_28px_rgba(20,241,149,0.34)]"
           >
             <ShieldCheck className="h-5 w-5" aria-hidden />
           </motion.div>
@@ -360,7 +368,7 @@ export function CcNarrativeBar({
     <div
       className={cn(
         "flex flex-wrap items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-2",
-        className
+        className,
       )}
     >
       {steps.map((label, i) => {
@@ -372,8 +380,9 @@ export function CcNarrativeBar({
               className={cn(
                 "flex h-5 items-center gap-1 rounded-full px-2 text-[10px] font-medium",
                 done && "bg-[#14f195]/14 text-[#c8ffe8]",
-                active && "bg-[#38d7d0]/15 text-[#bdf6f0] shadow-[0_0_12px_rgba(56,215,208,0.3)]",
-                !done && !active && "text-slate-600"
+                active &&
+                  "bg-[#38d7d0]/15 text-[#bdf6f0] shadow-[0_0_12px_rgba(56,215,208,0.3)]",
+                !done && !active && "text-slate-600",
               )}
             >
               {done ? (
@@ -386,7 +395,9 @@ export function CcNarrativeBar({
               <span className="truncate">{label}</span>
             </span>
             {i < steps.length - 1 ? (
-              <span aria-hidden className="text-slate-700">·</span>
+              <span aria-hidden className="text-slate-700">
+                ·
+              </span>
             ) : null}
           </div>
         );
@@ -415,7 +426,8 @@ export function CcEvidenceBand({
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/40 px-1.5 py-0.5 font-mono text-[10px] text-slate-400",
-              item.href && "transition hover:border-[#14f195]/30 hover:text-[#c8ffe8]"
+              item.href &&
+                "transition hover:border-[#14f195]/30 hover:text-[#c8ffe8]",
             )}
           >
             <span className="text-[#87f7d0]/80">{item.kind}</span>
@@ -423,7 +435,12 @@ export function CcEvidenceBand({
           </span>
         );
         return item.href ? (
-          <a key={`${item.kind}-${item.value}`} href={item.href} target="_blank" rel="noreferrer">
+          <a
+            key={`${item.kind}-${item.value}`}
+            href={item.href}
+            target="_blank"
+            rel="noreferrer"
+          >
             {inner}
           </a>
         ) : (

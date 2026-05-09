@@ -2,7 +2,7 @@ import type { SwarmSectionId } from "./swarm";
 
 /** Premium story spine: wallet identity → verified session → execution proof on Solana. */
 export const STORY_LOOP_LABELS = [
-  "Connect Solana wallet",
+  "Connect Phantom",
   "Verify session",
   "Choose skill",
   "Build plan",
@@ -17,7 +17,7 @@ export type StoryLoopLabel = (typeof STORY_LOOP_LABELS)[number];
 
 /** Long-form loop for landing and narrative sections */
 export const AGENT_LOOP_STEPS_DETAILED = [
-  "Connect Solana wallet",
+  "Connect Phantom",
   "Discover skill in Solana-native registry",
   "Choose skill and verify autonomy band",
   "Planner emits receipt-linked plan",
@@ -53,22 +53,22 @@ export const COMMAND_SIDE_NAV_ITEMS: Array<{
 
 export const SOLANA_COPY = {
   dashboard: {
-    title: "Solana-native agent command center",
-    heroTitle: "Solana-native agents with explorer-verifiable receipts",
+    title: "Solana-native agent dApp",
+    heroTitle: "Build Solana agents that remember.",
     heroSubtitle:
-      "Connect a Solana wallet, choose a published skill, and watch the agent plan, execute, reflect, write memory, and anchor evidence you can verify on Solana Explorer.",
+      "A Claw Machine SWARM frontend for Solana: wallet-signed sessions, autonomous skill execution, durable 0G memory, and explorer-verifiable receipt proofs.",
     topSubtitle:
-      "Solana wallet session for identity and compact receipts; full reflection and plan bodies live in 0G Storage; append-only batch roots and lineage land in 0G DA before Solana Explorer verification.",
+      "Video-ready Solana dApp: choose a skill, run the agent loop, store reflection in 0G, and anchor compact proof receipts on Solana Explorer.",
   },
   navigation: {
-    backCommandCenter: "Back to command center",
-    landing: "← Landing",
+    backCommandCenter: "Back to dApp dashboard",
+    landing: "Open Solana landing →",
   },
   wallet: {
-    panelTitle: "Solana wallet",
-    lifecycleTitle: "Solana wallet session",
-    connect: "Connect Solana wallet",
-    connectVerify: "Connect Solana wallet + sign session",
+    panelTitle: "Phantom wallet",
+    lifecycleTitle: "Phantom session",
+    connect: "Connect Phantom",
+    connectVerify: "Connect Phantom + sign session",
     refreshSession: "Refresh verified session",
     refreshSignedSession: "Refresh signed Solana session",
     copyAddress: "Copy wallet address",
@@ -78,21 +78,22 @@ export const SOLANA_COPY = {
     balanceLabel: "Solana balance",
     latestSignature: "Latest Solana tx signature",
     connectionState: "Adapter state",
-    notConnected: "Solana wallet not connected",
-    offlineChip: "Solana wallet offline",
+    notConnected: "Phantom not connected",
+    offlineChip: "Phantom offline",
     wrongCluster: "Wrong Solana cluster",
     clusterBadge: "Solana cluster",
     clusterRpcTitle: "Cluster RPC (server probe)",
-    identityLayerNote: "Identity: wallet adapter pubkey · Session: backend-verified bearer",
+    identityLayerNote:
+      "Identity: wallet adapter pubkey · Session: backend-verified bearer",
     permissionsTitle: "Solana program permissions",
-    toastAddressCopied: "Solana wallet address copied",
+    toastAddressCopied: "Phantom address copied",
     refreshSolBalance: "Refresh Solana balance",
     clearCachedSession: "Clear cached Solana session",
     signSolanaSessionAgain: "Sign Solana session again",
   },
   walletLifecycle: {
     disconnected: "Disconnected",
-    connecting: "Connecting Solana wallet",
+    connecting: "Connecting Phantom",
     connected: "Connected",
     signing: "Signing Solana session",
     sessionVerifying: "Verifying Solana session",
@@ -103,9 +104,9 @@ export const SOLANA_COPY = {
     error: "Error",
   },
   story: {
-    connectWalletFirst: "Connect a Solana wallet first.",
+    connectWalletFirst: "Connect Phantom first.",
     connectForReceipts:
-      "Connect a Solana wallet to bind session scope and anchor Solana receipts to your address.",
+      "Connect Phantom to bind session scope and anchor Solana receipts to your address.",
   },
   receipts: {
     panelTitle: "Recent Solana receipts",
@@ -124,7 +125,7 @@ export const SOLANA_COPY = {
   },
   skillRegistry: {
     publishConsoleTitle: "Solana-native skill registry",
-    backLabel: "Back to command center",
+    backLabel: "Back to dApp dashboard",
     capabilityHint: "Published skill assets · provenance + reputation",
   },
   explorer: {

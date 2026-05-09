@@ -52,7 +52,11 @@ export class MemoryReceiptStore {
   private async persist() {
     if (!this.filePath) return;
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.state, null, 2), "utf8");
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(this.state, null, 2),
+      "utf8",
+    );
   }
 
   async saveReflection(record: ReflectionRecordOffchain) {
@@ -66,7 +70,9 @@ export class MemoryReceiptStore {
   }
 
   async listReflections() {
-    return Object.values(this.state.reflections).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Object.values(this.state.reflections).sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   async saveReceipt(reflectionId: string, receipt: MemoryReceiptOnChain) {
@@ -86,7 +92,9 @@ export class MemoryReceiptStore {
   }
 
   async listReceipts() {
-    return Object.values(this.state.receipts).sort((a, b) => b.createdAtUnix - a.createdAtUnix);
+    return Object.values(this.state.receipts).sort(
+      (a, b) => b.createdAtUnix - a.createdAtUnix,
+    );
   }
 
   async saveLink(link: MemoryTurnLink) {
@@ -96,12 +104,14 @@ export class MemoryReceiptStore {
   }
 
   async listLinks() {
-    return Object.values(this.state.links).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Object.values(this.state.links).sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   async listLinksByReceipt(receiptId: string) {
     return Object.values(this.state.links)
-      .filter(link => link.receiptId === receiptId)
+      .filter((link) => link.receiptId === receiptId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
@@ -124,6 +134,8 @@ export class MemoryReceiptStore {
   }
 
   async listEventsForReflection(reflectionId: string) {
-    return this.state.events.filter(event => event.reflectionId === reflectionId);
+    return this.state.events.filter(
+      (event) => event.reflectionId === reflectionId,
+    );
   }
 }

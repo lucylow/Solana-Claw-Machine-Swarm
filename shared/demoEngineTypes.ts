@@ -3,7 +3,11 @@
  * Uses real product shapes (SolanaWalletState, ExecutionRun, StructuredReceipt, …).
  */
 
-import type { MemoryRecord, ReflectionRecord, SkillIdentity } from "./domainModel";
+import type {
+  MemoryRecord,
+  ReflectionRecord,
+  SkillIdentity,
+} from "./domainModel";
 import type { OpenClawBridgeStatus } from "./openclaw/types";
 import type { SolanaWalletState } from "./solana/types";
 import type { StructuredReceipt } from "./structuredReceipt";
@@ -45,7 +49,9 @@ export interface DemoPlaybackFrame {
   openclaw?: Partial<OpenClawBridgeStatus>;
   zerog?: Partial<ZeroGIntegrationStatus>;
   /** Applied to primary anchor receipt after fixture→structured conversion */
-  primaryReceiptProofPatch?: Partial<Pick<StructuredReceipt, "proofStatus" | "status" | "summary" | "claim">>;
+  primaryReceiptProofPatch?: Partial<
+    Pick<StructuredReceipt, "proofStatus" | "status" | "summary" | "claim">
+  >;
 }
 
 export interface DemoStoryStepView {
@@ -91,7 +97,12 @@ export interface DemoSnapshotDerived {
   autonomyLabel?: string;
   reputationLabel?: string;
   /** Honest posture for the whole scrub */
-  dataPosture: "verified" | "pending" | "cached_only" | "demo_only" | "degraded";
+  dataPosture:
+    | "verified"
+    | "pending"
+    | "cached_only"
+    | "demo_only"
+    | "degraded";
 }
 
 export interface DemoSnapshot {

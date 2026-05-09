@@ -17,7 +17,8 @@ export const DEMO_SKILLS: SolanaRegistrySkillAsset[] = [
   {
     id: "skill-support-triage",
     name: "Support Triage",
-    description: "Classify customer requests, choose a response plan, and escalate when needed.",
+    description:
+      "Classify customer requests, choose a response plan, and escalate when needed.",
     tags: ["support", "triage", "agentic"],
     version: "1.3.0",
     authorWallet: "8Cz7A1kN4bq2TzP3mR5xY8dQ1vL6fH9jK2pS0aW",
@@ -41,11 +42,29 @@ export const DEMO_AGENT_PLAN: AgentOrchestrationPlanReceipt = {
     "Break the task into wallet verification, cluster check, session signing, and receipt anchoring.",
   stepCount: 4,
   dependencies: [
-    { id: "dep-wallet", type: "tool", ref: "wallet", label: "Solana wallet", required: true },
-    { id: "dep-session", type: "tool", ref: "session-service", label: "Session service", required: true },
+    {
+      id: "dep-wallet",
+      type: "tool",
+      ref: "wallet",
+      label: "Solana wallet",
+      required: true,
+    },
+    {
+      id: "dep-session",
+      type: "tool",
+      ref: "session-service",
+      label: "Session service",
+      required: true,
+    },
   ],
   chosenSkills: [
-    { id: "skill-support-triage", name: "Support Triage", version: "1.3.0", hash: "7f3a…b19c", active: true },
+    {
+      id: "skill-support-triage",
+      name: "Support Triage",
+      version: "1.3.0",
+      hash: "7f3a…b19c",
+      active: true,
+    },
   ],
   summaryHash: "a1c2e…d9f0ab",
   planHash: "9b7da…e021cf",
@@ -71,7 +90,8 @@ export const DEMO_REFLECTION: ReflectionRecord = {
     "Refresh the session immediately after a cluster or balance refresh, then rerun the receipt anchor step.",
   nextAction: "Re-sign the Solana session and re-submit the proof anchor.",
   summary: "Session expiration interrupted the receipt flow.",
-  fullText: "Detailed reflection text describing retries and telemetry correlation.",
+  fullText:
+    "Detailed reflection text describing retries and telemetry correlation.",
   createdAt: "2026-05-04T16:23:00.000Z",
   updatedAt: "2026-05-04T16:23:05.000Z",
   status: "stored",

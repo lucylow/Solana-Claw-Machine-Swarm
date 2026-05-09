@@ -27,7 +27,11 @@ export class NftStore {
   private async persist() {
     if (!this.filePath) return;
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.state, null, 2), "utf8");
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(this.state, null, 2),
+      "utf8",
+    );
   }
 
   async setCollection(collection: NftCollectionState) {
@@ -58,10 +62,10 @@ export class NftStore {
   }
 
   listMintsByOwner(owner: string) {
-    return this.state.mints.filter(m => m.owner === owner);
+    return this.state.mints.filter((m) => m.owner === owner);
   }
 
   getByMint(mint: string) {
-    return this.state.mints.find(m => m.mint === mint);
+    return this.state.mints.find((m) => m.mint === mint);
   }
 }

@@ -25,9 +25,13 @@ describe("normalizeError", () => {
   });
 
   it("classifies legacy orchestrator strings", () => {
-    expect(inferCodeFromLegacyMessage("wallet_session_inactive")).toBe("SESSION_REQUIRED");
+    expect(inferCodeFromLegacyMessage("wallet_session_inactive")).toBe(
+      "SESSION_REQUIRED",
+    );
     expect(inferCodeFromLegacyMessage("RPC 429")).toBe("RPC_RATE_LIMITED");
-    expect(inferCodeFromLegacyMessage("simulation failed")).toBe("TX_SIMULATION_FAILED");
+    expect(inferCodeFromLegacyMessage("simulation failed")).toBe(
+      "TX_SIMULATION_FAILED",
+    );
   });
 
   it("retry policy covers core tx codes", () => {

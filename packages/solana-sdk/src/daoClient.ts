@@ -3,7 +3,9 @@ import { PublicKey, SystemProgram } from "@solana/web3.js";
 import type { DaoProposalKind, DaoVoteChoice } from "./daoTypes";
 
 /** Maps REST-style kinds to Anchor enum payloads (IDL camelCase variants). */
-export function daoProposalKindForAnchor(kind: DaoProposalKind): Record<string, Record<string, never>> {
+export function daoProposalKindForAnchor(
+  kind: DaoProposalKind,
+): Record<string, Record<string, never>> {
   const map: Record<DaoProposalKind, Record<string, Record<string, never>>> = {
     treasury_spend: { treasurySpend: {} },
     parameter_change: { parameterChange: {} },
@@ -15,7 +17,9 @@ export function daoProposalKindForAnchor(kind: DaoProposalKind): Record<string, 
   return map[kind];
 }
 
-export function daoVoteChoiceForAnchor(choice: DaoVoteChoice): Record<string, Record<string, never>> {
+export function daoVoteChoiceForAnchor(
+  choice: DaoVoteChoice,
+): Record<string, Record<string, never>> {
   const map: Record<DaoVoteChoice, Record<string, Record<string, never>>> = {
     yes: { yes: {} },
     no: { no: {} },
@@ -32,24 +36,34 @@ export class ClawDaoClient {
   readonly program: anchor.Program;
   readonly programId: PublicKey;
 
-  constructor(programId: string, idl: anchor.Idl, provider: anchor.AnchorProvider) {
+  constructor(
+    programId: string,
+    idl: anchor.Idl,
+    provider: anchor.AnchorProvider,
+  ) {
     const idlWithAddress = { ...idl, address: programId } as anchor.Idl;
     this.program = new anchor.Program(idlWithAddress, provider);
     this.programId = this.program.programId;
   }
 
   deriveDaoPda() {
-    return PublicKey.findProgramAddressSync([Buffer.from("dao-config")], this.programId);
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("dao-config")],
+      this.programId,
+    );
   }
 
   deriveTreasuryPda() {
-    return PublicKey.findProgramAddressSync([Buffer.from("dao-treasury")], this.programId);
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("dao-treasury")],
+      this.programId,
+    );
   }
 
   deriveMemberPda(dao: PublicKey, wallet: PublicKey) {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("dao-member"), dao.toBuffer(), wallet.toBuffer()],
-      this.programId
+      this.programId,
     );
   }
 
@@ -60,28 +74,28 @@ export class ClawDaoClient {
         dao.toBuffer(),
         new anchor.BN(proposalId).toArrayLike(Buffer, "le", 8),
       ],
-      this.programId
+      this.programId,
     );
   }
 
   deriveVotePda(proposal: PublicKey, voter: PublicKey) {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("dao-vote"), proposal.toBuffer(), voter.toBuffer()],
-      this.programId
+      this.programId,
     );
   }
 
   deriveDiscoveryPda(proposal: PublicKey) {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("dao-discovery"), proposal.toBuffer()],
-      this.programId
+      this.programId,
     );
   }
 
   deriveExecutionPda(proposal: PublicKey) {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("dao-exec"), proposal.toBuffer()],
-      this.programId
+      this.programId,
     );
   }
 
@@ -110,7 +124,7 @@ export class ClawDaoClient {
         args.proposalThresholdBps,
         new anchor.BN(args.voteDurationSlots),
         new anchor.BN(args.minStakeLamports),
-        new anchor.BN(args.spendLimitLamports)
+        new anchor.BN(args.spendLimitLamports),
       )
       .accounts({
         dao,
@@ -134,7 +148,7 @@ export class ClawDaoClient {
       .registerMember(
         args.delegate,
         new anchor.BN(args.stakeLamports),
-        new anchor.BN(args.reputationPoints)
+        new anchor.BN(args.reputationPoints),
       )
       .accounts({
         dao,
@@ -159,8 +173,10 @@ export class ClawDaoClient {
       .updateMember(
         args.delegate ?? null,
         args.stakeLamports == null ? null : new anchor.BN(args.stakeLamports),
-        args.reputationPoints == null ? null : new anchor.BN(args.reputationPoints),
-        args.active ?? null
+        args.reputationPoints == null
+          ? null
+          : new anchor.BN(args.reputationPoints),
+        args.active ?? null,
       )
       .accounts({
         dao,
@@ -198,7 +214,7 @@ export class ClawDaoClient {
         new anchor.BN(args.amountLamports),
         args.targetProgram,
         args.targetAccount,
-        new anchor.BN(args.voteDurationSlots)
+        new anchor.BN(args.voteDurationSlots),
       )
       .accounts({
         dao,
@@ -264,7 +280,10 @@ export class ClawDaoClient {
       .rpc();
   }
 
-  async depositTreasury(args: { depositor: PublicKey; amountLamports: number }) {
+  async depositTreasury(args: {
+    depositor: PublicKey;
+    amountLamports: number;
+  }) {
     const [dao] = this.deriveDaoPda();
     const [treasury] = this.deriveTreasuryPda();
 

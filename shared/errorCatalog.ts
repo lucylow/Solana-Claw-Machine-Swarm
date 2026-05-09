@@ -47,7 +47,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     scope: "wallet",
     severity: "warning",
     title: "Wrong Solana cluster",
-    message: "Switch to the cluster this command center expects (e.g. devnet for this demo).",
+    message:
+      "Switch to the cluster this command center expects (e.g. devnet for this demo).",
     recoveryAction: "Change network in your wallet to match the app cluster.",
     retryLabel: "After switching network",
   },
@@ -79,7 +80,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "warning",
     title: "Verified session required",
     message: "An active, verified wallet session is required for this step.",
-    recoveryAction: "Connect and complete session verification before anchoring.",
+    recoveryAction:
+      "Connect and complete session verification before anchoring.",
     retryLabel: "Verify session",
   },
   RPC_UNAVAILABLE: {
@@ -89,7 +91,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     message: "The cluster RPC endpoint is not reachable.",
     recoveryAction: "Wait and retry, or check RPC configuration.",
     retryLabel: "Retry",
-    supportHint: "If this persists, the network or your RPC provider may be down.",
+    supportHint:
+      "If this persists, the network or your RPC provider may be down.",
   },
   RPC_TIMEOUT: {
     scope: "rpc",
@@ -136,7 +139,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "error",
     title: "Confirmation failed",
     message: "The transaction was sent but confirmation did not complete.",
-    recoveryAction: "Check the signature on the explorer or retry confirmation.",
+    recoveryAction:
+      "Check the signature on the explorer or retry confirmation.",
     retryLabel: "Recheck explorer",
   },
   TX_EXPIRED: {
@@ -180,7 +184,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "critical",
     title: "IDL mismatch",
     message: "The IDL does not match the deployed program.",
-    recoveryAction: "Redeploy or refresh the IDL used by the client and server.",
+    recoveryAction:
+      "Redeploy or refresh the IDL used by the client and server.",
   },
   INSUFFICIENT_SOL: {
     scope: "solana",
@@ -201,14 +206,16 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "error",
     title: "Receipt anchor failed",
     message: "The receipt could not be anchored on Solana.",
-    recoveryAction: "Your draft is preserved; retry anchor after fixing the session or RPC.",
+    recoveryAction:
+      "Your draft is preserved; retry anchor after fixing the session or RPC.",
     retryLabel: "Retry anchor",
   },
   PROOF_VERIFICATION_FAILED: {
     scope: "proof",
     severity: "warning",
     title: "Proof pending verification",
-    message: "A signature exists but explorer verification did not succeed yet.",
+    message:
+      "A signature exists but explorer verification did not succeed yet.",
     recoveryAction: "Recheck proof status; data may still be valid.",
     retryLabel: "Verify again",
   },
@@ -265,7 +272,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "error",
     title: "Execution failed",
     message: "The autonomous execution path did not complete successfully.",
-    recoveryAction: "Review errors below; partial receipts may still be available.",
+    recoveryAction:
+      "Review errors below; partial receipts may still be available.",
     retryLabel: "Retry execution",
   },
   OPENCLAW_IMPORT_FAILED: {
@@ -289,7 +297,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "error",
     title: "Storage upload failed",
     message: "0G storage upload did not complete.",
-    recoveryAction: "Receipt may be degraded; retry upload when storage is healthy.",
+    recoveryAction:
+      "Receipt may be degraded; retry upload when storage is healthy.",
     retryLabel: "Retry upload",
   },
   ZERO_G_DA_FAILED: {
@@ -337,7 +346,8 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     severity: "critical",
     title: "Request failed",
     message: "The server hit an unexpected error handling this request.",
-    recoveryAction: "Retry; if it repeats, capture request id from diagnostics.",
+    recoveryAction:
+      "Retry; if it repeats, capture request id from diagnostics.",
     retryLabel: "Retry",
   },
   VALIDATION_FAILED: {
@@ -351,14 +361,17 @@ export const ERROR_CATALOG: Record<ErrorCode, ErrorCatalogEntry> = {
     scope: "demo",
     severity: "info",
     title: "Demo mode only",
-    message: "This path is simulated or fixture-backed — not asserted as live verification.",
-    recoveryAction: "Switch to live mode for real chain proofs when configured.",
+    message:
+      "This path is simulated or fixture-backed — not asserted as live verification.",
+    recoveryAction:
+      "Switch to live mode for real chain proofs when configured.",
   },
   DEGRADED_MODE: {
     scope: "backend",
     severity: "warning",
     title: "Degraded mode",
-    message: "Some integrations are unhealthy; the app continues with reduced guarantees.",
+    message:
+      "Some integrations are unhealthy; the app continues with reduced guarantees.",
     recoveryAction: "Retry failed steps when services recover.",
     retryLabel: "Retry",
   },

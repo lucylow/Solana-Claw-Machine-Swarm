@@ -12,14 +12,17 @@ import { mountSolanaIdentity } from "../solana";
 import { mountMemoryReceipts } from "../memory";
 import { mountPlanReceipts } from "../plans";
 import { createSolanaBridge, mountSolanaBridge } from "../solana/bridgeMount";
-import { OpenClawBridgeService, registerOpenClawBridgeRoutes } from "../openclaw/bridge";
+import {
+  OpenClawBridgeService,
+  registerOpenClawBridgeRoutes,
+} from "../openclaw/bridge";
 import { mountNft } from "../nft/mount";
 import { registerZeroGRoutes } from "../zerog/routes";
 import { mountDao } from "../dao/mount";
 import { registerSwarmApiRoutes } from "../orchestration/registerSwarmApiRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const server = net.createServer();
     server.listen(port, () => {
       server.close(() => resolve(true));
@@ -49,7 +52,7 @@ async function startServer() {
   const solana = await mountSolanaIdentity(app, { solanaBridge: bridge });
   const memory = await mountMemoryReceipts(app, {
     onchain: {
-      createMemoryReceipt: async input => {
+      createMemoryReceipt: async (input) => {
         const tx = await bridge.sendInstruction({
           walletAddress: input.wallet,
           action: "create_memory_receipt",
@@ -71,7 +74,10 @@ async function startServer() {
       },
     },
   });
-  const plans = await mountPlanReceipts(app, { solanaIdentityService: solana.service, solanaBridge: bridge });
+  const plans = await mountPlanReceipts(app, {
+    solanaIdentityService: solana.service,
+    solanaBridge: bridge,
+  });
   registerZeroGRoutes(app);
   await mountDao(app);
   await mountNft(app);
@@ -95,7 +101,7 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
-    })
+    }),
   );
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
@@ -130,7 +136,7 @@ function logFatalStartupError(err: unknown): void {
   }
 }
 
-startServer().catch(err => {
+startServer().catch((err) => {
   logFatalStartupError(err);
   process.exitCode = 1;
 });

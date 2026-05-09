@@ -37,7 +37,7 @@ export function DappBalanceCard({
       className={cn(
         "rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0a120e]/95 to-[#06090c]/95 shadow-[0_12px_36px_rgba(0,0,0,0.45)]",
         compact ? "p-3" : "p-4",
-        className
+        className,
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -50,11 +50,15 @@ export function DappBalanceCard({
               Wallet balance
             </p>
             <p className="text-base font-semibold tracking-tight text-white">
-              {state.connected ? balance : "Connect wallet"}
+              {state.connected ? balance : "Connect Phantom"}
             </p>
           </div>
         </div>
-        <DappNetworkBadge cluster={state.cluster} wrong={state.wrongCluster} size="sm" />
+        <DappNetworkBadge
+          cluster={state.cluster}
+          wrong={state.wrongCluster}
+          size="sm"
+        />
       </div>
 
       {state.connected ? (
@@ -82,7 +86,7 @@ export function DappBalanceCard({
             <RefreshCw
               className={cn(
                 "h-3 w-3",
-                state.busy && "animate-spin text-[#9cf6d8]"
+                state.busy && "animate-spin text-[#9cf6d8]",
               )}
               aria-hidden
             />

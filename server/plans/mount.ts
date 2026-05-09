@@ -20,29 +20,35 @@ export async function mountPlanReceipts(
   options?: {
     solanaIdentityService?: SolanaIdentityService;
     solanaBridge?: SolanaBridgeService;
-  }
+  },
 ) {
-  const store = new PlanStore(path.join(process.cwd(), "data", "plan-receipts.json"));
+  const store = new PlanStore(
+    path.join(process.cwd(), "data", "plan-receipts.json"),
+  );
   await store.init();
 
   const storage = new PlanStorageService();
   const anchor = new PlanAnchorService({
     chainId: Number(process.env.SOLANA_CHAIN_ID || 101),
-    programId: process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID,
+    programId:
+      process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID,
     anchorClient: options?.solanaIdentityService
       ? {
-          anchorPlan: async input => {
-            const payloadHash = crypto.createHash("sha256").update(
-              JSON.stringify({
-                planId: input.planId,
-                taskType: input.taskType,
-                goal: input.goal,
-                planHash: input.planHash,
-                stepHash: input.stepHash,
-                stepCount: input.stepCount,
-                outcome: input.outcome,
-              })
-            ).digest("hex");
+          anchorPlan: async (input) => {
+            const payloadHash = crypto
+              .createHash("sha256")
+              .update(
+                JSON.stringify({
+                  planId: input.planId,
+                  taskType: input.taskType,
+                  goal: input.goal,
+                  planHash: input.planHash,
+                  stepHash: input.stepHash,
+                  stepCount: input.stepCount,
+                  outcome: input.outcome,
+                }),
+              )
+              .digest("hex");
 
             const bridgeTx = options.solanaBridge
               ? await options.solanaBridge.sendInstruction({
@@ -62,21 +68,25 @@ export async function mountPlanReceipts(
                 })
               : undefined;
 
-            const plannerRun = await options.solanaIdentityService!.recordPlannerRun({
-              walletAddress: input.wallet,
-              runId: input.planId,
-              taskType: input.taskType,
-              goal: input.goal,
-              planHash: input.planHash,
-              stepHash: input.stepHash,
-              outcome: input.outcome,
-              stepCount: input.stepCount,
-              completedSteps: input.outcome === "succeeded" ? input.stepCount : 0,
-              failedSteps: input.outcome === "failed" ? input.stepCount : 0,
-            });
+            const plannerRun =
+              await options.solanaIdentityService!.recordPlannerRun({
+                walletAddress: input.wallet,
+                runId: input.planId,
+                taskType: input.taskType,
+                goal: input.goal,
+                planHash: input.planHash,
+                stepHash: input.stepHash,
+                outcome: input.outcome,
+                stepCount: input.stepCount,
+                completedSteps:
+                  input.outcome === "succeeded" ? input.stepCount : 0,
+                failedSteps: input.outcome === "failed" ? input.stepCount : 0,
+              });
             return {
               chainId: Number(process.env.SOLANA_CHAIN_ID || 101),
-              programId: process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID,
+              programId:
+                process.env.SOLANA_PROGRAM_ID ||
+                process.env.CLAW_IDENTITY_PROGRAM_ID,
               account: plannerRun.id,
               txSignature: bridgeTx?.txSignature,
             };
@@ -85,7 +95,9 @@ export async function mountPlanReceipts(
       : undefined,
   });
 
-  async function pushEvent(event: Omit<PlanLifecycleEvent, "id" | "createdAt">) {
+  async function pushEvent(
+    event: Omit<PlanLifecycleEvent, "id" | "createdAt">,
+  ) {
     await store.pushTimelineEvent({
       ...event,
       id: `pevt_${nanoid(10)}`,
@@ -93,8 +105,18 @@ export async function mountPlanReceipts(
     });
   }
 
-  const receiptService = new PlanReceiptService(store, storage, anchor, pushEvent);
-  const resultService = new PlanResultService(store, storage, anchor, pushEvent);
+  const receiptService = new PlanReceiptService(
+    store,
+    storage,
+    anchor,
+    pushEvent,
+  );
+  const resultService = new PlanResultService(
+    store,
+    storage,
+    anchor,
+    pushEvent,
+  );
   const timelineService = new PlanTimelineService();
   const verificationService = new PlanVerificationService(store);
 

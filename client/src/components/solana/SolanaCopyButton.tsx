@@ -29,10 +29,17 @@ export function SolanaCopyButton({ text, label = "Copy", className }: Props) {
       type="button"
       variant="outline"
       size="sm"
-      className={cn("border-white/15 bg-black/30 text-slate-100 hover:bg-white/5", className)}
+      className={cn(
+        "border-white/15 bg-black/30 text-slate-100 hover:bg-white/5",
+        className,
+      )}
       onClick={() => void copy()}
     >
-      {copied ? <Check className="mr-1 h-3.5 w-3.5" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+      {copied ? (
+        <Check className="mr-1 h-3.5 w-3.5" />
+      ) : (
+        <Copy className="mr-1 h-3.5 w-3.5" />
+      )}
       {copied ? "Copied" : label}
     </Button>
   );

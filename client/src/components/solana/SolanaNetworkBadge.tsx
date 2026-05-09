@@ -25,10 +25,10 @@ export function SolanaNetworkBadge({
         wrong
           ? "border-amber-400/50 bg-amber-500/15 text-amber-100"
           : "border-[#3bff96]/40 bg-[#3bff96]/12 text-[#c9ffe8]",
-        className
+        className,
       )}
     >
-      {wrong ? "Wrong cluster" : LABELS[cluster] ?? cluster}
+      {wrong ? "Wrong cluster" : (LABELS[cluster] ?? cluster)}
     </Badge>
   );
 }

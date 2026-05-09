@@ -132,7 +132,13 @@ export interface DaoAgentRecommendationRecord {
   risks: string[];
   supportingEvidence: string[];
   createdAt: number;
-  status: "draft" | "ready" | "approved" | "rejected" | "degraded" | "demo_only";
+  status:
+    | "draft"
+    | "ready"
+    | "approved"
+    | "rejected"
+    | "degraded"
+    | "demo_only";
   humanDisposition?: "accepted" | "modified" | "rejected" | "pending";
 }
 
@@ -166,7 +172,12 @@ export interface DaoTreasurySnapshotPersist {
   walletAddress: string;
   totalBalanceLamports: string;
   totalBalanceSol: string;
-  tokenBalances: Array<{ mint: string; symbol?: string; balance: string; valueUsd?: number }>;
+  tokenBalances: Array<{
+    mint: string;
+    symbol?: string;
+    balance: string;
+    valueUsd?: number;
+  }>;
   lastUpdatedAt: string;
   proofReceiptId?: string;
   account?: string;

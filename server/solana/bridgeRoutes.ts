@@ -15,7 +15,9 @@ import {
   pushManualStructuredReceipt,
 } from "./structuredReceipts";
 
-function normalizeStructuredCluster(cluster: string): StructuredReceipt["cluster"] {
+function normalizeStructuredCluster(
+  cluster: string,
+): StructuredReceipt["cluster"] {
   const c = cluster.toLowerCase();
   if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
   if (c === "testnet") return "testnet";
@@ -24,7 +26,10 @@ function normalizeStructuredCluster(cluster: string): StructuredReceipt["cluster
 }
 
 function hashPayload(payload: unknown) {
-  return crypto.createHash("sha256").update(JSON.stringify(payload ?? {})).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(payload ?? {}))
+    .digest("hex");
 }
 
 function requestId() {
@@ -32,7 +37,10 @@ function requestId() {
 }
 
 function fail(error: unknown) {
-  return { ok: false as const, error: error instanceof Error ? error.message : "solana_bridge_failed" };
+  return {
+    ok: false as const,
+    error: error instanceof Error ? error.message : "solana_bridge_failed",
+  };
 }
 
 const buildSchema = z.object({
@@ -82,7 +90,9 @@ const postPlanSchema = z.object({
   stepCount: z.number().int().nonnegative().default(0),
   planHash: z.string().min(12),
   stepHash: z.string().min(12),
-  outcome: z.enum(["planned", "running", "succeeded", "failed", "aborted"]).default("planned"),
+  outcome: z
+    .enum(["planned", "running", "succeeded", "failed", "aborted"])
+    .default("planned"),
 });
 
 const postMemorySchema = z.object({
@@ -99,7 +109,9 @@ const postReflectionSchema = z.object({
   walletAddress: z.string().min(20),
   agentId: z.string().min(1),
   sourceTurnId: z.string().min(1),
-  kind: z.enum(["success", "failure", "retry", "correction", "lesson"]).default("lesson"),
+  kind: z
+    .enum(["success", "failure", "retry", "correction", "lesson"])
+    .default("lesson"),
   title: z.string().min(2),
   summary: z.string().min(2),
   fullText: z.string().min(2),
@@ -126,7 +138,7 @@ export function registerSolanaBridgeRoutes(
     identityService?: SolanaIdentityService;
     memoryService?: MemoryReceiptService;
     planReceiptService?: PlanReceiptService;
-  }
+  },
 ) {
   /** DB-backed wallet session row — distinct from Bearer `/api/solana/session` identity handshake */
   app.get("/api/solana/wallet-session", async (req, res) => {
@@ -169,7 +181,9 @@ export function registerSolanaBridgeRoutes(
         ...body,
         walletAddress: normalizeWalletAddress(body.walletAddress),
       });
-      res.status(data.status === "failed" ? 400 : 200).json({ ok: data.status !== "failed", data });
+      res
+        .status(data.status === "failed" ? 400 : 200)
+        .json({ ok: data.status !== "failed", data });
     } catch (error) {
       res.status(400).json(fail(error));
     }
@@ -179,7 +193,9 @@ export function registerSolanaBridgeRoutes(
     try {
       const body = confirmSchema.parse(req.body);
       const data = await deps.bridge.confirmInstruction(body);
-      res.status(data.status === "failed" ? 400 : 200).json({ ok: data.status !== "failed", data });
+      res
+        .status(data.status === "failed" ? 400 : 200)
+        .json({ ok: data.status !== "failed", data });
     } catch (error) {
       res.status(400).json(fail(error));
     }
@@ -187,7 +203,9 @@ export function registerSolanaBridgeRoutes(
 
   app.get("/api/solana/accounts", async (req, res) => {
     try {
-      const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const wallet = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const kind = req.query.kind ? String(req.query.kind) : undefined;
       const status = req.query.status ? String(req.query.status) : undefined;
       const data = await deps.bridge.listMirrorAccounts({
@@ -203,7 +221,9 @@ export function registerSolanaBridgeRoutes(
 
   app.get("/api/solana/accounts/:address", async (req, res) => {
     try {
-      const data = await deps.bridge.getMirrorAccount(String(req.params.address));
+      const data = await deps.bridge.getMirrorAccount(
+        String(req.params.address),
+      );
       if (!data) {
         res.status(404).json({ ok: false, error: "account_not_found" });
         return;
@@ -228,7 +248,8 @@ export function registerSolanaBridgeRoutes(
 
   app.get("/api/solana/skills", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const data = await deps.identityService.listDiscoverySkills({
         query: req.query.q ? String(req.query.q) : undefined,
         category: req.query.category ? String(req.query.category) : undefined,
@@ -242,7 +263,8 @@ export function registerSolanaBridgeRoutes(
 
   app.post("/api/solana/skills/publish", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const body = publishSkillSchema.parse(req.body);
       const payload = {
         skillId: body.skillId,
@@ -260,7 +282,13 @@ export function registerSolanaBridgeRoutes(
         metadata: payload,
       });
       if (send.status === "failed") {
-        res.status(400).json({ ok: false, error: send.error || "skill_publish_failed", data: send });
+        res
+          .status(400)
+          .json({
+            ok: false,
+            error: send.error || "skill_publish_failed",
+            data: send,
+          });
         return;
       }
       await deps.identityService.recordReputationEvent({
@@ -278,7 +306,8 @@ export function registerSolanaBridgeRoutes(
 
   app.post("/api/solana/skills/:id/update", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const body = publishSkillSchema.parse({
         ...req.body,
         skillId: String(req.params.id),
@@ -299,7 +328,13 @@ export function registerSolanaBridgeRoutes(
         metadata: payload,
       });
       if (send.status === "failed") {
-        res.status(400).json({ ok: false, error: send.error || "skill_update_failed", data: send });
+        res
+          .status(400)
+          .json({
+            ok: false,
+            error: send.error || "skill_update_failed",
+            data: send,
+          });
         return;
       }
       await deps.identityService.recordReputationEvent({
@@ -350,7 +385,9 @@ export function registerSolanaBridgeRoutes(
         });
       }
       if (tx.status === "failed") {
-        res.status(400).json({ ok: false, error: tx.error || "plan_tx_failed", data: tx });
+        res
+          .status(400)
+          .json({ ok: false, error: tx.error || "plan_tx_failed", data: tx });
         return;
       }
       res.json({ ok: true, data: tx });
@@ -402,7 +439,9 @@ export function registerSolanaBridgeRoutes(
       }
 
       if (tx.status === "failed") {
-        res.status(400).json({ ok: false, error: tx.error || "memory_tx_failed", data: tx });
+        res
+          .status(400)
+          .json({ ok: false, error: tx.error || "memory_tx_failed", data: tx });
         return;
       }
       res.json({ ok: true, data: tx });
@@ -446,7 +485,13 @@ export function registerSolanaBridgeRoutes(
       }
 
       if (tx.status === "failed") {
-        res.status(400).json({ ok: false, error: tx.error || "reflection_tx_failed", data: { ...tx, reflectionId } });
+        res
+          .status(400)
+          .json({
+            ok: false,
+            error: tx.error || "reflection_tx_failed",
+            data: { ...tx, reflectionId },
+          });
         return;
       }
 
@@ -458,14 +503,26 @@ export function registerSolanaBridgeRoutes(
 
   app.get("/api/solana/receipts", async (req, res) => {
     try {
-      const walletFilter = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const walletFilter = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const { getZeroGModule } = await import("../zerog/routes");
-      const { buildZeroGIntegrationStatus } = await import("../zerog/integrationSummary");
+      const { buildZeroGIntegrationStatus } = await import(
+        "../zerog/integrationSummary"
+      );
       const module = getZeroGModule();
       const integration = await buildZeroGIntegrationStatus(module);
-      const derived = proofsToStructuredReceipts({ proofs: module.store.listReceipts(), integration });
-      const merged = mergeStructuredReceiptLists(derived, listManualStructuredReceipts());
-      const filtered = walletFilter ? merged.filter(r => r.walletAddress === walletFilter) : merged;
+      const derived = proofsToStructuredReceipts({
+        proofs: module.store.listReceipts(),
+        integration,
+      });
+      const merged = mergeStructuredReceiptLists(
+        derived,
+        listManualStructuredReceipts(),
+      );
+      const filtered = walletFilter
+        ? merged.filter((r) => r.walletAddress === walletFilter)
+        : merged;
       res.json({ ok: true, data: filtered });
     } catch (error) {
       res.status(400).json(fail(error));
@@ -474,8 +531,14 @@ export function registerSolanaBridgeRoutes(
 
   app.post("/api/solana/receipt", async (req, res) => {
     try {
-      const body = req.body as Partial<StructuredReceipt> & Pick<StructuredReceipt, "walletAddress" | "subjectId">;
-      if (!body.walletAddress || !body.subjectId || !body.title || !body.summary) {
+      const body = req.body as Partial<StructuredReceipt> &
+        Pick<StructuredReceipt, "walletAddress" | "subjectId">;
+      if (
+        !body.walletAddress ||
+        !body.subjectId ||
+        !body.title ||
+        !body.summary
+      ) {
         throw new Error("walletAddress, subjectId, title, summary required");
       }
       const nowIso = new Date().toISOString();
@@ -483,7 +546,8 @@ export function registerSolanaBridgeRoutes(
       const cluster = body.cluster ?? normalizeStructuredCluster(net.cluster);
       const full: StructuredReceipt = {
         id: body.id ?? `rcpt_${nanoid()}`,
-        receiptType: (body.receiptType ?? "proof") as StructuredReceipt["receiptType"],
+        receiptType: (body.receiptType ??
+          "proof") as StructuredReceipt["receiptType"],
         subjectId: body.subjectId,
         subjectType: body.subjectType ?? "custom",
         walletAddress: normalizeWalletAddress(body.walletAddress),
@@ -544,11 +608,19 @@ export function registerSolanaBridgeRoutes(
     try {
       const id = String(req.params.id);
       const { getZeroGModule } = await import("../zerog/routes");
-      const { buildZeroGIntegrationStatus } = await import("../zerog/integrationSummary");
+      const { buildZeroGIntegrationStatus } = await import(
+        "../zerog/integrationSummary"
+      );
       const module = getZeroGModule();
       const integration = await buildZeroGIntegrationStatus(module);
-      const derived = proofsToStructuredReceipts({ proofs: module.store.listReceipts(), integration });
-      const structured = mergeStructuredReceiptLists(derived, listManualStructuredReceipts()).find(r => r.id === id);
+      const derived = proofsToStructuredReceipts({
+        proofs: module.store.listReceipts(),
+        integration,
+      });
+      const structured = mergeStructuredReceiptLists(
+        derived,
+        listManualStructuredReceipts(),
+      ).find((r) => r.id === id);
       if (structured) {
         res.json({ ok: true, data: structured });
         return;
@@ -566,7 +638,9 @@ export function registerSolanaBridgeRoutes(
 
   app.get("/api/solana/history", async (req, res) => {
     try {
-      const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const wallet = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const account = req.query.account ? String(req.query.account) : undefined;
       const status = req.query.status ? String(req.query.status) : undefined;
       const limit = req.query.limit ? Number(req.query.limit) : undefined;

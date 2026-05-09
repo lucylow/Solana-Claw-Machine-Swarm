@@ -22,6 +22,7 @@ import DaoPage from "./pages/DaoPage";
 import DaoProposalPage from "./pages/DaoProposalPage";
 import ZeroGPage from "./pages/ZeroGPage";
 import OnchainPage from "./pages/OnchainPage";
+import SubmissionPage from "./pages/SubmissionPage";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/how-it-works" component={HowItWorks} />
+      <Route path="/submission" component={SubmissionPage} />
       <Route path="/skills" component={SkillsRegistry} />
       <Route path="/skills/:id" component={SkillDetailPage} />
       <Route path="/receipts" component={ReceiptsPage} />

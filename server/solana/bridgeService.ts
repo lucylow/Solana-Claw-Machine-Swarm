@@ -11,11 +11,18 @@ import {
 } from "@solana/web3.js";
 import { getSolanaSessionByWallet } from "../db";
 import { buildCompactSolanaBridgeMemo } from "./compactMemo";
-import { deriveConfigPda, deriveProfilePda, deriveSkillPda, normalizeWalletAddress } from "./pda";
+import {
+  deriveConfigPda,
+  deriveProfilePda,
+  deriveSkillPda,
+  normalizeWalletAddress,
+} from "./pda";
 import type { MirrorAccountKind, MirrorHistoryRecord } from "./indexerStore";
 import { SolanaIndexerStore } from "./indexerStore";
 
-const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+const MEMO_PROGRAM_ID = new PublicKey(
+  "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+);
 const DEFAULT_PROGRAM_ID = "11111111111111111111111111111111";
 
 export type BridgeAction =
@@ -56,7 +63,8 @@ export interface BuildBridgeInstructionResult {
   status: "building" | "submitted" | "failed";
 }
 
-export interface SendBridgeInstructionResult extends BuildBridgeInstructionResult {
+export interface SendBridgeInstructionResult
+  extends BuildBridgeInstructionResult {
   txSignature?: string;
   explorerTxUrl?: string;
   status: "submitted" | "failed";
@@ -64,7 +72,8 @@ export interface SendBridgeInstructionResult extends BuildBridgeInstructionResul
 }
 
 function loadRelayerSigner() {
-  const secret = process.env.SOLANA_BACKEND_SIGNER || process.env.SOLANA_RELAYER_SECRET_KEY;
+  const secret =
+    process.env.SOLANA_BACKEND_SIGNER || process.env.SOLANA_RELAYER_SECRET_KEY;
   if (!secret) return undefined;
   const trimmed = secret.trim();
   if (!trimmed) return undefined;
@@ -78,8 +87,10 @@ function loadRelayerSigner() {
   } catch (error) {
     throw new Error(
       `invalid_backend_signer: ${
-        error instanceof Error ? error.message : "unable to decode SOLANA_BACKEND_SIGNER"
-      }`
+        error instanceof Error
+          ? error.message
+          : "unable to decode SOLANA_BACKEND_SIGNER"
+      }`,
     );
   }
 }
@@ -112,11 +123,17 @@ export class SolanaBridgeService {
     this.connection = new Connection(endpoint, "confirmed");
     this.relayer = loadRelayerSigner();
     this.programId = new PublicKey(
-      (process.env.SOLANA_PROGRAM_ID || process.env.CLAW_IDENTITY_PROGRAM_ID || DEFAULT_PROGRAM_ID).trim()
+      (
+        process.env.SOLANA_PROGRAM_ID ||
+        process.env.CLAW_IDENTITY_PROGRAM_ID ||
+        DEFAULT_PROGRAM_ID
+      ).trim(),
     );
     this.cluster = process.env.SOLANA_CLUSTER || "devnet";
-    this.explorerBase = process.env.SOLANA_EXPLORER_BASE || "https://explorer.solana.com";
-    this.commitment = (process.env.SOLANA_COMMITMENT as Commitment) || "confirmed";
+    this.explorerBase =
+      process.env.SOLANA_EXPLORER_BASE || "https://explorer.solana.com";
+    this.commitment =
+      (process.env.SOLANA_COMMITMENT as Commitment) || "confirmed";
   }
 
   getProgramId() {
@@ -156,7 +173,9 @@ export class SolanaBridgeService {
     const row = await getSolanaSessionByWallet(wallet);
     const now = new Date();
     const expiresAt = row?.expiresAt ? new Date(row.expiresAt) : undefined;
-    const active = Boolean(row && row.isVerified === 1 && expiresAt && expiresAt > now);
+    const active = Boolean(
+      row && row.isVerified === 1 && expiresAt && expiresAt > now,
+    );
     return {
       walletAddress: wallet,
       cluster: this.cluster,
@@ -171,60 +190,90 @@ export class SolanaBridgeService {
     };
   }
 
-  private deriveAccount(action: BridgeAction, walletAddress: string, subjectId: string) {
+  private deriveAccount(
+    action: BridgeAction,
+    walletAddress: string,
+    subjectId: string,
+  ) {
     const wallet = new PublicKey(walletAddress);
     const subjectSeed = seedFromSubject(subjectId);
     const configPda = deriveConfigPda(this.programId.toBase58());
-    const profilePda = deriveProfilePda(walletAddress, this.programId.toBase58());
+    const profilePda = deriveProfilePda(
+      walletAddress,
+      this.programId.toBase58(),
+    );
     const [planReceiptPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("plan_receipt"), wallet.toBuffer(), subjectSeed],
-      this.programId
+      this.programId,
     );
     const [memoryReceiptPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("memory_receipt"), wallet.toBuffer(), subjectSeed],
-      this.programId
+      this.programId,
     );
     const [proofReceiptPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("proof_receipt"), wallet.toBuffer(), subjectSeed],
-      this.programId
+      this.programId,
     );
 
     switch (action) {
       case "initialize_registry":
         return { address: configPda, kind: "registry" as const };
       case "create_skill": {
-        const skillPda = deriveSkillPda(walletAddress, subjectId, this.programId.toBase58());
+        const skillPda = deriveSkillPda(
+          walletAddress,
+          subjectId,
+          this.programId.toBase58(),
+        );
         return { address: skillPda, kind: "skill" as const };
       }
       case "update_skill_version": {
         const [skillVersionPda] = PublicKey.findProgramAddressSync(
           [Buffer.from("skill_version"), wallet.toBuffer(), subjectSeed],
-          this.programId
+          this.programId,
         );
-        return { address: skillVersionPda.toBase58(), kind: "skill_version" as const };
+        return {
+          address: skillVersionPda.toBase58(),
+          kind: "skill_version" as const,
+        };
       }
       case "create_plan_receipt":
       case "complete_plan_receipt":
-        return { address: planReceiptPda.toBase58(), kind: "plan_receipt" as const };
+        return {
+          address: planReceiptPda.toBase58(),
+          kind: "plan_receipt" as const,
+        };
       case "create_memory_receipt":
       case "create_reflection_receipt":
-        return { address: memoryReceiptPda.toBase58(), kind: "memory_receipt" as const };
+        return {
+          address: memoryReceiptPda.toBase58(),
+          kind: "memory_receipt" as const,
+        };
       case "create_proof_receipt":
       case "anchor_receipt":
       case "verify_receipt":
       case "record_queue_event":
       case "record_deployment_receipt":
-        return { address: proofReceiptPda.toBase58(), kind: "proof_receipt" as const };
+        return {
+          address: proofReceiptPda.toBase58(),
+          kind: "proof_receipt" as const,
+        };
       default:
         return { address: profilePda, kind: "unknown" as const };
     }
   }
 
-  async buildInstruction(input: BuildBridgeInstructionInput): Promise<BuildBridgeInstructionResult> {
+  async buildInstruction(
+    input: BuildBridgeInstructionInput,
+  ): Promise<BuildBridgeInstructionResult> {
     const walletAddress = normalizeWalletAddress(input.walletAddress);
     if (!input.subjectId.trim()) throw new Error("subject_id_required");
-    if (!isValidHash(input.payloadHash)) throw new Error("payload_hash_invalid");
-    const derived = this.deriveAccount(input.action, walletAddress, input.subjectId);
+    if (!isValidHash(input.payloadHash))
+      throw new Error("payload_hash_invalid");
+    const derived = this.deriveAccount(
+      input.action,
+      walletAddress,
+      input.subjectId,
+    );
     const requestId = `sol_${nanoid(12)}`;
 
     await this.store.saveHistory({
@@ -254,12 +303,18 @@ export class SolanaBridgeService {
       accountAddress: derived.address,
       accountKind: derived.kind,
       explorerAccountUrl: this.buildExplorerUrl("address", derived.address),
-      explorerProgramUrl: this.buildExplorerUrl("address", this.programId.toBase58()),
+      explorerProgramUrl: this.buildExplorerUrl(
+        "address",
+        this.programId.toBase58(),
+      ),
       status: "building",
     };
   }
 
-  private buildMemoInstruction(build: BuildBridgeInstructionResult, metadata?: Record<string, unknown>) {
+  private buildMemoInstruction(
+    build: BuildBridgeInstructionResult,
+    metadata?: Record<string, unknown>,
+  ) {
     const memo = buildCompactSolanaBridgeMemo(
       {
         requestId: build.requestId,
@@ -270,7 +325,7 @@ export class SolanaBridgeService {
         walletAddress: build.walletAddress,
         cluster: build.cluster,
       },
-      metadata
+      metadata,
     );
     return new TransactionInstruction({
       programId: MEMO_PROGRAM_ID,
@@ -280,7 +335,7 @@ export class SolanaBridgeService {
   }
 
   async sendInstruction(
-    input: BuildBridgeInstructionInput
+    input: BuildBridgeInstructionInput,
   ): Promise<SendBridgeInstructionResult> {
     const build = await this.buildInstruction(input);
     if (!this.relayer) {
@@ -297,16 +352,22 @@ export class SolanaBridgeService {
     }
 
     try {
-      const blockhash = await this.connection.getLatestBlockhash(this.commitment);
+      const blockhash = await this.connection.getLatestBlockhash(
+        this.commitment,
+      );
       const tx = new Transaction({
         feePayer: this.relayer.publicKey,
         blockhash: blockhash.blockhash,
         lastValidBlockHeight: blockhash.lastValidBlockHeight,
       }).add(this.buildMemoInstruction(build, input.metadata));
 
-      const signature = await this.connection.sendTransaction(tx, [this.relayer], {
-        preflightCommitment: this.commitment,
-      });
+      const signature = await this.connection.sendTransaction(
+        tx,
+        [this.relayer],
+        {
+          preflightCommitment: this.commitment,
+        },
+      );
 
       const explorerTxUrl = this.buildExplorerUrl("tx", signature);
       await this.updateHistory(build.requestId, {
@@ -336,7 +397,10 @@ export class SolanaBridgeService {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "tx_send_failed";
-      await this.updateHistory(build.requestId, { status: "failed", error: message });
+      await this.updateHistory(build.requestId, {
+        status: "failed",
+        error: message,
+      });
       return {
         ...build,
         status: "failed",
@@ -345,10 +409,17 @@ export class SolanaBridgeService {
     }
   }
 
-  async confirmInstruction(input: { requestId?: string; txSignature: string; accountAddress?: string }) {
+  async confirmInstruction(input: {
+    requestId?: string;
+    txSignature: string;
+    accountAddress?: string;
+  }) {
     const txSignature = String(input.txSignature || "").trim();
     if (!txSignature) throw new Error("tx_signature_required");
-    const confirmation = await this.connection.confirmTransaction(txSignature, this.commitment);
+    const confirmation = await this.connection.confirmTransaction(
+      txSignature,
+      this.commitment,
+    );
     const failed = Boolean(confirmation.value.err);
     const status = failed ? "failed" : "confirmed";
     if (input.requestId) {
@@ -380,7 +451,11 @@ export class SolanaBridgeService {
     };
   }
 
-  async listMirrorAccounts(filter?: { wallet?: string; kind?: MirrorAccountKind; status?: string }) {
+  async listMirrorAccounts(filter?: {
+    wallet?: string;
+    kind?: MirrorAccountKind;
+    status?: string;
+  }) {
     return this.store.listAccounts(filter);
   }
 
@@ -399,10 +474,12 @@ export class SolanaBridgeService {
 
   private async updateHistory(
     id: string,
-    updates: Partial<Pick<MirrorHistoryRecord, "status" | "txSignature" | "error">>
+    updates: Partial<
+      Pick<MirrorHistoryRecord, "status" | "txSignature" | "error">
+    >,
   ) {
     const history = await this.store.listHistory({ limit: 5000 });
-    const existing = history.find(row => row.id === id);
+    const existing = history.find((row) => row.id === id);
     if (!existing) return;
     await this.store.saveHistory({
       ...existing,

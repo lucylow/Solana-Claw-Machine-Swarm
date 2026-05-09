@@ -66,7 +66,10 @@ export class SolanaSessionService {
     this.productName = opts?.productName || "CLAW MACHINE";
   }
 
-  issueNonce(walletAddress: string, requestedCluster: SolanaCluster): SessionNonceResponse {
+  issueNonce(
+    walletAddress: string,
+    requestedCluster: SolanaCluster,
+  ): SessionNonceResponse {
     const normalizedWallet = walletAddress.trim();
     if (requestedCluster !== this.cluster) {
       throw new Error("solana_cluster_mismatch");
@@ -117,7 +120,8 @@ export class SolanaSessionService {
     const nonce = this.nonceStore.get(input.nonceId);
     if (!nonce) throw new Error("session_nonce_not_found");
     if (nonce.used) throw new Error("session_nonce_already_used");
-    if (nonce.walletAddress !== normalizedWallet) throw new Error("session_wallet_mismatch");
+    if (nonce.walletAddress !== normalizedWallet)
+      throw new Error("session_wallet_mismatch");
     if (nonce.expiresAt < nowMs()) throw new Error("session_nonce_expired");
     if (!input.cluster) throw new Error("cluster_required");
     if (input.cluster !== nonce.cluster) {
@@ -131,7 +135,11 @@ export class SolanaSessionService {
     const messageBytes = new TextEncoder().encode(nonce.message);
     const signatureBytes = bs58.decode(input.signature);
     const walletBytes = new PublicKey(normalizedWallet).toBytes();
-    const valid = nacl.sign.detached.verify(messageBytes, signatureBytes, walletBytes);
+    const valid = nacl.sign.detached.verify(
+      messageBytes,
+      signatureBytes,
+      walletBytes,
+    );
     if (!valid) throw new Error("session_signature_invalid");
 
     nonce.used = true;
@@ -210,16 +218,15 @@ export class SolanaSessionService {
 
   getStatus() {
     const activeSessions = Array.from(this.sessionStore.values()).filter(
-      row => row.profile.expiresAt > nowMs()
+      (row) => row.profile.expiresAt > nowMs(),
     ).length;
     return {
       cluster: this.cluster,
       product: this.productName,
       activeSessions,
       outstandingNonces: Array.from(this.nonceStore.values()).filter(
-        row => !row.used && row.expiresAt > nowMs()
+        (row) => !row.used && row.expiresAt > nowMs(),
       ).length,
     };
   }
 }
-

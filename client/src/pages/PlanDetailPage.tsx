@@ -1,18 +1,32 @@
 import { useEffect, useState } from "react";
 import { useRoute, Link } from "wouter";
-import { OnchainReceiptCard, StoryLoopStrip } from "@/components/command-center";
+import {
+  OnchainReceiptCard,
+  StoryLoopStrip,
+} from "@/components/command-center";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlanTimeline } from "@/components/PlanTimeline";
-import type { PlanReceipt, PlanResultReceipt, PlanTimelineEvent, PlanVerificationResult } from "@shared/planReceipts";
-import { getPlan, getPlanResult, getPlanTimeline, verifyPlan } from "@/plans/planClient";
+import type {
+  PlanReceipt,
+  PlanResultReceipt,
+  PlanTimelineEvent,
+  PlanVerificationResult,
+} from "@shared/planReceipts";
+import {
+  getPlan,
+  getPlanResult,
+  getPlanTimeline,
+  verifyPlan,
+} from "@/plans/planClient";
 
 export default function PlanDetailPage() {
   const [match, params] = useRoute("/plans/:id");
   const [plan, setPlan] = useState<PlanReceipt | null>(null);
   const [timeline, setTimeline] = useState<PlanTimelineEvent[]>([]);
   const [result, setResult] = useState<PlanResultReceipt | null>(null);
-  const [verification, setVerification] = useState<PlanVerificationResult | null>(null);
+  const [verification, setVerification] =
+    useState<PlanVerificationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +34,12 @@ export default function PlanDetailPage() {
     if (!match || !params?.id) return;
     let alive = true;
     setLoading(true);
-    Promise.all([getPlan(params.id), getPlanTimeline(params.id), getPlanResult(params.id), verifyPlan(params.id)])
+    Promise.all([
+      getPlan(params.id),
+      getPlanTimeline(params.id),
+      getPlanResult(params.id),
+      verifyPlan(params.id),
+    ])
       .then(([planData, timelineData, resultData, verificationData]) => {
         if (!alive) return;
         setPlan(planData);
@@ -28,9 +47,11 @@ export default function PlanDetailPage() {
         setResult(resultData);
         setVerification(verificationData);
       })
-      .catch(err => {
+      .catch((err) => {
         if (!alive) return;
-        setError(err instanceof Error ? err.message : "Failed to load plan details");
+        setError(
+          err instanceof Error ? err.message : "Failed to load plan details",
+        );
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -43,7 +64,11 @@ export default function PlanDetailPage() {
   if (!match) return null;
 
   if (loading) {
-    return <div className="min-h-screen bg-black text-cyan-300 p-8">Loading plan timeline...</div>;
+    return (
+      <div className="min-h-screen bg-black text-cyan-300 p-8">
+        Loading plan timeline...
+      </div>
+    );
   }
 
   if (error || !plan) {
@@ -82,17 +107,25 @@ export default function PlanDetailPage() {
 
       <Card className="bg-black/40 border-cyan-500/20 p-4 space-y-2">
         <h2 className="text-cyan-200 font-semibold">Proof and verification</h2>
-        <p className="text-xs text-gray-400 break-all">Summary hash: {plan.summaryHash}</p>
-        <p className="text-xs text-gray-400 break-all">Plan hash: {plan.planHash}</p>
+        <p className="text-xs text-gray-400 break-all">
+          Summary hash: {plan.summaryHash}
+        </p>
+        <p className="text-xs text-gray-400 break-all">
+          Plan hash: {plan.planHash}
+        </p>
         <p className="text-xs text-gray-400">
-          Verification: {verification?.status || "unknown"} {verification?.verified ? "(verified)" : ""}
+          Verification: {verification?.status || "unknown"}{" "}
+          {verification?.verified ? "(verified)" : ""}
         </p>
         {plan.solana?.txSignature ? (
           <Button
             variant="outline"
             className="border-cyan-500/40 text-cyan-300"
             onClick={() =>
-              window.open(`https://explorer.solana.com/tx/${plan.solana?.txSignature}?cluster=devnet`, "_blank")
+              window.open(
+                `https://explorer.solana.com/tx/${plan.solana?.txSignature}?cluster=devnet`,
+                "_blank",
+              )
             }
           >
             Open on explorer
@@ -127,13 +160,25 @@ export default function PlanDetailPage() {
         <Card className="bg-black/40 border-cyan-500/20 p-4">
           <h2 className="text-cyan-200 font-semibold">Execution result</h2>
           <p className="text-sm text-gray-300 mt-2">{result.resultSummary}</p>
-          <div className="mt-2 text-xs text-gray-400">Status: {result.status}</div>
-          <div className="text-xs text-gray-400">Actual outcome: {result.actualOutcome}</div>
-          <div className="text-xs text-gray-400 break-all">Result hash: {result.resultHash}</div>
+          <div className="mt-2 text-xs text-gray-400">
+            Status: {result.status}
+          </div>
+          <div className="text-xs text-gray-400">
+            Actual outcome: {result.actualOutcome}
+          </div>
+          <div className="text-xs text-gray-400 break-all">
+            Result hash: {result.resultHash}
+          </div>
           {result.reflection?.reflectionId ? (
-            <div className="text-xs text-gray-400">Reflection: {result.reflection.reflectionId}</div>
+            <div className="text-xs text-gray-400">
+              Reflection: {result.reflection.reflectionId}
+            </div>
           ) : null}
-          {result.memory?.memoryId ? <div className="text-xs text-gray-400">Memory: {result.memory.memoryId}</div> : null}
+          {result.memory?.memoryId ? (
+            <div className="text-xs text-gray-400">
+              Memory: {result.memory.memoryId}
+            </div>
+          ) : null}
         </Card>
       ) : null}
     </div>

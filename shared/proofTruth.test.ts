@@ -11,7 +11,9 @@ import type { ReceiptRecord } from "./domainModel";
 
 describe("proofTruth", () => {
   it("labels demo Solana rows as cache-only when demoMode", () => {
-    const s = solanaTxRecordToStructured(DEMO_CHAIN_RECEIPT, { demoMode: true });
+    const s = solanaTxRecordToStructured(DEMO_CHAIN_RECEIPT, {
+      demoMode: true,
+    });
     expect(s.proofStatus).toBe("cached_only");
     expect(s.status).toBe("cached");
     expect(getReceiptTruthLine(s)).toContain("Demo");

@@ -25,11 +25,18 @@ import { DappCopyButton } from "./DappCopyButton";
 import { DappExplorerLink } from "./DappExplorerLink";
 import { useDappChainState } from "./useDappChainState";
 
-function WalletAvatar({ address, size = 28 }: { address?: string; size?: number }) {
+function WalletAvatar({
+  address,
+  size = 28,
+}: {
+  address?: string;
+  size?: number;
+}) {
   const seed = address ?? "no-wallet";
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffffffff;
-  const a = (Math.abs(h) % 360) | 0;
+  for (let i = 0; i < seed.length; i++)
+    h = (h * 31 + seed.charCodeAt(i)) & 0xffffffff;
+  const a = Math.abs(h) % 360 | 0;
   const b = (a + 60) % 360;
   return (
     <span
@@ -72,17 +79,17 @@ export function DappWalletSummary({
           size="sm"
           className="rounded-full bg-[#14f195] font-semibold text-black shadow-[0_0_18px_rgba(20,241,149,0.35)] hover:bg-[#3bff96]"
           onClick={() => wallet.connectAndVerify().catch(() => undefined)}
-          aria-label="Connect Solana wallet"
+          aria-label="Connect Phantom wallet"
         >
           {state.busy ? (
             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
           ) : (
             <Wallet className="mr-1.5 h-3.5 w-3.5" aria-hidden />
           )}
-          Connect wallet
+          Connect Phantom
         </Button>
         <span className="hidden text-[10px] uppercase tracking-[0.18em] text-slate-500 sm:inline">
-          Solana wallet required
+          Phantom first
         </span>
       </div>
     );
@@ -93,7 +100,7 @@ export function DappWalletSummary({
       <div
         className={cn(
           "rounded-2xl border border-[#14f195]/30 bg-gradient-to-br from-[#0a120e]/95 to-[#06090c]/98 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.45)]",
-          className
+          className,
         )}
       >
         <div className="flex items-start gap-3">
@@ -111,7 +118,7 @@ export function DappWalletSummary({
               "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
               sessionVerified
                 ? "border-[#14f195]/50 bg-[#14f195]/10 text-[#d6ffe9]"
-                : "border-amber-400/40 bg-amber-500/10 text-amber-100"
+                : "border-amber-400/40 bg-amber-500/10 text-amber-100",
             )}
           >
             {sessionVerified ? (
@@ -169,7 +176,7 @@ export function DappWalletSummary({
           type="button"
           className={cn(
             "group flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-1 pr-2.5 transition hover:border-[#14f195]/45 hover:bg-[#14f195]/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/60",
-            className
+            className,
           )}
           aria-label="Wallet menu"
         >
@@ -180,13 +187,19 @@ export function DappWalletSummary({
             </span>
             <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide">
               {sessionVerified ? (
-                <ShieldCheck className="h-2.5 w-2.5 text-[#3bff96]" aria-hidden />
+                <ShieldCheck
+                  className="h-2.5 w-2.5 text-[#3bff96]"
+                  aria-hidden
+                />
               ) : (
-                <ShieldQuestion className="h-2.5 w-2.5 text-amber-300" aria-hidden />
+                <ShieldQuestion
+                  className="h-2.5 w-2.5 text-amber-300"
+                  aria-hidden
+                />
               )}
               <span
                 className={cn(
-                  sessionVerified ? "text-[#9cf6d8]" : "text-amber-200"
+                  sessionVerified ? "text-[#9cf6d8]" : "text-amber-200",
                 )}
               >
                 {sessionVerified ? "Verified" : "Unverified"}
@@ -211,8 +224,10 @@ export function DappWalletSummary({
             {shortenAddress(state.walletAddress, 6, 6)}
           </p>
           <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
-            {state.balanceSol ? `${Number(state.balanceSol).toFixed(4)} SOL` : "—"} ·{" "}
-            {state.cluster}
+            {state.balanceSol
+              ? `${Number(state.balanceSol).toFixed(4)} SOL`
+              : "—"}{" "}
+            · {state.cluster}
           </p>
         </div>
 
@@ -289,7 +304,9 @@ export function DappWalletSummary({
             className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-[#9cf6d8]"
           >
             <RefreshCw className="h-3 w-3" aria-hidden />
-            {sessionVerified ? "Refresh signed session" : "Sign session message"}
+            {sessionVerified
+              ? "Refresh signed session"
+              : "Sign session message"}
           </button>
         </DropdownMenuItem>
 

@@ -23,7 +23,9 @@ export function canClaimStored(receipt: StructuredReceipt): boolean {
 }
 
 export function canClaimLearned(receipt: StructuredReceipt): boolean {
-  return receipt.receiptType === "reflection" || receipt.receiptType === "memory";
+  return (
+    receipt.receiptType === "reflection" || receipt.receiptType === "memory"
+  );
 }
 
 export function getReceiptTruthLine(receipt: StructuredReceipt): string {
@@ -40,7 +42,9 @@ export function getReceiptTruthLine(receipt: StructuredReceipt): string {
     return missing;
   }
   if (receipt.proofStatus === "cached_only") {
-    return receipt.metadata?.demoMode === true ? "Demo cache / preview only" : "Cached sample only";
+    return receipt.metadata?.demoMode === true
+      ? "Demo cache / preview only"
+      : "Cached sample only";
   }
   if (receipt.proofStatus === "demo_only") {
     return "Demo fixture — not asserted as live chain verification";
@@ -72,7 +76,9 @@ const SOLANA_TYPE_MAP: Record<
   zerog_da_batch: "zerog_da_batch",
 };
 
-function receiptStatusToStructured(status: SolanaTxRecord["status"]): ReceiptStatus {
+function receiptStatusToStructured(
+  status: SolanaTxRecord["status"],
+): ReceiptStatus {
   switch (status) {
     case "draft":
       return "draft";
@@ -93,7 +99,7 @@ function receiptStatusToStructured(status: SolanaTxRecord["status"]): ReceiptSta
 
 function deriveProofStatusFromSolanaRow(
   row: SolanaTxRecord,
-  evidence: ReceiptEvidence
+  evidence: ReceiptEvidence,
 ): ProofStatus {
   if (evidence.txSignature?.startsWith("SIM_")) return "demo_only";
   if (!evidence.txSignature && !evidence.explorerUrl) {
@@ -101,13 +107,20 @@ function deriveProofStatusFromSolanaRow(
   }
   if (row.status === "failed") return "degraded";
   if (row.status === "degraded") return "degraded";
-  if (row.status === "verified" && evidence.txSignature && evidence.explorerUrl) return "verified";
+  if (row.status === "verified" && evidence.txSignature && evidence.explorerUrl)
+    return "verified";
   if (row.status === "confirmed" && evidence.txSignature) return "pending";
   return "pending";
 }
 
-function titleForStructuredType(t: StructuredReceiptType, subjectId: string): string {
-  const short = subjectId.length > 14 ? `${subjectId.slice(0, 6)}…${subjectId.slice(-4)}` : subjectId;
+function titleForStructuredType(
+  t: StructuredReceiptType,
+  subjectId: string,
+): string {
+  const short =
+    subjectId.length > 14
+      ? `${subjectId.slice(0, 6)}…${subjectId.slice(-4)}`
+      : subjectId;
   const labels: Record<StructuredReceiptType, string> = {
     wallet_session: `Wallet session receipt · ${short}`,
     skill_publish: `Skill publish receipt · ${short}`,
@@ -140,7 +153,10 @@ function chainIdToCluster(chainId: number): StructuredReceipt["cluster"] {
   }
 }
 
-const DOMAIN_RECEIPT_TYPE_MAP: Record<ReceiptRecord["type"], StructuredReceiptType> = {
+const DOMAIN_RECEIPT_TYPE_MAP: Record<
+  ReceiptRecord["type"],
+  StructuredReceiptType
+> = {
   "skill.publish": "skill_publish",
   "skill.update": "skill_update",
   plan: "plan",
@@ -153,12 +169,21 @@ const DOMAIN_RECEIPT_TYPE_MAP: Record<ReceiptRecord["type"], StructuredReceiptTy
   wallet: "wallet_session",
 };
 
-function deriveProofStatusDomain(r: ReceiptRecord, evidence: ReceiptEvidence): ProofStatus {
+function deriveProofStatusDomain(
+  r: ReceiptRecord,
+  evidence: ReceiptEvidence,
+): ProofStatus {
   if (r.status === "failed") return "degraded";
   if (r.status === "degraded") return "degraded";
-  if (!evidence.txSignature) return r.status === "verified" ? "pending" : "unverified";
-  if (r.status === "verified" && evidence.txSignature && evidence.explorerUrl) return "verified";
-  if (evidence.txSignature && evidence.explorerUrl && (r.status === "submitted" || r.status === "confirmed")) {
+  if (!evidence.txSignature)
+    return r.status === "verified" ? "pending" : "unverified";
+  if (r.status === "verified" && evidence.txSignature && evidence.explorerUrl)
+    return "verified";
+  if (
+    evidence.txSignature &&
+    evidence.explorerUrl &&
+    (r.status === "submitted" || r.status === "confirmed")
+  ) {
     return "pending";
   }
   if (evidence.txSignature && !evidence.explorerUrl) return "pending";
@@ -253,22 +278,32 @@ export function receiptRecordToStructured(r: ReceiptRecord): StructuredReceipt {
       storage: r.storageRef,
     },
     provenance: {
-      sourceExecutionId: typeof r.metadata?.executionId === "string" ? r.metadata.executionId : undefined,
+      sourceExecutionId:
+        typeof r.metadata?.executionId === "string"
+          ? r.metadata.executionId
+          : undefined,
     },
     claim: {
       text: claimText,
-      supportedBy: anchoredClaim ? ["solana_tx", "explorer"] : ["receipt_draft"],
+      supportedBy: anchoredClaim
+        ? ["solana_tx", "explorer"]
+        : ["receipt_draft"],
       unsupported: unsupported.length ? unsupported : undefined,
     },
     metadata: { ...r.metadata, domainReceiptType: r.type },
   };
 }
 
-export function domainReceiptsToStructured(receipts: ReceiptRecord[]): StructuredReceipt[] {
+export function domainReceiptsToStructured(
+  receipts: ReceiptRecord[],
+): StructuredReceipt[] {
   return receipts.map(receiptRecordToStructured);
 }
 
-export function solanaTxRecordToStructured(row: SolanaTxRecord, options?: { demoMode?: boolean }): StructuredReceipt {
+export function solanaTxRecordToStructured(
+  row: SolanaTxRecord,
+  options?: { demoMode?: boolean },
+): StructuredReceipt {
   const receiptType = SOLANA_TYPE_MAP[row.type] ?? "proof";
   const evidence: ReceiptEvidence = {
     txSignature: row.txSignature,
@@ -279,8 +314,12 @@ export function solanaTxRecordToStructured(row: SolanaTxRecord, options?: { demo
     proofHash: row.proofRef,
     explorerUrl: row.explorerUrl,
   };
-  const proofStatus = options?.demoMode ? "cached_only" : deriveProofStatusFromSolanaRow(row, evidence);
-  const status = options?.demoMode ? "cached" : receiptStatusToStructured(row.status);
+  const proofStatus = options?.demoMode
+    ? "cached_only"
+    : deriveProofStatusFromSolanaRow(row, evidence);
+  const status = options?.demoMode
+    ? "cached"
+    : receiptStatusToStructured(row.status);
 
   const references: ProofReference[] = [];
   if (row.txSignature) {

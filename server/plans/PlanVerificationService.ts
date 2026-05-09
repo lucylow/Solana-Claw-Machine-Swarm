@@ -11,11 +11,20 @@ export class PlanVerificationService {
 
     const result = await this.store.getLatestResultByPlanId(planId);
     const canonicalPlanHashMatch = hashPlan(receipt) === receipt.planHash;
-    const canonicalSummaryHashMatch = hashPlanSummary(receipt) === receipt.summaryHash;
-    const resultHashMatch = result ? hashResult(result) === result.resultHash : true;
-    const anchorPresent = Boolean(receipt.solana?.anchorHash || receipt.solana?.txSignature);
-    const reflectionLinked = Boolean(result?.reflection?.linked || receipt.reflection?.linked);
-    const memoryLinked = Boolean(result?.memory?.linked || receipt.memory?.linked);
+    const canonicalSummaryHashMatch =
+      hashPlanSummary(receipt) === receipt.summaryHash;
+    const resultHashMatch = result
+      ? hashResult(result) === result.resultHash
+      : true;
+    const anchorPresent = Boolean(
+      receipt.solana?.anchorHash || receipt.solana?.txSignature,
+    );
+    const reflectionLinked = Boolean(
+      result?.reflection?.linked || receipt.reflection?.linked,
+    );
+    const memoryLinked = Boolean(
+      result?.memory?.linked || receipt.memory?.linked,
+    );
 
     const checks = {
       canonicalPlanHashMatch,
@@ -34,12 +43,12 @@ export class PlanVerificationService {
     const status: PlanVerificationResult["status"] = verified
       ? "verified"
       : anchorPresent && (canonicalPlanHashMatch || canonicalSummaryHashMatch)
-      ? "partially_verified"
-      : anchorPresent
-      ? "anchored_only"
-      : receipt.storage?.ref
-      ? "stored_only"
-      : "degraded";
+        ? "partially_verified"
+        : anchorPresent
+          ? "anchored_only"
+          : receipt.storage?.ref
+            ? "stored_only"
+            : "degraded";
 
     return {
       planId,

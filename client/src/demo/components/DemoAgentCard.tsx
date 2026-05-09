@@ -12,7 +12,13 @@ const roleColor: Record<string, string> = {
   coordinator: "text-[#3bff96]",
 };
 
-export function DemoAgentCard({ agent, active }: { agent: DemoAgentFixture; active?: boolean }) {
+export function DemoAgentCard({
+  agent,
+  active,
+}: {
+  agent: DemoAgentFixture;
+  active?: boolean;
+}) {
   return (
     <DemoPanel
       glow={active}
@@ -20,8 +26,12 @@ export function DemoAgentCard({ agent, active }: { agent: DemoAgentFixture; acti
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Bot className={cn("h-4 w-4", roleColor[agent.role] ?? "text-slate-300")} />
-          <span className="text-sm font-medium text-white">{agent.displayName}</span>
+          <Bot
+            className={cn("h-4 w-4", roleColor[agent.role] ?? "text-slate-300")}
+          />
+          <span className="text-sm font-medium text-white">
+            {agent.displayName}
+          </span>
         </div>
         <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-400">
           {agent.status}

@@ -28,7 +28,9 @@ export interface ZeroGStorageAdapter {
   storeArtifact(input: ZeroGStorageArtifact): Promise<ZeroGStorageArtifact>;
   getArtifact(storageRef: string): Promise<ZeroGStorageArtifact | null>;
   verifyArtifact(storageRef: string, expectedHash: string): Promise<boolean>;
-  listArtifactsByKind(kind: ZeroGStorageArtifact["kind"]): Promise<ZeroGStorageArtifact[]>;
+  listArtifactsByKind(
+    kind: ZeroGStorageArtifact["kind"],
+  ): Promise<ZeroGStorageArtifact[]>;
   getHealth(): Promise<ZeroGHealthStatus>;
 }
 
@@ -47,7 +49,9 @@ export interface ZeroGDataAvailabilityAdapter {
     sizeBytes?: number;
     metadata?: Record<string, unknown>;
   }): Promise<ZeroGDataAvailabilityRecord>;
-  getByRef(availabilityRef: string): Promise<ZeroGDataAvailabilityRecord | null>;
+  getByRef(
+    availabilityRef: string,
+  ): Promise<ZeroGDataAvailabilityRecord | null>;
   getHealth(): Promise<ZeroGHealthStatus>;
 }
 

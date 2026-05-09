@@ -3,7 +3,11 @@
  * Reflection/memory domains live in `@shared/domainModel`; this module avoids duplicating them.
  */
 
-import type { MemoryRecord, ReflectionRecord, SkillIdentity } from "../domainModel";
+import type {
+  MemoryRecord,
+  ReflectionRecord,
+  SkillIdentity,
+} from "../domainModel";
 
 export type SolanaCluster = "mainnet-beta" | "devnet" | "testnet" | "localnet";
 
@@ -47,7 +51,14 @@ export interface SolanaReceiptRecord {
   txSignature?: string;
   account?: string;
   summaryHash: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded" | "cached";
+  status:
+    | "draft"
+    | "submitted"
+    | "confirmed"
+    | "verified"
+    | "failed"
+    | "degraded"
+    | "cached";
   createdAt: string;
   explorerUrl?: string;
   storageRef?: string;
@@ -92,7 +103,13 @@ export interface SolanaWalletState {
   isBalanceLoading: boolean;
   isSessionLoading: boolean;
   isSessionVerified: boolean;
-  sessionStatus: "none" | "pending" | "verified" | "expired" | "rejected" | "error";
+  sessionStatus:
+    | "none"
+    | "pending"
+    | "verified"
+    | "expired"
+    | "rejected"
+    | "error";
   sessionToken?: string;
   sessionNonce?: string;
   lastTxSignature?: string;
@@ -239,7 +256,13 @@ export interface ReceiptArtifact {
   summaryHash: string;
   storageRef?: string;
   proofRef?: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded";
+  status:
+    | "draft"
+    | "submitted"
+    | "confirmed"
+    | "verified"
+    | "failed"
+    | "degraded";
   createdAt: string;
   explorerUrl?: string;
 }
@@ -255,7 +278,14 @@ export interface ReflectionArtifact {
   fullText?: string;
   offchainStorageRef?: string;
   onchainReceiptId?: string;
-  status: "captured" | "stored" | "anchored" | "linked" | "verified" | "failed" | "degraded";
+  status:
+    | "captured"
+    | "stored"
+    | "anchored"
+    | "linked"
+    | "verified"
+    | "failed"
+    | "degraded";
 }
 
 /** Memory record with provenance — long content via storageRef, proof via receipt id */

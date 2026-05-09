@@ -1,4 +1,9 @@
-import type { CreateNftCollectionRequest, CreateNftRequest, NftCollectionState, NftMintRecord } from "@shared/nft/types";
+import type {
+  CreateNftCollectionRequest,
+  CreateNftRequest,
+  NftCollectionState,
+  NftMintRecord,
+} from "@shared/nft/types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -16,15 +21,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const nftApi = {
-  getCollection: () => request<NftCollectionState | null>("/api/nft/collection"),
+  getCollection: () =>
+    request<NftCollectionState | null>("/api/nft/collection"),
   createCollection: (payload: CreateNftCollectionRequest) =>
     request<NftCollectionState>("/api/nft/collection/create", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   mint: (payload: CreateNftRequest) =>
-    request<NftMintRecord>("/api/nft/mint", { method: "POST", body: JSON.stringify(payload) }),
+    request<NftMintRecord>("/api/nft/mint", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   getMints: () => request<NftMintRecord[]>("/api/nft/mints"),
-  getMintsByOwner: (owner: string) => request<NftMintRecord[]>(`/api/nft/mints/${encodeURIComponent(owner)}`),
-  freeze: () => request<NftCollectionState>("/api/nft/freeze", { method: "POST" }),
+  getMintsByOwner: (owner: string) =>
+    request<NftMintRecord[]>(`/api/nft/mints/${encodeURIComponent(owner)}`),
+  freeze: () =>
+    request<NftCollectionState>("/api/nft/freeze", { method: "POST" }),
 };

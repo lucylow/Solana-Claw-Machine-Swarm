@@ -1,35 +1,64 @@
 import type { ZeroGHealthStatus } from "@shared/zerog";
 import { getZeroGConfig } from "./config";
-import type { ZeroGBridgeAdapter, ZeroGComputeAdapter, ZeroGDataAvailabilityAdapter, ZeroGStorageAdapter } from "./types";
+import type {
+  ZeroGBridgeAdapter,
+  ZeroGComputeAdapter,
+  ZeroGDataAvailabilityAdapter,
+  ZeroGStorageAdapter,
+} from "./types";
 
-async function probeUrl(url: string, timeoutMs: number): Promise<{ ok: boolean; latencyMs: number }> {
+async function probeUrl(
+  url: string,
+  timeoutMs: number,
+): Promise<{ ok: boolean; latencyMs: number }> {
   const started = Date.now();
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, { method: "HEAD", signal: controller.signal, redirect: "follow" });
+    const res = await fetch(url, {
+      method: "HEAD",
+      signal: controller.signal,
+      redirect: "follow",
+    });
     clearTimeout(timer);
-    return { ok: res.ok || (res.status >= 200 && res.status < 500), latencyMs: Date.now() - started };
+    return {
+      ok: res.ok || (res.status >= 200 && res.status < 500),
+      latencyMs: Date.now() - started,
+    };
   } catch {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(url, { method: "GET", signal: controller.signal, redirect: "follow" });
+      const res = await fetch(url, {
+        method: "GET",
+        signal: controller.signal,
+        redirect: "follow",
+      });
       clearTimeout(timer);
-      return { ok: res.ok || (res.status >= 200 && res.status < 500), latencyMs: Date.now() - started };
+      return {
+        ok: res.ok || (res.status >= 200 && res.status < 500),
+        latencyMs: Date.now() - started,
+      };
     } catch {
       return { ok: false, latencyMs: Date.now() - started };
     }
   }
 }
 
-function mergeProbe(base: ZeroGHealthStatus, probe: { ok: boolean; latencyMs: number }): ZeroGHealthStatus {
+function mergeProbe(
+  base: ZeroGHealthStatus,
+  probe: { ok: boolean; latencyMs: number },
+): ZeroGHealthStatus {
   return {
     ...base,
     latencyMs: probe.latencyMs,
     remoteReachable: probe.ok,
     ok: base.ok && probe.ok,
-    reason: !base.ok ? base.reason : !probe.ok ? "zerog_remote_unreachable" : undefined,
+    reason: !base.ok
+      ? base.reason
+      : !probe.ok
+        ? "zerog_remote_unreachable"
+        : undefined,
   };
 }
 

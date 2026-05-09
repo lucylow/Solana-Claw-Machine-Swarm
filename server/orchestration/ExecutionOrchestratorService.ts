@@ -1,8 +1,15 @@
 import crypto from "crypto";
 import { nanoid } from "nanoid";
-import { buildAgentFrameworkRun, mergePersistenceIntoFramework } from "@shared/agents/pipeline";
+import {
+  buildAgentFrameworkRun,
+  mergePersistenceIntoFramework,
+} from "@shared/agents/pipeline";
 import type { AgentFrameworkRun } from "@shared/agents/framework";
-import type { AgentMemoryRecord, AgentProofRecord, AgentReflection } from "@shared/agents/types";
+import type {
+  AgentMemoryRecord,
+  AgentProofRecord,
+  AgentReflection,
+} from "@shared/agents/types";
 import type {
   ExecutionRecord,
   ExecutionStatus,
@@ -47,7 +54,10 @@ function mapToAgentReflection(
   runId: string,
   executionId: string,
 ): AgentReflection {
-  const st = r.status === "failed" ? "degraded" : (r.status as AgentReflection["status"]);
+  const st =
+    r.status === "failed"
+      ? "degraded"
+      : (r.status as AgentReflection["status"]);
   return {
     id: r.id,
     runId,
@@ -67,7 +77,11 @@ function mapToAgentReflection(
   };
 }
 
-function mapToAgentMemory(m: MemoryRecord, runId: string, reflectionId: string): AgentMemoryRecord {
+function mapToAgentMemory(
+  m: MemoryRecord,
+  runId: string,
+  reflectionId: string,
+): AgentMemoryRecord {
   return {
     id: m.id,
     runId,
@@ -102,14 +116,14 @@ export class ExecutionOrchestratorService {
   private log(
     requestId: string,
     msg: string,
-    ctx: Record<string, string | number | boolean | undefined>
+    ctx: Record<string, string | number | boolean | undefined>,
   ) {
     console.log(
       `[orchestrator][${requestId}] ${msg}`,
       JSON.stringify({
         ...ctx,
         ts: nowIso(),
-      })
+      }),
     );
   }
 
@@ -137,8 +151,11 @@ export class ExecutionOrchestratorService {
       degraded = true;
     }
 
-    const priorList = await this.deps.memoryService.listReflections({ wallet, limit: 5 });
-    const priorSummaries = priorList.items.map(x => ({
+    const priorList = await this.deps.memoryService.listReflections({
+      wallet,
+      limit: 5,
+    });
+    const priorSummaries = priorList.items.map((x) => ({
       id: x.reflection.id,
       summary: x.reflection.summary,
       tags: x.reflection.tags,
@@ -165,7 +182,7 @@ export class ExecutionOrchestratorService {
         status: "pending",
         detail: `Intent ${agentFramework.intent.goalType} · ${priorSummaries.length} prior reflection(s) considered`,
       },
-      ...agentFramework.delegations.map(d => ({
+      ...agentFramework.delegations.map((d) => ({
         role: d.toRole,
         label: `${d.fromRole} → ${d.toRole}: ${d.task}`,
         status: "pending" as const,
@@ -196,7 +213,11 @@ export class ExecutionOrchestratorService {
     };
 
     await this.deps.mirror.upsertExecution(execution);
-    this.log(requestId, "execution_created", { executionId, wallet, skillId: input.skillId });
+    this.log(requestId, "execution_created", {
+      executionId,
+      wallet,
+      skillId: input.skillId,
+    });
 
     const receipts: ReceiptRecord[] = [];
     const pushReceipt = async (r: ReceiptRecord) => {
@@ -231,13 +252,20 @@ export class ExecutionOrchestratorService {
           summary: agentFramework.plan.summary.slice(0, 240),
           goal: input.goal,
           steps: planStepsForReceipt,
-          chosenSkills: [{ id: input.skillId, name: input.skillName || input.skillId }],
-          expectedOutcome: "Structured output with reflection and anchored receipt.",
+          chosenSkills: [
+            { id: input.skillId, name: input.skillName || input.skillId },
+          ],
+          expectedOutcome:
+            "Structured output with reflection and anchored receipt.",
           agentId: input.agentId,
           wallet,
           turnId: sourceTurnId,
           tags: ["swarm", "command-center"],
-          metadata: { executionId, requestId, agentRunId: agentFramework.runId },
+          metadata: {
+            executionId,
+            requestId,
+            agentRunId: agentFramework.runId,
+          },
           anchorOnCreate: true,
         });
         planReceiptId = created.id;
@@ -249,7 +277,10 @@ export class ExecutionOrchestratorService {
           worker: "operator_swarm",
           status: "success",
           finalResult: `Completed mission for skill ${input.skillId}: ${input.goal.slice(0, 120)}`,
-          stepProgress: planStepsForReceipt.map(s => ({ stepId: s.id, status: "done" as const })),
+          stepProgress: planStepsForReceipt.map((s) => ({
+            stepId: s.id,
+            status: "done" as const,
+          })),
           metadata: { executionId },
         });
         agentFramework = mergePersistenceIntoFramework(agentFramework, {
@@ -336,7 +367,8 @@ export class ExecutionOrchestratorService {
         orchestration[i]!.status = "done";
         orchestration[i]!.at = nowIso();
         orchestration[i]!.detail =
-          orchestration[i]!.detail && orchestration[i]!.detail !== "Lane completed"
+          orchestration[i]!.detail &&
+          orchestration[i]!.detail !== "Lane completed"
             ? orchestration[i]!.detail
             : "Lane completed";
       }
@@ -355,7 +387,11 @@ export class ExecutionOrchestratorService {
       execution.status = status;
       execution.updatedAt = nowIso();
       execution.metadata = { ...execution.metadata, planPhaseFailed: true };
-      agentFramework = { ...agentFramework, status: "failed", updatedAt: nowIso() };
+      agentFramework = {
+        ...agentFramework,
+        status: "failed",
+        updatedAt: nowIso(),
+      };
       execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
@@ -432,14 +468,18 @@ export class ExecutionOrchestratorService {
       let anchorTxSig: string | undefined;
       let receiptAccount: string | undefined;
       try {
-        const anchored = await this.deps.memoryService.anchorReflection(reflection.id, wallet);
+        const anchored = await this.deps.memoryService.anchorReflection(
+          reflection.id,
+          wallet,
+        );
         anchorTxSig = anchored.solanaTxSig;
         receiptAccount = anchored.solanaAccount;
         reflection.status = "anchored";
         reflection.onchainReceiptId = receiptAccount;
         reflection.proofHash = created.reflection.payloadHash;
       } catch (anchorErr) {
-        const m = anchorErr instanceof Error ? anchorErr.message : "anchor_failed";
+        const m =
+          anchorErr instanceof Error ? anchorErr.message : "anchor_failed";
         errors.push(m);
         degraded = true;
         reflection.status = "degraded";
@@ -484,14 +524,24 @@ export class ExecutionOrchestratorService {
         status: anchorTxSig ? "submitted" : "degraded",
         createdAt: nowIso(),
         updatedAt: nowIso(),
-        explorerUrl: anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : undefined,
+        explorerUrl: anchorTxSig
+          ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig)
+          : undefined,
         metadata: { executionId, requestId },
       });
 
       agentFramework = mergePersistenceIntoFramework(agentFramework, {
-        reflections: [mapToAgentReflection(reflection, agentFramework.runId, executionId)],
+        reflections: [
+          mapToAgentReflection(reflection, agentFramework.runId, executionId),
+        ],
         memoryRecords: memoryCanonical
-          ? [mapToAgentMemory(memoryCanonical, agentFramework.runId, reflection.id)]
+          ? [
+              mapToAgentMemory(
+                memoryCanonical,
+                agentFramework.runId,
+                reflection.id,
+              ),
+            ]
           : [],
         proofRecords: [
           {
@@ -506,7 +556,9 @@ export class ExecutionOrchestratorService {
             proofStatus: anchorTxSig ? "pending" : "degraded",
             summaryHash: created.reflection.payloadHash,
             createdAt: nowIso(),
-            explorerUrl: anchorTxSig ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig) : undefined,
+            explorerUrl: anchorTxSig
+              ? this.deps.bridge.buildExplorerUrl("tx", anchorTxSig)
+              : undefined,
             storageRef: created.reflection.storageRef,
             metadata: { reflectionId: reflection.id },
           },
@@ -520,7 +572,11 @@ export class ExecutionOrchestratorService {
       degraded = true;
       execution.status = "degraded";
       execution.updatedAt = nowIso();
-      agentFramework = { ...agentFramework, status: "degraded", updatedAt: nowIso() };
+      agentFramework = {
+        ...agentFramework,
+        status: "degraded",
+        updatedAt: nowIso(),
+      };
       execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
@@ -623,7 +679,11 @@ export class ExecutionOrchestratorService {
       degraded = true;
       execution.status = "degraded";
       execution.updatedAt = nowIso();
-      agentFramework = { ...agentFramework, status: "degraded", updatedAt: nowIso() };
+      agentFramework = {
+        ...agentFramework,
+        status: "degraded",
+        updatedAt: nowIso(),
+      };
       execution.agentFramework = agentFramework;
       await this.deps.mirror.upsertExecution(execution);
     }
@@ -631,7 +691,10 @@ export class ExecutionOrchestratorService {
     /** Reputation: identity store + optional SQL skill registry */
     try {
       if (this.deps.identityService) {
-        await this.deps.identityService.recordSkillUse(wallet, input.skillName || input.skillId);
+        await this.deps.identityService.recordSkillUse(
+          wallet,
+          input.skillName || input.skillId,
+        );
       }
     } catch {
       /* non-fatal */

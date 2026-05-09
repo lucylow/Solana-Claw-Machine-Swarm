@@ -8,7 +8,9 @@ import { registerSolanaBridgeRoutes } from "./bridgeRoutes";
 import type { SolanaIdentityService } from "./identityService";
 
 export async function createSolanaBridge() {
-  const store = new SolanaIndexerStore(path.join(process.cwd(), "data", "solana-indexer.json"));
+  const store = new SolanaIndexerStore(
+    path.join(process.cwd(), "data", "solana-indexer.json"),
+  );
   await store.init();
   const bridge = new SolanaBridgeService(store);
   return { store, bridge };
@@ -21,7 +23,7 @@ export async function mountSolanaBridge(
     memoryService?: MemoryReceiptService;
     planReceiptService?: PlanReceiptService;
     bridge?: SolanaBridgeService;
-  }
+  },
 ) {
   const created = deps.bridge ? undefined : await createSolanaBridge();
   const bridge = deps.bridge || created!.bridge;

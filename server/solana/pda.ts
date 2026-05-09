@@ -10,7 +10,11 @@ const MAX_VERSION_LEN = 24;
 const DEFAULT_PROGRAM_ID = "11111111111111111111111111111111";
 
 function toProgramId(programId?: string) {
-  const value = (programId || process.env.SOLANA_PROGRAM_ID || DEFAULT_PROGRAM_ID).trim();
+  const value = (
+    programId ||
+    process.env.SOLANA_PROGRAM_ID ||
+    DEFAULT_PROGRAM_ID
+  ).trim();
   try {
     return new PublicKey(value);
   } catch {
@@ -29,7 +33,9 @@ export function normalizeWalletAddress(input: string) {
 }
 
 export function validateSkillSlug(slug: string) {
-  const value = String(slug || "").trim().toLowerCase();
+  const value = String(slug || "")
+    .trim()
+    .toLowerCase();
   if (!value) throw new Error("skill slug required");
   if (value.length > MAX_SLUG_LEN) throw new Error("skill slug too long");
   if (!/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/.test(value)) {
@@ -50,7 +56,10 @@ export function validateSkillVersion(version: string) {
 
 export function deriveConfigPda(programId?: string) {
   const pid = toProgramId(programId);
-  const [address] = PublicKey.findProgramAddressSync([Buffer.from(CONFIG_SEED)], pid);
+  const [address] = PublicKey.findProgramAddressSync(
+    [Buffer.from(CONFIG_SEED)],
+    pid,
+  );
   return address.toBase58();
 }
 
@@ -59,18 +68,22 @@ export function deriveProfilePda(walletAddress: string, programId?: string) {
   const owner = new PublicKey(normalizeWalletAddress(walletAddress));
   const [address] = PublicKey.findProgramAddressSync(
     [Buffer.from(PROFILE_SEED), owner.toBuffer()],
-    pid
+    pid,
   );
   return address.toBase58();
 }
 
-export function deriveSkillPda(walletAddress: string, slug: string, programId?: string) {
+export function deriveSkillPda(
+  walletAddress: string,
+  slug: string,
+  programId?: string,
+) {
   const pid = toProgramId(programId);
   const owner = new PublicKey(normalizeWalletAddress(walletAddress));
   const normalizedSlug = validateSkillSlug(slug);
   const [address] = PublicKey.findProgramAddressSync(
     [Buffer.from(SKILL_SEED), owner.toBuffer(), Buffer.from(normalizedSlug)],
-    pid
+    pid,
   );
   return address.toBase58();
 }
@@ -79,14 +92,20 @@ export function deriveSkillVersionPda(
   walletAddress: string,
   slug: string,
   version: string,
-  programId?: string
+  programId?: string,
 ) {
   const pid = toProgramId(programId);
-  const skillPda = new PublicKey(deriveSkillPda(walletAddress, slug, programId));
+  const skillPda = new PublicKey(
+    deriveSkillPda(walletAddress, slug, programId),
+  );
   const normalizedVersion = validateSkillVersion(version);
   const [address] = PublicKey.findProgramAddressSync(
-    [Buffer.from(SKILL_VERSION_SEED), skillPda.toBuffer(), Buffer.from(normalizedVersion)],
-    pid
+    [
+      Buffer.from(SKILL_VERSION_SEED),
+      skillPda.toBuffer(),
+      Buffer.from(normalizedVersion),
+    ],
+    pid,
   );
   return address.toBase58();
 }
@@ -108,7 +127,12 @@ export function deriveIdentityPdas(input: {
 
   const skillVersion =
     input.skillSlug != null && input.version != null
-      ? deriveSkillVersionPda(normalizedWallet, input.skillSlug, input.version, input.programId)
+      ? deriveSkillVersionPda(
+          normalizedWallet,
+          input.skillSlug,
+          input.version,
+          input.programId,
+        )
       : undefined;
 
   return {

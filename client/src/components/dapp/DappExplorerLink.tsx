@@ -1,9 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  addressExplorerUrl,
-  txExplorerUrl,
-} from "@/lib/solana/explorer";
+import { addressExplorerUrl, txExplorerUrl } from "@/lib/solana/explorer";
 import type { SolanaCluster } from "@shared/solana/types";
 
 type Props = {
@@ -37,7 +34,9 @@ export function DappExplorerLink({
 
   const text =
     label ??
-    (kind === "tx" ? "Open transaction in Explorer" : "Open account in Explorer");
+    (kind === "tx"
+      ? "Open transaction in Explorer"
+      : "Open account in Explorer");
 
   if (variant === "inline") {
     return (
@@ -47,7 +46,7 @@ export function DappExplorerLink({
         rel="noreferrer"
         className={cn(
           "inline-flex items-center gap-1 text-[11px] font-medium text-[#9cf6d8] underline-offset-4 transition hover:text-[#d6ffe9] hover:underline",
-          className
+          className,
         )}
       >
         <ExternalLink className="h-3 w-3" aria-hidden />
@@ -63,7 +62,7 @@ export function DappExplorerLink({
       rel="noreferrer"
       className={cn(
         "inline-flex items-center gap-1.5 rounded-lg border border-[#14f195]/35 bg-[#14f195]/10 px-2.5 py-1 text-[11px] font-semibold text-[#d6ffe9] transition hover:border-[#14f195]/55 hover:bg-[#14f195]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/60",
-        className
+        className,
       )}
     >
       <ExternalLink className="h-3.5 w-3.5" aria-hidden />

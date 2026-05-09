@@ -32,16 +32,30 @@ export const daoApi = {
 
   getConfig: () => request<DaoConfig | null>("/api/dao/config"),
   getMembers: () => request<DaoMember[]>("/api/dao/members"),
-  getMember: (wallet: string) => request<DaoMember>(`/api/dao/members/${encodeURIComponent(wallet)}`),
+  getMember: (wallet: string) =>
+    request<DaoMember>(`/api/dao/members/${encodeURIComponent(wallet)}`),
   registerMember: (payload: Record<string, unknown>) =>
-    request<DaoMember>("/api/dao/members/register", { method: "POST", body: JSON.stringify(payload) }),
-
-  getDelegations: () => request<import("@shared/dao/types").DaoDelegation[]>("/api/dao/delegations"),
-  delegate: (payload: { fromWallet: string; toWallet: string; reason?: string }) =>
-    request<import("@shared/dao/types").DaoDelegation | undefined>("/api/dao/delegations", {
+    request<DaoMember>("/api/dao/members/register", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  getDelegations: () =>
+    request<import("@shared/dao/types").DaoDelegation[]>(
+      "/api/dao/delegations",
+    ),
+  delegate: (payload: {
+    fromWallet: string;
+    toWallet: string;
+    reason?: string;
+  }) =>
+    request<import("@shared/dao/types").DaoDelegation | undefined>(
+      "/api/dao/delegations",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    ),
   revokeDelegation: (fromWallet: string) =>
     request<{ revoked: boolean }>("/api/dao/delegations/revoke", {
       method: "POST",
@@ -54,17 +68,25 @@ export const daoApi = {
   },
 
   getProposals: () => request<DaoProposal[]>("/api/dao/proposals"),
-  getProposal: (proposalId: number) => request<DaoProposal>(`/api/dao/proposals/${proposalId}`),
+  getProposal: (proposalId: number) =>
+    request<DaoProposal>(`/api/dao/proposals/${proposalId}`),
   createProposal: (payload: Record<string, unknown>) =>
-    request<DaoProposal>("/api/dao/proposals", { method: "POST", body: JSON.stringify(payload) }),
+    request<DaoProposal>("/api/dao/proposals", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   vote: (proposalId: number, payload: Record<string, unknown>) =>
     request<unknown>(`/api/dao/proposals/${proposalId}/vote`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
   finalize: (proposalId: number) =>
-    request<unknown>(`/api/dao/proposals/${proposalId}/finalize`, { method: "POST" }),
+    request<unknown>(`/api/dao/proposals/${proposalId}/finalize`, {
+      method: "POST",
+    }),
   execute: (proposalId: number) =>
-    request<DaoProposal>(`/api/dao/proposals/${proposalId}/execute`, { method: "POST" }),
+    request<DaoProposal>(`/api/dao/proposals/${proposalId}/execute`, {
+      method: "POST",
+    }),
   getDiscovery: () => request<DaoDiscoveryRow[]>("/api/dao/discovery"),
 };

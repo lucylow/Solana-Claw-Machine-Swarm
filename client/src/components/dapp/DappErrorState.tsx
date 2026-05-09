@@ -29,7 +29,7 @@ export function DappErrorState({
     <div
       className={cn(
         "rounded-2xl border border-rose-400/35 bg-rose-950/25 p-4 text-rose-50 shadow-[0_18px_40px_rgba(244,63,94,0.18)]",
-        className
+        className,
       )}
       role="alert"
     >
@@ -49,7 +49,9 @@ export function DappErrorState({
               Try: {hint}
             </p>
           ) : null}
-          {children ? <div className="mt-2 text-xs text-rose-100/85">{children}</div> : null}
+          {children ? (
+            <div className="mt-2 text-xs text-rose-100/85">{children}</div>
+          ) : null}
         </div>
         {onRetry ? (
           <Button

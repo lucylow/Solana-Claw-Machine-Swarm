@@ -14,7 +14,10 @@ function now() {
 }
 
 export function hashValue(value: unknown) {
-  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex");
 }
 
 function mockTxSignature(seed: string) {
@@ -37,57 +40,75 @@ export class ZeroGOrchestratorStore {
   };
 
   listArtifacts() {
-    return [...this.state.artifacts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.state.artifacts].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   listComputeJobs() {
-    return [...this.state.computeJobs].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.state.computeJobs].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   listAvailability() {
-    return [...this.state.availability].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.state.availability].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   listLinks() {
-    return [...this.state.links].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.state.links].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   listReceipts() {
-    return [...this.state.receipts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.state.receipts].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   listBridgeHistory() {
-    return [...this.state.bridgeHistory].sort(
-      (a, b) => (b.lastUpdatedAt || "").localeCompare(a.lastUpdatedAt || "")
+    return [...this.state.bridgeHistory].sort((a, b) =>
+      (b.lastUpdatedAt || "").localeCompare(a.lastUpdatedAt || ""),
     );
   }
 
   putArtifact(artifact: ZeroGStorageArtifact) {
-    this.state.artifacts = this.state.artifacts.filter(item => item.id !== artifact.id);
+    this.state.artifacts = this.state.artifacts.filter(
+      (item) => item.id !== artifact.id,
+    );
     this.state.artifacts.unshift(artifact);
     return artifact;
   }
 
   putComputeJob(job: ZeroGComputeJob) {
-    this.state.computeJobs = this.state.computeJobs.filter(item => item.id !== job.id);
+    this.state.computeJobs = this.state.computeJobs.filter(
+      (item) => item.id !== job.id,
+    );
     this.state.computeJobs.unshift(job);
     return job;
   }
 
   putAvailability(record: ZeroGDataAvailabilityRecord) {
-    this.state.availability = this.state.availability.filter(item => item.id !== record.id);
+    this.state.availability = this.state.availability.filter(
+      (item) => item.id !== record.id,
+    );
     this.state.availability.unshift(record);
     return record;
   }
 
   putLink(link: SolanaZeroGLink) {
-    this.state.links = this.state.links.filter(item => item.id !== link.id);
+    this.state.links = this.state.links.filter((item) => item.id !== link.id);
     this.state.links.unshift(link);
     return link;
   }
 
   putReceipt(receipt: SolanaProofReceipt) {
-    this.state.receipts = this.state.receipts.filter(item => item.id !== receipt.id);
+    this.state.receipts = this.state.receipts.filter(
+      (item) => item.id !== receipt.id,
+    );
     this.state.receipts.unshift(receipt);
     return receipt;
   }
@@ -99,15 +120,21 @@ export class ZeroGOrchestratorStore {
   }
 
   getArtifactByRef(storageRef: string) {
-    return this.state.artifacts.find(item => item.storageRef === storageRef) || null;
+    return (
+      this.state.artifacts.find((item) => item.storageRef === storageRef) ||
+      null
+    );
   }
 
   getJobById(jobId: string) {
-    return this.state.computeJobs.find(item => item.id === jobId) || null;
+    return this.state.computeJobs.find((item) => item.id === jobId) || null;
   }
 
   getAvailabilityByRef(ref: string) {
-    return this.state.availability.find(item => item.availabilityRef === ref) || null;
+    return (
+      this.state.availability.find((item) => item.availabilityRef === ref) ||
+      null
+    );
   }
 
   createSolanaReceipt(input: {

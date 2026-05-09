@@ -23,22 +23,39 @@ export function DemoMemoryCard({
         presentationMode={presentationMode}
         title="No durable memory yet"
         message="Memory appears after a failure path produces a reflection. It becomes queryable and is injected into the next turn."
-        action={{ label: "Show failure → memory arc", onClick: () => setRunOutcome("failure") }}
+        action={{
+          label: "Show failure → memory arc",
+          onClick: () => setRunOutcome("failure"),
+        }}
       />
     );
   }
 
   return (
-    <DemoPanel glow={glow} presentationMode={presentationMode} className="space-y-3">
+    <DemoPanel
+      glow={glow}
+      presentationMode={presentationMode}
+      className="space-y-3"
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <MemoryStick className="h-5 w-5 text-cyan-300" />
-          <h3 className={cn("font-semibold text-white", presentationMode && "text-xl")}>Memory record</h3>
+          <h3
+            className={cn(
+              "font-semibold text-white",
+              presentationMode && "text-xl",
+            )}
+          >
+            Memory record
+          </h3>
         </div>
         <ProofVerificationBadge
           verification={{
             status: memory.verification === "verified" ? "verified" : "pending",
-            label: memory.verification === "verified" ? "Verified durable memory" : "Pending verification",
+            label:
+              memory.verification === "verified"
+                ? "Verified durable memory"
+                : "Pending verification",
           }}
         />
       </div>
@@ -55,18 +72,26 @@ export function DemoMemoryCard({
         </div>
         <div className="rounded-lg border border-white/10 bg-black/40 p-2 md:col-span-2">
           <p className="text-slate-500">Storage reference</p>
-          <p className="mt-1 break-all font-mono text-[11px] text-[#b8ffd8]">{memory.storageReference}</p>
+          <p className="mt-1 break-all font-mono text-[11px] text-[#b8ffd8]">
+            {memory.storageReference}
+          </p>
         </div>
         <div className="rounded-lg border border-white/10 bg-black/40 p-2 md:col-span-2">
           <p className="text-slate-500">Solana proof reference</p>
-          <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{memory.proofReference}</p>
+          <p className="mt-1 break-all font-mono text-[11px] text-slate-400">
+            {memory.proofReference}
+          </p>
         </div>
         <div className="rounded-lg border border-white/10 bg-black/40 p-2 md:col-span-2">
           <p className="text-slate-500">Linked next turn</p>
-          <p className="mt-1 font-mono text-slate-200">{memory.linkedNextTurnId}</p>
+          <p className="mt-1 font-mono text-slate-200">
+            {memory.linkedNextTurnId}
+          </p>
         </div>
       </div>
-      <p className="text-[11px] text-slate-600">Written {new Date(memory.timestampIso).toLocaleString()}</p>
+      <p className="text-[11px] text-slate-600">
+        Written {new Date(memory.timestampIso).toLocaleString()}
+      </p>
     </DemoPanel>
   );
 }

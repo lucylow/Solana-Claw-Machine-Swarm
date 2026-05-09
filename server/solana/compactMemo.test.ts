@@ -3,7 +3,10 @@ import { buildCompactSolanaBridgeMemo, metadataDigest } from "./compactMemo";
 
 describe("buildCompactSolanaBridgeMemo", () => {
   it("anchors digest metadata instead of embedding verbose JSON", () => {
-    const meta = { summary: "LONG TEXT SHOULD NOT APPEAR IN MEMO", nested: { foo: "bar" } };
+    const meta = {
+      summary: "LONG TEXT SHOULD NOT APPEAR IN MEMO",
+      nested: { foo: "bar" },
+    };
     const memo = buildCompactSolanaBridgeMemo(
       {
         requestId: "r1",
@@ -14,11 +17,13 @@ describe("buildCompactSolanaBridgeMemo", () => {
         walletAddress: "wallet",
         cluster: "devnet",
       },
-      meta
+      meta,
     );
     expect(memo.startsWith("CLAW_SOL_BRIDGE_V1::")).toBe(true);
     expect(memo.includes("LONG TEXT")).toBe(false);
-    const parsed = JSON.parse(memo.slice("CLAW_SOL_BRIDGE_V1::".length)) as { mh?: string };
+    const parsed = JSON.parse(memo.slice("CLAW_SOL_BRIDGE_V1::".length)) as {
+      mh?: string;
+    };
     expect(parsed.mh).toBe(metadataDigest(meta));
   });
 });

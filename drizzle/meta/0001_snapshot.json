@@ -63,9 +63,7 @@
       "compositePrimaryKeys": {
         "activity_log_id": {
           "name": "activity_log_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -147,9 +145,7 @@
       "compositePrimaryKeys": {
         "agents_id": {
           "name": "agents_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -231,9 +227,7 @@
       "compositePrimaryKeys": {
         "claw_skills_id": {
           "name": "claw_skills_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -305,9 +299,7 @@
       "compositePrimaryKeys": {
         "onchain_receipts_id": {
           "name": "onchain_receipts_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -389,17 +381,13 @@
       "compositePrimaryKeys": {
         "solana_sessions_id": {
           "name": "solana_sessions_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "solana_sessions_wallet_address_unique": {
           "name": "solana_sessions_wallet_address_unique",
-          "columns": [
-            "wallet_address"
-          ]
+          "columns": ["wallet_address"]
         }
       },
       "checkConstraint": {}
@@ -481,17 +469,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}

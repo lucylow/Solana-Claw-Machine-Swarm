@@ -64,7 +64,9 @@ function unixNow() {
   return Math.floor(Date.now() / 1000);
 }
 
-function buildStructuredReflection(input: CreateReflectionInput): StructuredReflection {
+function buildStructuredReflection(
+  input: CreateReflectionInput,
+): StructuredReflection {
   return {
     rootCause: input.rootCause,
     failureMode: input.kind === "failure" ? "execution_failure" : undefined,
@@ -73,11 +75,15 @@ function buildStructuredReflection(input: CreateReflectionInput): StructuredRefl
     lessonSummary: input.summary,
     confidence: Math.max(0, Math.min(1, input.structured?.confidence ?? 0.75)),
     reusable: input.structured?.reusable ?? true,
-    priority: input.structured?.priority ?? (input.kind === "failure" ? "high" : "normal"),
+    priority:
+      input.structured?.priority ??
+      (input.kind === "failure" ? "high" : "normal"),
   };
 }
 
-function toStoragePayload(record: Omit<ReflectionRecordOffchain, "storageRef" | "storageChecksum">) {
+function toStoragePayload(
+  record: Omit<ReflectionRecordOffchain, "storageRef" | "storageChecksum">,
+) {
   return {
     id: record.id,
     version: record.version,
@@ -105,7 +111,7 @@ function toStoragePayload(record: Omit<ReflectionRecordOffchain, "storageRef" | 
 export class MemoryReceiptService {
   constructor(
     private readonly store: MemoryReceiptStore,
-    private readonly options: MemoryServiceOptions
+    private readonly options: MemoryServiceOptions,
   ) {}
 
   async createReflection(input: CreateReflectionInput) {
@@ -128,7 +134,10 @@ export class MemoryReceiptService {
       parentReceiptId: input.parentReceiptId || null,
     });
 
-    const baseRecord: Omit<ReflectionRecordOffchain, "storageRef" | "storageChecksum"> = {
+    const baseRecord: Omit<
+      ReflectionRecordOffchain,
+      "storageRef" | "storageChecksum"
+    > = {
       id,
       version: 1,
       agentId: input.agentId,
@@ -147,7 +156,8 @@ export class MemoryReceiptService {
       updatedAt: now,
       payloadHash,
       sourceContextHash,
-      visibility: input.visibility ?? this.options.defaultVisibility ?? "workspace",
+      visibility:
+        input.visibility ?? this.options.defaultVisibility ?? "workspace",
       structured,
     };
 
@@ -159,7 +169,7 @@ export class MemoryReceiptService {
       const upload = await storagePut(
         `memory-reflections/${id}.json`,
         JSON.stringify(toStoragePayload(baseRecord), null, 2),
-        "application/json"
+        "application/json",
       );
       storageRef = upload.url;
       storageChecksum = hashText(upload.key);
@@ -216,7 +226,9 @@ export class MemoryReceiptService {
     if (existing) return existing;
 
     const sourceTurnIdHash = hashText(reflection.sourceTurnId);
-    const parentReceiptIdHash = reflection.parentReceiptId ? hashText(reflection.parentReceiptId) : undefined;
+    const parentReceiptIdHash = reflection.parentReceiptId
+      ? hashText(reflection.parentReceiptId)
+      : undefined;
     const summaryHash = hashText(reflection.summary);
     const nextActionHash = hashText(reflection.nextAction);
     const storageRefHash = hashText(reflection.storageRef || "");
@@ -267,14 +279,16 @@ export class MemoryReceiptService {
       }
     } catch (error) {
       receipt.status = "degraded";
-      receipt.note = error instanceof Error ? error.message : "onchain_anchor_failed";
+      receipt.note =
+        error instanceof Error ? error.message : "onchain_anchor_failed";
     }
 
     await this.store.saveReceipt(reflection.id, receipt);
     await this.pushEvent({
       reflectionId: reflection.id,
       receiptId: receipt.id,
-      kind: receipt.status === "degraded" ? "receipt_degraded" : "receipt_anchored",
+      kind:
+        receipt.status === "degraded" ? "receipt_degraded" : "receipt_anchored",
       message:
         receipt.status === "degraded"
           ? "Receipt degraded: on-chain anchor failed, proof kept in app ledger."
@@ -289,7 +303,10 @@ export class MemoryReceiptService {
     return receipt;
   }
 
-  async linkReceiptToNextTurn(reflectionId: string, input: { nextTurnId: string; reason?: string }) {
+  async linkReceiptToNextTurn(
+    reflectionId: string,
+    input: { nextTurnId: string; reason?: string },
+  ) {
     const reflection = await this.store.getReflection(reflectionId);
     if (!reflection) throw new Error("reflection_not_found");
     const receipt = await this.store.getReceiptByReflectionId(reflectionId);
@@ -323,7 +340,9 @@ export class MemoryReceiptService {
     return { receipt, link };
   }
 
-  async verifyReflection(reflectionId: string): Promise<MemoryVerificationResult> {
+  async verifyReflection(
+    reflectionId: string,
+  ): Promise<MemoryVerificationResult> {
     const reflection = await this.store.getReflection(reflectionId);
     if (!reflection) throw new Error("reflection_not_found");
     const receipt = await this.store.getReceiptByReflectionId(reflectionId);
@@ -334,8 +353,10 @@ export class MemoryReceiptService {
       storagePresent: Boolean(reflection.storageRef),
       reflectionHashMatch: receipt.reflectionHash === reflection.payloadHash,
       summaryHashMatch: receipt.summaryHash === hashText(reflection.summary),
-      nextActionHashMatch: receipt.nextActionHash === hashText(reflection.nextAction),
-      sourceTurnHashMatch: receipt.sourceTurnIdHash === hashText(reflection.sourceTurnId),
+      nextActionHashMatch:
+        receipt.nextActionHash === hashText(reflection.nextAction),
+      sourceTurnHashMatch:
+        receipt.sourceTurnIdHash === hashText(reflection.sourceTurnId),
     };
     const issues: string[] = [];
     for (const [name, ok] of Object.entries(checks)) {
@@ -346,8 +367,8 @@ export class MemoryReceiptService {
     const status: MemoryVerificationResult["status"] = verified
       ? "verified"
       : checks.reflectionPresent
-      ? "partial"
-      : "missing";
+        ? "partial"
+        : "missing";
 
     receipt.verified = verified;
     receipt.verifiedAt = nowIso();
@@ -358,7 +379,9 @@ export class MemoryReceiptService {
       reflectionId,
       receiptId: receipt.id,
       kind: verified ? "receipt_verified" : "receipt_degraded",
-      message: verified ? "Receipt verified against off-chain reflection." : "Receipt verification is partial.",
+      message: verified
+        ? "Receipt verified against off-chain reflection."
+        : "Receipt verification is partial.",
       data: { issues },
     });
 
@@ -392,15 +415,25 @@ export class MemoryReceiptService {
       if (receipt) receiptByReflection.set(reflection.id, receipt);
     }
 
-    let rows = reflections.filter(reflection => {
+    let rows = reflections.filter((reflection) => {
       const receipt = receiptByReflection.get(reflection.id);
       if (query.agentId && reflection.agentId !== query.agentId) return false;
-      if (query.conversationId && reflection.conversationId !== query.conversationId) return false;
-      if (query.sourceTurnId && reflection.sourceTurnId !== query.sourceTurnId) return false;
-      if (query.storageRef && reflection.storageRef !== query.storageRef) return false;
+      if (
+        query.conversationId &&
+        reflection.conversationId !== query.conversationId
+      )
+        return false;
+      if (query.sourceTurnId && reflection.sourceTurnId !== query.sourceTurnId)
+        return false;
+      if (query.storageRef && reflection.storageRef !== query.storageRef)
+        return false;
       if (query.wallet && receipt?.wallet !== query.wallet) return false;
       if (query.status && receipt?.status !== query.status) return false;
-      if (typeof query.verified === "boolean" && receipt?.verified !== query.verified) return false;
+      if (
+        typeof query.verified === "boolean" &&
+        receipt?.verified !== query.verified
+      )
+        return false;
       if (query.txSig && receipt?.solanaTxSig !== query.txSig) return false;
       if (query.nextTurnId) {
         if (!receipt?.nextTurnIdHash) return false;
@@ -414,7 +447,7 @@ export class MemoryReceiptService {
     rows = rows.slice(offset, offset + limit);
 
     return {
-      items: rows.map(reflection => ({
+      items: rows.map((reflection) => ({
         reflection,
         receipt: receiptByReflection.get(reflection.id) || null,
       })),
@@ -426,11 +459,14 @@ export class MemoryReceiptService {
   async getChain(reflectionId: string) {
     const reflection = await this.getReflection(reflectionId);
     const receipt = await this.store.getReceiptByReflectionId(reflectionId);
-    const links = receipt ? await this.store.listLinksByReceipt(receipt.id) : [];
+    const links = receipt
+      ? await this.store.listLinksByReceipt(receipt.id)
+      : [];
 
     let parent = null as MemoryReceiptOnChain | null;
     if (reflection.parentReceiptId) {
-      parent = (await this.store.getReceipt(reflection.parentReceiptId)) || null;
+      parent =
+        (await this.store.getReceipt(reflection.parentReceiptId)) || null;
     }
 
     return {
@@ -460,18 +496,39 @@ export class MemoryReceiptService {
     });
 
     const candidates = items
-      .filter(x => x.receipt && (x.receipt.verified || x.receipt.status === "anchored" || x.receipt.status === "linked"))
+      .filter(
+        (x) =>
+          x.receipt &&
+          (x.receipt.verified ||
+            x.receipt.status === "anchored" ||
+            x.receipt.status === "linked"),
+      )
       .sort((a, b) => {
-        const aScore = (a.reflection.structured.priority === "critical" ? 4 : a.reflection.structured.priority === "high" ? 3 : a.reflection.structured.priority === "normal" ? 2 : 1) + (a.receipt?.verified ? 1 : 0);
-        const bScore = (b.reflection.structured.priority === "critical" ? 4 : b.reflection.structured.priority === "high" ? 3 : b.reflection.structured.priority === "normal" ? 2 : 1) + (b.receipt?.verified ? 1 : 0);
-        if (aScore === bScore) return b.reflection.createdAt.localeCompare(a.reflection.createdAt);
+        const aScore =
+          (a.reflection.structured.priority === "critical"
+            ? 4
+            : a.reflection.structured.priority === "high"
+              ? 3
+              : a.reflection.structured.priority === "normal"
+                ? 2
+                : 1) + (a.receipt?.verified ? 1 : 0);
+        const bScore =
+          (b.reflection.structured.priority === "critical"
+            ? 4
+            : b.reflection.structured.priority === "high"
+              ? 3
+              : b.reflection.structured.priority === "normal"
+                ? 2
+                : 1) + (b.receipt?.verified ? 1 : 0);
+        if (aScore === bScore)
+          return b.reflection.createdAt.localeCompare(a.reflection.createdAt);
         return bScore - aScore;
       });
 
     const seenAdvice = new Set<string>();
     const limit = input.maxItems ?? 3;
     const selected = candidates
-      .filter(item => {
+      .filter((item) => {
         const key = item.reflection.correctiveAdvice.toLowerCase().trim();
         if (seenAdvice.has(key)) return false;
         seenAdvice.add(key);
@@ -479,26 +536,28 @@ export class MemoryReceiptService {
       })
       .slice(0, limit);
 
-    const injectionItems: MemoryInjectionItem[] = selected.map(({ reflection, receipt }) => ({
-      receiptId: receipt!.id,
-      reflectionId: reflection.id,
-      summary: reflection.summary,
-      rootCause: reflection.rootCause,
-      correctiveAdvice: reflection.correctiveAdvice,
-      nextAction: reflection.nextAction,
-      confidence: reflection.structured.confidence,
-      priority: reflection.structured.priority,
-      createdAt: reflection.createdAt,
-      verified: receipt!.verified,
-      txSig: receipt!.solanaTxSig,
-    }));
+    const injectionItems: MemoryInjectionItem[] = selected.map(
+      ({ reflection, receipt }) => ({
+        receiptId: receipt!.id,
+        reflectionId: reflection.id,
+        summary: reflection.summary,
+        rootCause: reflection.rootCause,
+        correctiveAdvice: reflection.correctiveAdvice,
+        nextAction: reflection.nextAction,
+        confidence: reflection.structured.confidence,
+        priority: reflection.structured.priority,
+        createdAt: reflection.createdAt,
+        verified: receipt!.verified,
+        txSig: receipt!.solanaTxSig,
+      }),
+    );
 
     const injectedPrompt = injectionItems.length
       ? [
           "Memory injection from prior verified lessons:",
           ...injectionItems.map(
             (item, index) =>
-              `${index + 1}. [${item.priority}] ${item.summary} | Root cause: ${item.rootCause} | Corrective advice: ${item.correctiveAdvice} | Next action: ${item.nextAction}`
+              `${index + 1}. [${item.priority}] ${item.summary} | Root cause: ${item.rootCause} | Corrective advice: ${item.correctiveAdvice} | Next action: ${item.nextAction}`,
           ),
         ].join("\n")
       : "No prior verified lessons available for injection.";
@@ -520,7 +579,7 @@ export class MemoryReceiptService {
           nextTurnId: input.nextTurnId,
           reason: "Injected into next turn prompt context.",
         });
-      })
+      }),
     );
     for (const item of injectionItems) {
       const reflection = await this.store.getReflection(item.reflectionId);
@@ -545,7 +604,11 @@ export class MemoryReceiptService {
     return bundle;
   }
 
-  async runDemoFlow(input: { agentId: string; wallet?: string; conversationId?: string }) {
+  async runDemoFlow(input: {
+    agentId: string;
+    wallet?: string;
+    conversationId?: string;
+  }) {
     const failure = await this.createReflection({
       agentId: input.agentId,
       conversationId: input.conversationId,
@@ -557,7 +620,8 @@ export class MemoryReceiptService {
       fullText:
         "The agent attempted a tool call without validating schema constraints. This caused a downstream parse failure and wasted one retry cycle.",
       rootCause: "Schema assumptions were inferred instead of checked.",
-      correctiveAdvice: "Read and hash canonical tool descriptors before calling the tool.",
+      correctiveAdvice:
+        "Read and hash canonical tool descriptors before calling the tool.",
       nextAction: "Inject schema-first checklist into the next turn.",
       tags: ["failure", "schema", "tooling"],
       structured: {
@@ -589,9 +653,13 @@ export class MemoryReceiptService {
       fullText:
         "The next turn loaded corrective advice from the prior receipt and validated schema before invocation. The tool call succeeded on the first attempt.",
       rootCause: "Prior failure corrected by explicit prompt injection.",
-      correctiveAdvice: "Keep the schema-first checklist for similar tool families.",
-      nextAction: "Continue using verified memory injection for high-risk tools.",
-      parentReceiptId: (await this.store.getReceiptByReflectionId(failure.reflection.id))?.id,
+      correctiveAdvice:
+        "Keep the schema-first checklist for similar tool families.",
+      nextAction:
+        "Continue using verified memory injection for high-risk tools.",
+      parentReceiptId: (
+        await this.store.getReceiptByReflectionId(failure.reflection.id)
+      )?.id,
       tags: ["success", "injection", "recovery"],
       structured: {
         confidence: 0.9,
@@ -609,7 +677,9 @@ export class MemoryReceiptService {
     };
   }
 
-  private async pushEvent(input: Omit<MemoryLifecycleEvent, "id" | "createdAt">) {
+  private async pushEvent(
+    input: Omit<MemoryLifecycleEvent, "id" | "createdAt">,
+  ) {
     return this.store.pushEvent({
       id: `evt_${nanoid(12)}`,
       createdAt: nowIso(),

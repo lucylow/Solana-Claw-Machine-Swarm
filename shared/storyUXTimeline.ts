@@ -35,7 +35,7 @@ function mapProofStatus(
 export function commandEventsToUXTimeline(
   events: CommandTimelineEvent[],
 ): UXTimelineItem[] {
-  return events.map(ev => ({
+  return events.map((ev) => ({
     id: ev.id,
     label: ev.label,
     description: ev.detail?.trim() ? ev.detail : "—",

@@ -3,7 +3,13 @@ import { txExplorerUrl } from "@/lib/solana/explorer";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 
-export function DemoExplorerLink({ signature, label = "Solana Explorer" }: { signature: string; label?: string }) {
+export function DemoExplorerLink({
+  signature,
+  label = "Solana Explorer",
+}: {
+  signature: string;
+  label?: string;
+}) {
   const url = txExplorerUrl(signature);
   return (
     <div className="flex flex-wrap gap-2">

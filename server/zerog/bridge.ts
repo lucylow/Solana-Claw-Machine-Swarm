@@ -1,7 +1,11 @@
 import crypto from "crypto";
 import { ZeroGOrchestratorStore } from "./artifacts";
 import { getZeroGConfig } from "./config";
-import type { ZeroGBridgeAdapter, ZeroGBridgeState, ZeroGHealthStatus } from "./types";
+import type {
+  ZeroGBridgeAdapter,
+  ZeroGBridgeState,
+  ZeroGHealthStatus,
+} from "./types";
 
 function now() {
   return new Date().toISOString();

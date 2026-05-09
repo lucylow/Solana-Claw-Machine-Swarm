@@ -400,7 +400,7 @@ export function buildCommandTimeline(
         ? normalized.sessionVerified
           ? "Verified Solana session"
           : "Awaiting Solana session verification"
-        : "Connect Solana wallet",
+        : "Connect Phantom",
       at: now || undefined,
       status: s0,
     },

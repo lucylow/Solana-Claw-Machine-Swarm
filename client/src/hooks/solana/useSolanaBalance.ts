@@ -10,6 +10,6 @@ export function useSolanaBalance() {
       balanceLabel: formatSolBalance(wallet.balanceSol),
       loading: wallet.state === "balance_loading",
     }),
-    [wallet.balanceSol, wallet.state]
+    [wallet.balanceSol, wallet.state],
   );
 }

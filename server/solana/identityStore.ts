@@ -62,7 +62,11 @@ export class IdentityStore {
   private async persist() {
     if (!this.filePath) return;
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.state, null, 2), "utf8");
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(this.state, null, 2),
+      "utf8",
+    );
   }
 
   async init() {
@@ -81,7 +85,7 @@ export class IdentityStore {
 
   async latestChallenge(walletAddress: string) {
     return Object.values(this.state.challenges)
-      .filter(challenge => challenge.walletAddress === walletAddress)
+      .filter((challenge) => challenge.walletAddress === walletAddress)
       .sort((a, b) => Date.parse(b.issuedAt) - Date.parse(a.issuedAt))[0];
   }
 
@@ -101,7 +105,7 @@ export class IdentityStore {
 
   async saveReceipt(record: IdentityReceiptRecord) {
     const list = this.state.receipts[record.walletAddress] || [];
-    const idx = list.findIndex(r => r.id === record.id);
+    const idx = list.findIndex((r) => r.id === record.id);
     if (idx >= 0) list[idx] = record;
     else list.unshift(record);
     this.state.receipts[record.walletAddress] = list;
@@ -137,7 +141,10 @@ export class IdentityStore {
     return this.state.memories[walletAddress] || [];
   }
 
-  async bundle(walletAddress: string, challengeId?: string): Promise<IdentityBundleRecord | undefined> {
+  async bundle(
+    walletAddress: string,
+    challengeId?: string,
+  ): Promise<IdentityBundleRecord | undefined> {
     const profile = this.state.profiles[walletAddress];
     if (!profile) return undefined;
     const challenge =
@@ -162,19 +169,21 @@ export class IdentityStore {
     const skills = this.state.skills[walletAddress] || [];
     const normalizedRef = skillRef.trim().toLowerCase();
     const idx = skills.findIndex(
-      skill =>
+      (skill) =>
         skill.name.toLowerCase() === normalizedRef ||
         skill.slug.toLowerCase() === normalizedRef ||
-        skill.id.toLowerCase() === normalizedRef
+        skill.id.toLowerCase() === normalizedRef,
     );
     if (idx >= 0) {
-      const activeVersion = skills[idx].versions?.find(version => version.version === skills[idx].version);
+      const activeVersion = skills[idx].versions?.find(
+        (version) => version.version === skills[idx].version,
+      );
       skills[idx] = {
         ...skills[idx],
         usageCount: skills[idx].usageCount + 1,
         score: Math.min(1, skills[idx].score + 0.03),
         versions:
-          skills[idx].versions?.map(version =>
+          skills[idx].versions?.map((version) =>
             version.id === activeVersion?.id
               ? {
                   ...version,
@@ -182,7 +191,7 @@ export class IdentityStore {
                   score: Math.min(1, version.score + 0.03),
                   updatedAt: Date.now(),
                 }
-              : version
+              : version,
           ) || skills[idx].versions,
         updatedAt: Date.now(),
       };
@@ -227,7 +236,10 @@ export class IdentityStore {
     return this.state.reputations[walletAddress];
   }
 
-  async saveReputation(walletAddress: string, reputation: ReputationAccountRecord) {
+  async saveReputation(
+    walletAddress: string,
+    reputation: ReputationAccountRecord,
+  ) {
     this.state.reputations[walletAddress] = reputation;
     await this.persist();
     return reputation;

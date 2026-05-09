@@ -11,7 +11,12 @@ export interface PlanAnchorClient {
     stepHash: string;
     stepCount: number;
     outcome: "planned" | "running" | "succeeded" | "failed" | "aborted";
-  }): Promise<{ txSignature?: string; account?: string; chainId?: number; programId?: string }>;
+  }): Promise<{
+    txSignature?: string;
+    account?: string;
+    chainId?: number;
+    programId?: string;
+  }>;
 }
 
 export class PlanAnchorService {
@@ -20,7 +25,7 @@ export class PlanAnchorService {
       chainId: number;
       programId?: string;
       anchorClient?: PlanAnchorClient;
-    }
+    },
   ) {}
 
   async anchorReceipt(receipt: PlanReceipt) {
@@ -33,7 +38,7 @@ export class PlanAnchorService {
         summaryHash: receipt.summaryHash,
         planHash: receipt.planHash,
         createdAt: receipt.createdAt,
-      })
+      }),
     );
 
     if (!receipt.wallet) {
@@ -96,7 +101,7 @@ export class PlanAnchorService {
         resultId: result.id,
         resultHash: result.resultHash,
         status: result.status,
-      })
+      }),
     );
 
     if (!receipt.wallet || !this.options.anchorClient) {
@@ -118,7 +123,12 @@ export class PlanAnchorService {
         planHash: receipt.planHash,
         stepHash: result.resultHash,
         stepCount: receipt.stepCount,
-        outcome: result.status === "success" ? "succeeded" : result.status === "failed" ? "failed" : "running",
+        outcome:
+          result.status === "success"
+            ? "succeeded"
+            : result.status === "failed"
+              ? "failed"
+              : "running",
       });
 
       return {

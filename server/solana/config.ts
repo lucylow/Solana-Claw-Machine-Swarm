@@ -1,7 +1,11 @@
 import type { SolanaCluster } from "@shared/solana/types";
 
 function clusterFromEnv(): SolanaCluster {
-  const c = (process.env.SOLANA_CLUSTER || process.env.CLAW_SOLANA_CLUSTER || "devnet").toLowerCase();
+  const c = (
+    process.env.SOLANA_CLUSTER ||
+    process.env.CLAW_SOLANA_CLUSTER ||
+    "devnet"
+  ).toLowerCase();
   if (c === "mainnet" || c === "mainnet-beta") return "mainnet-beta";
   if (c === "testnet") return "testnet";
   if (c === "localnet" || c === "localhost") return "localnet";
@@ -12,8 +16,11 @@ export function getServerSolanaCluster(): SolanaCluster {
   return clusterFromEnv();
 }
 
-export function getServerSolanaRpcUrl(cluster: SolanaCluster = getServerSolanaCluster()): string {
-  const override = process.env.SOLANA_RPC_URL || process.env.CLAW_SOLANA_RPC_URL;
+export function getServerSolanaRpcUrl(
+  cluster: SolanaCluster = getServerSolanaCluster(),
+): string {
+  const override =
+    process.env.SOLANA_RPC_URL || process.env.CLAW_SOLANA_RPC_URL;
   if (override) return override;
   const map: Record<SolanaCluster, string> = {
     "mainnet-beta": "https://api.mainnet-beta.solana.com",

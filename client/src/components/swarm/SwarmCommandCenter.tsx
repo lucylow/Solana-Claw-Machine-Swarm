@@ -32,10 +32,7 @@ import type {
   ZeroGProofGraphResponse,
 } from "@/lib/zerog/types";
 import { formatSessionExpiry } from "@/lib/solana/format";
-import {
-  DemoModeNotice,
-  ExecutionErrorPanel,
-} from "@/errors/ErrorUiKit";
+import { DemoModeNotice, ExecutionErrorPanel } from "@/errors/ErrorUiKit";
 import { SwarmApiError } from "@/errors/SwarmApiError";
 import { useErrorSurface } from "@/errors/ErrorSurfaceContext";
 import {
@@ -216,7 +213,9 @@ export default function SwarmCommandCenter({
     const raw = searchParams.get("section");
     return raw && isSwarmSectionId(raw) ? raw : "overview";
   }, [searchParams]);
-  const [demoMode, setDemoMode] = useState(false);
+  const [demoMode, setDemoMode] = useState(
+    () => searchParams.get("demo") === "1",
+  );
   const [runtime, setRuntime] = useState<SwarmRuntimeState>(() =>
     createInitialRuntime(walletAddress),
   );
@@ -278,7 +277,9 @@ export default function SwarmCommandCenter({
         loopBusy,
         loopError,
         lastResult,
-        registryDegraded: Boolean(registryError && !chainSkills.length && !demoMode),
+        registryDegraded: Boolean(
+          registryError && !chainSkills.length && !demoMode,
+        ),
         autonomyLevel: runtime.autonomyLevel,
         autonomyScore: runtime.autonomyScore,
       }),
@@ -555,7 +556,9 @@ export default function SwarmCommandCenter({
       else setLoopStep(Math.min(5, storyFinalIdx));
     } catch (e) {
       const appErr =
-        e instanceof SwarmApiError ? e.appError : normalizeError(e, { source: "runLinkedLoop" });
+        e instanceof SwarmApiError
+          ? e.appError
+          : normalizeError(e, { source: "runLinkedLoop" });
       setLoopError(appErr.message);
       errorSurfaceRef.current?.pushError(appErr);
       errorSurfaceRef.current?.markDegraded(true);
@@ -574,7 +577,7 @@ export default function SwarmCommandCenter({
 
   const top = (
     <CommandTopRail
-      title="Solana Autonomous Agent Command Center"
+      title="CLAW_SWARM — Solana Agent Framework"
       subtitle={SOLANA_COPY.dashboard.topSubtitle}
       chips={
         <>
@@ -597,7 +600,11 @@ export default function SwarmCommandCenter({
                   ? `${effectiveWallet.slice(0, 4)}…${effectiveWallet.slice(-4)}`
                   : SOLANA_COPY.wallet.offlineChip
             }
-            title={wrongCluster ? "Wallet RPC cluster does not match verified session cluster" : undefined}
+            title={
+              wrongCluster
+                ? "Wallet RPC cluster does not match verified session cluster"
+                : undefined
+            }
           />
           {wallet.walletName ? (
             <StatusChip
@@ -609,7 +616,11 @@ export default function SwarmCommandCenter({
           ) : null}
           <StatusChip
             tone={activeSkillName ? "proof" : "warn"}
-            label={activeSkillName ? `skill · ${activeSkillName}` : "skill · none selected"}
+            label={
+              activeSkillName
+                ? `skill · ${activeSkillName}`
+                : "skill · none selected"
+            }
             title="Active capability for this mission"
             className="!max-w-[220px] !normal-case !tracking-normal"
           />
@@ -692,7 +703,7 @@ export default function SwarmCommandCenter({
   );
 
   const main = (
-    <div className="mx-auto max-w-4xl xl:max-w-none">
+    <div className="mx-auto max-w-6xl xl:max-w-[1500px]">
       <DemoModeToggle enabled={demoMode} onChange={setDemoMode} />
       <DemoModeNotice active={demoMode} />
       <DegradedStateBanner

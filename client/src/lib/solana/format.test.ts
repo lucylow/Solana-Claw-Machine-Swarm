@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatSessionExpiry, formatSol, formatSolBalance, shortenAddress } from "./format";
+import {
+  formatSessionExpiry,
+  formatSol,
+  formatSolBalance,
+  shortenAddress,
+} from "./format";
 
 describe("solana format helpers", () => {
   it("shortens addresses predictably", () => {

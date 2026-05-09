@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import type { SolanaIdentityReceipt, SolanaMemorySummary, SolanaSkillSummary } from "@/solana/identityTypes";
+import type {
+  SolanaIdentityReceipt,
+  SolanaMemorySummary,
+  SolanaSkillSummary,
+} from "@/solana/identityTypes";
 
 type Props = {
   skills: SolanaSkillSummary[];
@@ -53,7 +57,7 @@ export function SolanaIdentityDashboard({ skills, memories, receipts }: Props) {
 
   const sortedReceipts = useMemo(
     () => [...receipts].sort((a, b) => b.createdAt - a.createdAt),
-    [receipts]
+    [receipts],
   );
 
   const tabClass = (active: boolean) =>
@@ -64,13 +68,22 @@ export function SolanaIdentityDashboard({ skills, memories, receipts }: Props) {
   return (
     <div className="rounded-3xl border border-cyan-500/20 bg-black/25 p-4 md:p-6">
       <div className="mb-4 flex flex-wrap gap-2">
-        <button className={tabClass(tab === "skills")} onClick={() => setTab("skills")}>
+        <button
+          className={tabClass(tab === "skills")}
+          onClick={() => setTab("skills")}
+        >
           Skills
         </button>
-        <button className={tabClass(tab === "memory")} onClick={() => setTab("memory")}>
+        <button
+          className={tabClass(tab === "memory")}
+          onClick={() => setTab("memory")}
+        >
           Memory
         </button>
-        <button className={tabClass(tab === "receipts")} onClick={() => setTab("receipts")}>
+        <button
+          className={tabClass(tab === "receipts")}
+          onClick={() => setTab("receipts")}
+        >
           Receipts
         </button>
       </div>
@@ -78,21 +91,30 @@ export function SolanaIdentityDashboard({ skills, memories, receipts }: Props) {
       {tab === "skills" ? (
         <Section title="Saved skills" count={skills.length}>
           {skills.length ? (
-            skills.map(skill => (
-              <article className="rounded-xl border border-cyan-500/10 bg-black/40 p-3" key={skill.id}>
+            skills.map((skill) => (
+              <article
+                className="rounded-xl border border-cyan-500/10 bg-black/40 p-3"
+                key={skill.id}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-cyan-100">{skill.name}</strong>
                   <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-xs text-cyan-100">
                     v{skill.version}
                   </span>
                 </div>
-                <div className="mt-2 text-sm text-slate-300">{truncate(skill.description, 160)}</div>
+                <div className="mt-2 text-sm text-slate-300">
+                  {truncate(skill.description, 160)}
+                </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-300">
-                  <span className="rounded-full border border-slate-600 px-2 py-0.5">usage {skill.usageCount}</span>
+                  <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                    usage {skill.usageCount}
+                  </span>
                   <span className="rounded-full border border-slate-600 px-2 py-0.5">
                     score {skill.score.toFixed(2)}
                   </span>
-                  <span className="rounded-full border border-slate-600 px-2 py-0.5">{skill.status}</span>
+                  <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                    {skill.status}
+                  </span>
                 </div>
               </article>
             ))
@@ -105,20 +127,33 @@ export function SolanaIdentityDashboard({ skills, memories, receipts }: Props) {
       {tab === "memory" ? (
         <Section title="Saved memories" count={memories.length}>
           {memories.length ? (
-            memories.map(memory => (
-              <article className="rounded-xl border border-cyan-500/10 bg-black/40 p-3" key={memory.id}>
+            memories.map((memory) => (
+              <article
+                className="rounded-xl border border-cyan-500/10 bg-black/40 p-3"
+                key={memory.id}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-cyan-100">{memory.title}</strong>
-                  <span className="text-xs text-slate-400">{formatAgo(memory.createdAt)}</span>
+                  <span className="text-xs text-slate-400">
+                    {formatAgo(memory.createdAt)}
+                  </span>
                 </div>
-                <div className="mt-2 text-sm text-slate-300">{truncate(memory.summary, 180)}</div>
+                <div className="mt-2 text-sm text-slate-300">
+                  {truncate(memory.summary, 180)}
+                </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-300">
-                  <span className="rounded-full border border-slate-600 px-2 py-0.5">{memory.kind}</span>
+                  <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                    {memory.kind}
+                  </span>
                   {memory.rootCause ? (
-                    <span className="rounded-full border border-slate-600 px-2 py-0.5">root cause stored</span>
+                    <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                      root cause stored
+                    </span>
                   ) : null}
                   {memory.correctiveAdvice ? (
-                    <span className="rounded-full border border-slate-600 px-2 py-0.5">advice stored</span>
+                    <span className="rounded-full border border-slate-600 px-2 py-0.5">
+                      advice stored
+                    </span>
                   ) : null}
                 </div>
               </article>
@@ -132,8 +167,11 @@ export function SolanaIdentityDashboard({ skills, memories, receipts }: Props) {
       {tab === "receipts" ? (
         <Section title="On-chain receipts" count={sortedReceipts.length}>
           {sortedReceipts.length ? (
-            sortedReceipts.map(receipt => (
-              <article className="rounded-xl border border-cyan-500/10 bg-black/40 p-3" key={receipt.id}>
+            sortedReceipts.map((receipt) => (
+              <article
+                className="rounded-xl border border-cyan-500/10 bg-black/40 p-3"
+                key={receipt.id}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-cyan-100">{receipt.summary}</strong>
                   <span
@@ -148,7 +186,9 @@ export function SolanaIdentityDashboard({ skills, memories, receipts }: Props) {
                     {receipt.status}
                   </span>
                 </div>
-                <code className="mt-2 block text-xs text-slate-300">{truncate(receipt.receiptHash, 42)}</code>
+                <code className="mt-2 block text-xs text-slate-300">
+                  {truncate(receipt.receiptHash, 42)}
+                </code>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-300">
                   <span className="rounded-full border border-slate-600 px-2 py-0.5">
                     tx {truncate(receipt.txHash || "pending", 20)}

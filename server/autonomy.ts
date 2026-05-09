@@ -24,7 +24,7 @@ type PolicyEvaluationInput = {
 };
 
 function policyActionFromRisk(
-  riskLevel: RiskLevel
+  riskLevel: RiskLevel,
 ): PolicyGateResult["requiredAction"] {
   switch (riskLevel) {
     case "critical":
@@ -39,7 +39,9 @@ function policyActionFromRisk(
   }
 }
 
-export function evaluatePolicyGate(input: PolicyEvaluationInput): PolicyGateResult {
+export function evaluatePolicyGate(
+  input: PolicyEvaluationInput,
+): PolicyGateResult {
   const profile = AUTONOMY_PROFILES[input.autonomyLevel];
   const requireSignature =
     typeof input.userPreference?.requireSignatureAboveValue === "number" &&
@@ -146,17 +148,17 @@ export function calculateAutonomyScore(inputs: ScoreInputs) {
       inputs.policyPassRate * 0.1 +
       inputs.proofCompleteness * 0.1 +
       inputs.successRate * 0.1 +
-      inputs.confidenceCalibration * 0.1
+      inputs.confidenceCalibration * 0.1,
   );
 
   const label =
     score < 35
       ? "automation"
       : score < 55
-      ? "assisted"
-      : score < 80
-      ? "agency"
-      : "autonomous";
+        ? "assisted"
+        : score < 80
+          ? "agency"
+          : "autonomous";
 
   return {
     score,
@@ -166,19 +168,19 @@ export function calculateAutonomyScore(inputs: ScoreInputs) {
       label === "autonomous"
         ? "The runtime is operating with minimal intervention and complete proof trails."
         : label === "agency"
-        ? "The runtime makes meaningful choices while staying policy-governed."
-        : label === "assisted"
-        ? "The runtime contributes planning decisions but still needs regular supervision."
-        : "The runtime mostly automates user-selected steps.",
+          ? "The runtime makes meaningful choices while staying policy-governed."
+          : label === "assisted"
+            ? "The runtime contributes planning decisions but still needs regular supervision."
+            : "The runtime mostly automates user-selected steps.",
   };
 }
 
 export function resolveAutonomyLevelForMode(
-  mode: "automation" | "meaningful_agency" | "full_autonomy"
+  mode: "automation" | "meaningful_agency" | "full_autonomy",
 ): AutonomyLevel {
   return (
-    AUTONOMY_MODE_PRESETS.find(preset => preset.mode === mode)?.defaultLevel ??
-    "meaningful_agency"
+    AUTONOMY_MODE_PRESETS.find((preset) => preset.mode === mode)
+      ?.defaultLevel ?? "meaningful_agency"
   );
 }
 
@@ -225,14 +227,14 @@ export function createDecisionNarrative(
   options: AgentDecisionRecord["optionsConsidered"],
   confidenceNotes: string,
   policyNotes: string,
-  memoryNotes: string
+  memoryNotes: string,
 ): Omit<DecisionNarrative, "createdAt"> {
   return {
     id: nanoid(16),
     decisionId,
     fullText: rationale,
     summary: rationale.slice(0, 180),
-    optionsConsidered: options.map(option => ({
+    optionsConsidered: options.map((option) => ({
       id: option.id,
       label: option.label,
       pros: option.reason ? [option.reason] : [],

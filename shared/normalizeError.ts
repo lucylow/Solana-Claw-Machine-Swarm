@@ -19,7 +19,7 @@ export interface NormalizeErrorOptions {
 
 function mergeMetadata(
   base: Record<string, unknown> | undefined,
-  extra: Record<string, unknown>
+  extra: Record<string, unknown>,
 ): Record<string, unknown> {
   return { ...(base ?? {}), ...extra };
 }
@@ -33,32 +33,47 @@ export function inferCodeFromLegacyMessage(msg: string): ErrorCode | undefined {
     m.includes("wallet required")
   )
     return "VALIDATION_FAILED";
-  if (m.includes("wallet_session_inactive") || m.includes("session_inactive")) return "SESSION_REQUIRED";
-  if (m.includes("session") && m.includes("expired")) return "WALLET_SESSION_EXPIRED";
-  if (m.includes("wrong cluster") || m.includes("cluster mismatch")) return "WALLET_WRONG_CLUSTER";
-  if (m.includes("user rejected") || m.includes("rejected")) return "WALLET_CONNECTION_REJECTED";
-  if (m.includes("not enough sol") || m.includes("insufficient funds")) return "INSUFFICIENT_SOL";
+  if (m.includes("wallet_session_inactive") || m.includes("session_inactive"))
+    return "SESSION_REQUIRED";
+  if (m.includes("session") && m.includes("expired"))
+    return "WALLET_SESSION_EXPIRED";
+  if (m.includes("wrong cluster") || m.includes("cluster mismatch"))
+    return "WALLET_WRONG_CLUSTER";
+  if (m.includes("user rejected") || m.includes("rejected"))
+    return "WALLET_CONNECTION_REJECTED";
+  if (m.includes("not enough sol") || m.includes("insufficient funds"))
+    return "INSUFFICIENT_SOL";
   if (m.includes("429") || m.includes("rate limit")) return "RPC_RATE_LIMITED";
   if (m.includes("timed out") || m.includes("timeout")) return "RPC_TIMEOUT";
-  if (m.includes("fetch failed") || m.includes("econnrefused")) return "RPC_UNAVAILABLE";
+  if (m.includes("fetch failed") || m.includes("econnrefused"))
+    return "RPC_UNAVAILABLE";
   if (m.includes("circuit_open")) return "RPC_UNAVAILABLE";
   if (m.includes("simulation failed")) return "TX_SIMULATION_FAILED";
-  if (m.includes("blockhash not found") || m.includes("expired")) return "TX_EXPIRED";
-  if (m.includes("sendtransaction") || m.includes("send failed")) return "TX_SEND_FAILED";
+  if (m.includes("blockhash not found") || m.includes("expired"))
+    return "TX_EXPIRED";
+  if (m.includes("sendtransaction") || m.includes("send failed"))
+    return "TX_SEND_FAILED";
   if (m.includes("anchor") && m.includes("idl")) return "ANCHOR_IDL_MISMATCH";
-  if (m.includes("memory_anchor") || m.includes("anchor_failed")) return "RECEIPT_ANCHOR_FAILED";
-  if (m.includes("proof_receipt") || m.includes("proof_failed")) return "RECEIPT_ANCHOR_FAILED";
-  if (m.includes("plan_anchor") || m.includes("plan_failed")) return "PLAN_BUILD_FAILED";
+  if (m.includes("memory_anchor") || m.includes("anchor_failed"))
+    return "RECEIPT_ANCHOR_FAILED";
+  if (m.includes("proof_receipt") || m.includes("proof_failed"))
+    return "RECEIPT_ANCHOR_FAILED";
+  if (m.includes("plan_anchor") || m.includes("plan_failed"))
+    return "PLAN_BUILD_FAILED";
   if (m.includes("reflection_failed")) return "REFLECTION_WRITE_FAILED";
   if (m.includes("identity_service_unavailable")) return "INDEXER_SYNC_FAILED";
   if (m.includes("skill_not_found")) return "VALIDATION_FAILED";
-  if (m.includes("zerog") && m.includes("storage")) return "ZERO_G_STORAGE_FAILED";
+  if (m.includes("zerog") && m.includes("storage"))
+    return "ZERO_G_STORAGE_FAILED";
   if (m.includes("zerog") && m.includes("da")) return "ZERO_G_DA_FAILED";
-  if (m.includes("openclaw") && m.includes("import")) return "OPENCLAW_IMPORT_FAILED";
-  if (m.includes("openclaw") && m.includes("export")) return "OPENCLAW_EXPORT_FAILED";
+  if (m.includes("openclaw") && m.includes("import"))
+    return "OPENCLAW_IMPORT_FAILED";
+  if (m.includes("openclaw") && m.includes("export"))
+    return "OPENCLAW_EXPORT_FAILED";
   if (m.includes("demo") && m.includes("mismatch")) return "DEMO_MODE_MISMATCH";
   if (m.includes("degraded")) return "DEGRADED_MODE";
-  if (m.includes("verification failed") || m.includes("proof")) return "PROOF_VERIFICATION_FAILED";
+  if (m.includes("verification failed") || m.includes("proof"))
+    return "PROOF_VERIFICATION_FAILED";
   if (m.includes("database") || m.includes("db_")) return "DB_READ_FAILED";
   return undefined;
 }
@@ -77,7 +92,10 @@ function technicalFromUnknown(error: unknown): string | undefined {
  * Convert any thrown value into a structured AppError.
  * Safe for browser and Node.
  */
-export function normalizeError(error: unknown, options: NormalizeErrorOptions = {}): AppError {
+export function normalizeError(
+  error: unknown,
+  options: NormalizeErrorOptions = {},
+): AppError {
   const id = options.fallback?.id ?? newErrorId();
   const now = new Date().toISOString();
 
@@ -89,19 +107,24 @@ export function normalizeError(error: unknown, options: NormalizeErrorOptions = 
       retryable: error.retryable ?? policy.retryable,
       recoverable: error.recoverable ?? true,
       createdAt: error.createdAt || now,
-      metadata: mergeMetadata(error.metadata as Record<string, unknown> | undefined, {
-        requestPath: options.requestPath,
-        walletAddress: options.walletAddress,
-        cluster: options.cluster,
-        txSignature: options.txSignature,
-      }),
+      metadata: mergeMetadata(
+        error.metadata as Record<string, unknown> | undefined,
+        {
+          requestPath: options.requestPath,
+          walletAddress: options.walletAddress,
+          cluster: options.cluster,
+          txSignature: options.txSignature,
+        },
+      ),
     };
   }
 
   if (error instanceof ZodError) {
     const cat = catalogEntry("VALIDATION_FAILED");
     const policy = getRetryPolicyForCode("VALIDATION_FAILED");
-    const issues = error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ");
+    const issues = error.issues
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join("; ");
     return {
       id,
       code: "VALIDATION_FAILED",
@@ -130,7 +153,7 @@ export function normalizeError(error: unknown, options: NormalizeErrorOptions = 
       ? error.message
       : typeof error === "string"
         ? error
-        : technicalFromUnknown(error) ?? "unknown_error";
+        : (technicalFromUnknown(error) ?? "unknown_error");
 
   const inferred = inferCodeFromLegacyMessage(msg);
   const code: ErrorCode =
@@ -145,7 +168,8 @@ export function normalizeError(error: unknown, options: NormalizeErrorOptions = 
     severity: options.fallback?.severity ?? cat.severity,
     title: options.fallback?.title ?? cat.title,
     message: options.fallback?.message ?? cat.message,
-    technicalMessage: options.fallback?.technicalMessage ?? technicalFromUnknown(error),
+    technicalMessage:
+      options.fallback?.technicalMessage ?? technicalFromUnknown(error),
     retryable: options.fallback?.retryable ?? policy.retryable,
     recoverable: options.fallback?.recoverable ?? true,
     retryLabel: options.fallback?.retryLabel ?? cat.retryLabel ?? policy.label,
@@ -155,13 +179,16 @@ export function normalizeError(error: unknown, options: NormalizeErrorOptions = 
     source: options.fallback?.source ?? options.source,
     statusCode: options.fallback?.statusCode ?? options.statusCode,
     cause: error,
-    metadata: mergeMetadata(options.fallback?.metadata as Record<string, unknown> | undefined, {
-      requestPath: options.requestPath,
-      walletAddress: options.walletAddress,
-      cluster: options.cluster,
-      txSignature: options.txSignature,
-      legacyMessage: msg,
-    }),
+    metadata: mergeMetadata(
+      options.fallback?.metadata as Record<string, unknown> | undefined,
+      {
+        requestPath: options.requestPath,
+        walletAddress: options.walletAddress,
+        cluster: options.cluster,
+        txSignature: options.txSignature,
+        legacyMessage: msg,
+      },
+    ),
     createdAt: now,
   };
 }

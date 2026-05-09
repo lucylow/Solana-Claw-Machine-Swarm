@@ -1,9 +1,22 @@
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { AppError } from "@shared/errorTypes";
 import { getRetryPolicyForCode } from "@shared/retryPolicy";
-import { AlertTriangle, Bug, ChevronRight, RefreshCw, ShieldAlert, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Bug,
+  ChevronRight,
+  RefreshCw,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { isDiagnosticsMode } from "./diagnostics";
 import { useErrorSurface } from "./ErrorSurfaceContext";
@@ -57,7 +70,7 @@ export function InlineErrorCard({
       className={cn(
         "rounded-xl border p-4 text-sm text-slate-100 shadow-sm",
         tone,
-        className
+        className,
       )}
       role="alert"
     >
@@ -65,8 +78,12 @@ export function InlineErrorCard({
         <div className="flex gap-2 min-w-0">
           <ShieldAlert className="h-4 w-4 shrink-0 text-[#ffb020] mt-0.5" />
           <div className="min-w-0 space-y-1">
-            <p className="font-medium text-white leading-snug">{appError.title}</p>
-            <p className="text-slate-300 text-[13px] leading-relaxed">{appError.message}</p>
+            <p className="font-medium text-white leading-snug">
+              {appError.title}
+            </p>
+            <p className="text-slate-300 text-[13px] leading-relaxed">
+              {appError.message}
+            </p>
             {appError.recoveryAction ? (
               <p className="text-[12px] text-[#14f195]/90 flex items-start gap-1">
                 <ChevronRight className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -163,8 +180,8 @@ export function DemoModeNotice({ active }: { active: boolean }) {
   if (!active) return null;
   return (
     <div className="rounded-lg border border-[#9945ff]/35 bg-[#1a0f24]/80 px-3 py-2 text-[12px] text-[#e9d5ff]">
-      Demo mode only — flows may use fixtures; proof badges follow demo policy, not live verification unless
-      configured.
+      Demo mode only — flows may use fixtures; proof badges follow demo policy,
+      not live verification unless configured.
     </div>
   );
 }
@@ -189,7 +206,12 @@ export function ProofErrorBadge({ status }: { status: string }) {
         ? "bg-[#9945ff]/15 text-[#e9d5ff] border-[#9945ff]/35"
         : "bg-amber-500/10 text-amber-200 border-amber-400/35";
   return (
-    <span className={cn("text-[10px] uppercase tracking-wide px-2 py-0.5 rounded border", cls)}>
+    <span
+      className={cn(
+        "text-[10px] uppercase tracking-wide px-2 py-0.5 rounded border",
+        cls,
+      )}
+    >
       {label}
     </span>
   );
@@ -200,7 +222,11 @@ export function WalletErrorBanner({ appError }: { appError: AppError | null }) {
   return <InlineErrorCard appError={appError} />;
 }
 
-export function SessionErrorBanner({ appError }: { appError: AppError | null }) {
+export function SessionErrorBanner({
+  appError,
+}: {
+  appError: AppError | null;
+}) {
   if (!appError || appError.scope !== "session") return null;
   return <InlineErrorCard appError={appError} />;
 }
@@ -212,21 +238,47 @@ export function ReceiptErrorCard({
   appError: AppError | null;
   onRetry?: () => void;
 }) {
-  if (!appError || (appError.scope !== "receipt" && appError.code !== "RECEIPT_ANCHOR_FAILED")) return null;
+  if (
+    !appError ||
+    (appError.scope !== "receipt" && appError.code !== "RECEIPT_ANCHOR_FAILED")
+  )
+    return null;
   return <InlineErrorCard appError={appError} onRetry={onRetry} />;
 }
 
-export function MemoryErrorCard({ appError, onRetry }: { appError: AppError | null; onRetry?: () => void }) {
-  if (!appError || (appError.scope !== "memory" && appError.scope !== "reflection")) return null;
+export function MemoryErrorCard({
+  appError,
+  onRetry,
+}: {
+  appError: AppError | null;
+  onRetry?: () => void;
+}) {
+  if (
+    !appError ||
+    (appError.scope !== "memory" && appError.scope !== "reflection")
+  )
+    return null;
   return <InlineErrorCard appError={appError} onRetry={onRetry} />;
 }
 
-export function ZeroGErrorCard({ appError, onRetry }: { appError: AppError | null; onRetry?: () => void }) {
+export function ZeroGErrorCard({
+  appError,
+  onRetry,
+}: {
+  appError: AppError | null;
+  onRetry?: () => void;
+}) {
   if (!appError || appError.scope !== "zerog") return null;
   return <InlineErrorCard appError={appError} onRetry={onRetry} />;
 }
 
-export function OpenClawErrorCard({ appError, onRetry }: { appError: AppError | null; onRetry?: () => void }) {
+export function OpenClawErrorCard({
+  appError,
+  onRetry,
+}: {
+  appError: AppError | null;
+  onRetry?: () => void;
+}) {
   if (!appError || appError.scope !== "openclaw") return null;
   return <InlineErrorCard appError={appError} onRetry={onRetry} />;
 }
@@ -241,8 +293,10 @@ export function ExecutionErrorPanel({
   if (!errors.length) return null;
   return (
     <div className="space-y-2">
-      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">Execution errors</p>
-      {errors.map(e => (
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">
+        Execution errors
+      </p>
+      {errors.map((e) => (
         <InlineErrorCard key={e.id} appError={e} onRetry={onRetry} />
       ))}
     </div>
@@ -269,26 +323,45 @@ export function RetryableOperationCard({
         <span className="text-[10px] uppercase text-slate-500">{status}</span>
       </div>
       {children}
-      {appError ? <InlineErrorCard appError={appError} onRetry={onRetry} /> : null}
+      {appError ? (
+        <InlineErrorCard appError={appError} onRetry={onRetry} />
+      ) : null}
     </div>
   );
 }
 
-export function ErrorPanel({ title, children }: { title: string; children: React.ReactNode }) {
+export function ErrorPanel({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
-      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{title}</p>
+      <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">
+        {title}
+      </p>
       {children}
     </div>
   );
 }
 
-export function ErrorDiagnosticsDrawer({ appErrors }: { appErrors: AppError[] }) {
+export function ErrorDiagnosticsDrawer({
+  appErrors,
+}: {
+  appErrors: AppError[];
+}) {
   if (!isDiagnosticsMode() || !appErrors.length) return null;
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button type="button" size="sm" variant="ghost" className="text-slate-400 gap-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="text-slate-400 gap-1"
+        >
           <Bug className="h-4 w-4" />
           Diagnostics
         </Button>
@@ -298,8 +371,11 @@ export function ErrorDiagnosticsDrawer({ appErrors }: { appErrors: AppError[] })
           <SheetTitle>Error diagnostics</SheetTitle>
         </SheetHeader>
         <div className="mt-4 space-y-3">
-          {appErrors.map(e => (
-            <pre key={e.id} className="text-[11px] bg-muted p-3 rounded-lg overflow-x-auto">
+          {appErrors.map((e) => (
+            <pre
+              key={e.id}
+              className="text-[11px] bg-muted p-3 rounded-lg overflow-x-auto"
+            >
               {JSON.stringify(e, null, 2)}
             </pre>
           ))}

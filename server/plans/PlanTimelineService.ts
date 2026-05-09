@@ -3,7 +3,7 @@ import type { PlanLifecycleEvent } from "./types";
 
 export class PlanTimelineService {
   toTimelineEvents(events: PlanLifecycleEvent[]): PlanTimelineEvent[] {
-    return events.map(event => ({
+    return events.map((event) => ({
       id: event.id,
       planId: event.planId,
       planReceiptId: event.planReceiptId,
@@ -25,7 +25,9 @@ export class PlanTimelineService {
     }));
   }
 
-  private stageForType(type: PlanLifecycleEvent["type"]): PlanTimelineEvent["stage"] {
+  private stageForType(
+    type: PlanLifecycleEvent["type"],
+  ): PlanTimelineEvent["stage"] {
     if (type.includes("created") || type.includes("stored")) return "breakdown";
     if (type.includes("anchor") || type.includes("verified")) return "proof";
     if (type.includes("execut")) return "execution";

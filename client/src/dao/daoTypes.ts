@@ -39,7 +39,13 @@ export interface DaoProposal {
   proposalId: number;
   proposer: string;
   kind: DaoProposalKind;
-  status: "draft" | "active" | "succeeded" | "defeated" | "cancelled" | "executed";
+  status:
+    | "draft"
+    | "active"
+    | "succeeded"
+    | "defeated"
+    | "cancelled"
+    | "executed";
   title: string;
   description: string;
   skillKey: string;

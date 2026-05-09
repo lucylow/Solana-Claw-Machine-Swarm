@@ -5,7 +5,11 @@ import {
   classifyGoalIntent,
   mergePersistenceIntoFramework,
 } from "./pipeline";
-import { AGENT_TOOL_REGISTRY, mapToolFailureToRecovery, toolsInPreferredOrder } from "./toolRegistry";
+import {
+  AGENT_TOOL_REGISTRY,
+  mapToolFailureToRecovery,
+  toolsInPreferredOrder,
+} from "./toolRegistry";
 
 describe("classifyGoalIntent", () => {
   it("flags inactive session and detects governance-ish goals", () => {
@@ -18,20 +22,33 @@ describe("classifyGoalIntent", () => {
   });
 
   it("adds memory hints when prior reflections exist", () => {
-    const g = classifyGoalIntent("Run swarm loop", { sessionActive: true, priorMemoryCount: 2 });
-    expect(g.memoryHints.some(h => h.includes("2"))).toBe(true);
+    const g = classifyGoalIntent("Run swarm loop", {
+      sessionActive: true,
+      priorMemoryCount: 2,
+    });
+    expect(g.memoryHints.some((h) => h.includes("2"))).toBe(true);
   });
 });
 
 describe("toolRegistry", () => {
   it("orders tools by preferredOrder", () => {
-    const ordered = toolsInPreferredOrder(["plan.structured_emit", "context.search_memory"]);
+    const ordered = toolsInPreferredOrder([
+      "plan.structured_emit",
+      "context.search_memory",
+    ]);
     expect(ordered[0]).toBe("context.search_memory");
   });
 
   it("maps tool failure to fallback when registry declares fallbackOf", () => {
-    expect(mapToolFailureToRecovery("exec.simulate_operator", "wallet_session_inactive")).toBe("fallback_tool");
-    expect(mapToolFailureToRecovery("chain.read_session", "wallet_session_inactive")).toBe("degraded_continue");
+    expect(
+      mapToolFailureToRecovery(
+        "exec.simulate_operator",
+        "wallet_session_inactive",
+      ),
+    ).toBe("fallback_tool");
+    expect(
+      mapToolFailureToRecovery("chain.read_session", "wallet_session_inactive"),
+    ).toBe("degraded_continue");
     expect(AGENT_TOOL_REGISTRY["exec.simulate_operator"]?.retryable).toBe(true);
   });
 });
@@ -72,8 +89,12 @@ describe("buildAgentFrameworkRun", () => {
       sessionVerified: false,
       priorReflectionSummaries: [],
     });
-    const toolDecision = run.decisions.find(d => d.decisionType === "tool_selection");
-    expect(toolDecision?.selectedOptionId).toBe("exec.simulate_operator_degraded");
+    const toolDecision = run.decisions.find(
+      (d) => d.decisionType === "tool_selection",
+    );
+    expect(toolDecision?.selectedOptionId).toBe(
+      "exec.simulate_operator_degraded",
+    );
     expect(run.recoveryEvents.length).toBeGreaterThanOrEqual(1);
     expect(run.status).toBe("degraded");
   });

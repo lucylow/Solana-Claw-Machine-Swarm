@@ -1,4 +1,8 @@
-import type { PlanExecutionReceipt, PlanReceipt, PlanResultReceipt } from "@shared/planReceipts";
+import type {
+  PlanExecutionReceipt,
+  PlanReceipt,
+  PlanResultReceipt,
+} from "@shared/planReceipts";
 
 type CanonicalValue =
   | null
@@ -9,12 +13,17 @@ type CanonicalValue =
   | { [k: string]: CanonicalValue };
 
 function normalizeValue(input: unknown): CanonicalValue {
-  if (input === null || typeof input === "boolean" || typeof input === "number" || typeof input === "string") {
+  if (
+    input === null ||
+    typeof input === "boolean" ||
+    typeof input === "number" ||
+    typeof input === "string"
+  ) {
     return input;
   }
 
   if (Array.isArray(input)) {
-    return input.map(item => normalizeValue(item));
+    return input.map((item) => normalizeValue(item));
   }
 
   if (input && typeof input === "object") {
@@ -43,7 +52,7 @@ export function canonicalPlanSummaryPayload(plan: PlanReceipt) {
     summary: plan.summary,
     goal: plan.goal,
     stepCount: plan.stepCount,
-    steps: plan.steps.map(step => ({
+    steps: plan.steps.map((step) => ({
       id: step.id,
       index: step.index,
       title: step.title,
@@ -52,14 +61,14 @@ export function canonicalPlanSummaryPayload(plan: PlanReceipt) {
       chosenSkills: step.chosenSkills,
       expectedResult: step.expectedResult ?? null,
     })),
-    dependencies: plan.dependencies.map(dep => ({
+    dependencies: plan.dependencies.map((dep) => ({
       id: dep.id,
       type: dep.type,
       ref: dep.ref,
       required: dep.required,
       label: dep.label ?? null,
     })),
-    chosenSkills: plan.chosenSkills.map(skill => ({
+    chosenSkills: plan.chosenSkills.map((skill) => ({
       id: skill.id,
       name: skill.name,
       version: skill.version ?? null,

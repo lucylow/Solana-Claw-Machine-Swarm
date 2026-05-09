@@ -27,8 +27,19 @@ export type PlanTaskType =
   | "proof_generation"
   | "skill_usage";
 
-export type PlanOutcomeStatus = "pending" | "success" | "partial" | "failed" | "degraded";
-export type PlanExecutionStatus = "pending" | "running" | "success" | "partial" | "failed" | "degraded";
+export type PlanOutcomeStatus =
+  | "pending"
+  | "success"
+  | "partial"
+  | "failed"
+  | "degraded";
+export type PlanExecutionStatus =
+  | "pending"
+  | "running"
+  | "success"
+  | "partial"
+  | "failed"
+  | "degraded";
 
 export interface PlanStepReceipt {
   id: string;
@@ -176,7 +187,13 @@ export interface PlanVerificationResult {
   planId: string;
   planReceiptId: string;
   verified: boolean;
-  status: "verified" | "partially_verified" | "stored_only" | "anchored_only" | "failed" | "degraded";
+  status:
+    | "verified"
+    | "partially_verified"
+    | "stored_only"
+    | "anchored_only"
+    | "failed"
+    | "degraded";
   checks: {
     canonicalPlanHashMatch: boolean;
     canonicalSummaryHashMatch: boolean;
@@ -195,7 +212,15 @@ export interface PlanTimelineEvent {
   planReceiptId?: string;
   executionReceiptId?: string;
   resultReceiptId?: string;
-  stage: "goal" | "breakdown" | "execution" | "result" | "memory" | "reflection" | "proof" | "verification";
+  stage:
+    | "goal"
+    | "breakdown"
+    | "execution"
+    | "result"
+    | "memory"
+    | "reflection"
+    | "proof"
+    | "verification";
   status: PlanReceiptStatus | PlanExecutionStatus | PlanOutcomeStatus;
   title: string;
   summary: string;

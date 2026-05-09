@@ -45,7 +45,12 @@ export interface UXTimelineItem {
   description: string;
   status: "pending" | "active" | "completed" | "failed" | "skipped";
   timestamp?: string;
-  proofStatus?: "unverified" | "pending" | "verified" | "cached_only" | "degraded";
+  proofStatus?:
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "cached_only"
+    | "degraded";
   linkLabel?: string;
   linkUrl?: string;
 }
@@ -93,7 +98,8 @@ function executionToUxState(
   if (status === "reflected") return "reflecting";
   if (status === "stored") return "memory_write";
   if (status === "anchored") return "receipt_anchor";
-  if (status === "verified" || status === "succeeded") return "proof_verification";
+  if (status === "verified" || status === "succeeded")
+    return "proof_verification";
   if (status === "degraded") return "degraded";
   return "executing";
 }
@@ -112,7 +118,8 @@ function proofChannelFromRun(
   if (!result) {
     return {
       channel: "unavailable",
-      explanation: "No run yet — there is no Solana receipt or signature to verify.",
+      explanation:
+        "No run yet — there is no Solana receipt or signature to verify.",
     };
   }
   if (result.degraded) {
@@ -139,11 +146,14 @@ function proofChannelFromRun(
   }
   return {
     channel: "pending",
-    explanation: "Run still settling or proof not yet anchored on your cluster.",
+    explanation:
+      "Run still settling or proof not yet anchored on your cluster.",
   };
 }
 
-export function deriveCommandUX(input: DeriveCommandUXInput): CommandUXSnapshot {
+export function deriveCommandUX(
+  input: DeriveCommandUXInput,
+): CommandUXSnapshot {
   const {
     demoMode,
     walletConnected,
@@ -214,7 +224,8 @@ export function deriveCommandUX(input: DeriveCommandUXInput): CommandUXSnapshot 
       nextActionLabel: "Retry registry load",
       nextActionKind: "idle",
       proofChannel: "unavailable",
-      proofChannelExplanation: "No published skills loaded — execution cannot bind to a capability.",
+      proofChannelExplanation:
+        "No published skills loaded — execution cannot bind to a capability.",
       autonomyBandLabel: band,
     };
   }
@@ -222,10 +233,10 @@ export function deriveCommandUX(input: DeriveCommandUXInput): CommandUXSnapshot 
   if (!walletConnected) {
     return {
       uxState: "wallet_connect",
-      headline: "Connect Solana wallet",
+      headline: "Connect Phantom",
       subline:
         "Your address scopes receipts and memory; signing proves control without custody.",
-      nextActionLabel: "Connect Solana wallet + sign session",
+      nextActionLabel: "Connect Phantom + sign session",
       nextActionKind: "connect",
       proofChannel: "unavailable",
       proofChannelExplanation:
@@ -267,7 +278,10 @@ export function deriveCommandUX(input: DeriveCommandUXInput): CommandUXSnapshot 
   }
 
   const execUx = executionToUxState(lastResult?.execution.status, loopBusy);
-  if (execUx && (loopBusy || (lastResult && lastResult.execution.status !== "idle"))) {
+  if (
+    execUx &&
+    (loopBusy || (lastResult && lastResult.execution.status !== "idle"))
+  ) {
     const status = lastResult?.execution.status;
     const pc = proofChannelFromRun(lastResult ?? null, false);
 

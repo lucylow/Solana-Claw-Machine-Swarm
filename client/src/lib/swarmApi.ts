@@ -15,7 +15,7 @@ async function readBody(res: Response): Promise<unknown> {
         source: "swarm_api",
         statusCode: res.status,
         fallback: { code: "UNEXPECTED_ROUTE_ERROR" },
-      })
+      }),
     );
   }
 }
@@ -29,7 +29,7 @@ async function parseOk<T>(res: Response): Promise<T> {
         source: "swarm_api",
         statusCode: res.status,
         fallback: { code: "UNEXPECTED_ROUTE_ERROR" },
-      })
+      }),
     );
   }
   return (body as ApiOk<T>).data;
@@ -47,7 +47,9 @@ export async function fetchSolanaStatus() {
 }
 
 export async function fetchSession(walletAddress: string) {
-  const res = await fetch(`/api/session?walletAddress=${encodeURIComponent(walletAddress)}`);
+  const res = await fetch(
+    `/api/session?walletAddress=${encodeURIComponent(walletAddress)}`,
+  );
   return parseOk<{
     walletAddress: string;
     cluster: string;
@@ -72,7 +74,11 @@ export async function selectSkill(skillId: string, walletAddress: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ walletAddress }),
   });
-  return parseOk<{ walletAddress: string; skillId: string; selectedAt: string }>(res);
+  return parseOk<{
+    walletAddress: string;
+    skillId: string;
+    selectedAt: string;
+  }>(res);
 }
 
 export async function executeSwarm(input: {

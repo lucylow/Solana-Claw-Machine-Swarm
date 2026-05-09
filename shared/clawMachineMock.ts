@@ -70,13 +70,55 @@ export const CLAW_MACHINE_ECOSYSTEM: ClawMachineEcosystemStats = {
 };
 
 export const CLAW_EXECUTIVE_WEEKLY = [
-  { day: "Mon", wallets: 2_104, runs: 31_994, receipts: 31_882, failures: 2_112 },
-  { day: "Tue", wallets: 2_338, runs: 35_441, receipts: 35_287, failures: 2_398 },
-  { day: "Wed", wallets: 2_612, runs: 38_210, receipts: 38_001, failures: 2_441 },
-  { day: "Thu", wallets: 2_790, runs: 40_882, receipts: 40_664, failures: 2_702 },
-  { day: "Fri", wallets: 3_108, runs: 46_111, receipts: 45_804, failures: 3_001 },
-  { day: "Sat", wallets: 2_700, runs: 39_440, receipts: 39_220, failures: 2_615 },
-  { day: "Sun", wallets: 2_840, runs: 41_550, receipts: 41_289, failures: 2_733 },
+  {
+    day: "Mon",
+    wallets: 2_104,
+    runs: 31_994,
+    receipts: 31_882,
+    failures: 2_112,
+  },
+  {
+    day: "Tue",
+    wallets: 2_338,
+    runs: 35_441,
+    receipts: 35_287,
+    failures: 2_398,
+  },
+  {
+    day: "Wed",
+    wallets: 2_612,
+    runs: 38_210,
+    receipts: 38_001,
+    failures: 2_441,
+  },
+  {
+    day: "Thu",
+    wallets: 2_790,
+    runs: 40_882,
+    receipts: 40_664,
+    failures: 2_702,
+  },
+  {
+    day: "Fri",
+    wallets: 3_108,
+    runs: 46_111,
+    receipts: 45_804,
+    failures: 3_001,
+  },
+  {
+    day: "Sat",
+    wallets: 2_700,
+    runs: 39_440,
+    receipts: 39_220,
+    failures: 2_615,
+  },
+  {
+    day: "Sun",
+    wallets: 2_840,
+    runs: 41_550,
+    receipts: 41_289,
+    failures: 2_733,
+  },
 ] as const;
 
 export const CLAW_PRODUCT_OUTCOMES = {
@@ -89,11 +131,15 @@ export const CLAW_PRODUCT_OUTCOMES = {
 } as const;
 
 export const CLAW_NARRATIVE = {
-  mission: "Wallet-signed agents on Solana with compact receipts, reflection lineage, and verifiable storage pointers",
-  targetUser: "Builders shipping policy-gated orchestration with explorer-ready proof",
-  differentiator: "Structured receipts, PDAs, and off-chain payloads tied to Solana signatures — not opaque chat logs",
+  mission:
+    "Wallet-signed agents on Solana with compact receipts, reflection lineage, and verifiable storage pointers",
+  targetUser:
+    "Builders shipping policy-gated orchestration with explorer-ready proof",
+  differentiator:
+    "Structured receipts, PDAs, and off-chain payloads tied to Solana signatures — not opaque chat logs",
   monetization: "Skill fees, premium orchestration, enterprise nodes",
-  expansionPath: "Skill marketplace, reputation signals anchored to receipts, coordination markets",
+  expansionPath:
+    "Skill marketplace, reputation signals anchored to receipts, coordination markets",
 } as const;
 
 export const CLAW_DEPLOYED_PROGRAMS: ClawDeployedProgram[] = [
@@ -102,7 +148,8 @@ export const CLAW_DEPLOYED_PROGRAMS: ClawDeployedProgram[] = [
     programId: "CLAWReg1111111111111111111111111111111111",
     type: "Anchor program",
     status: "Active",
-    responsibilities: "Skill registration, versioning, approvals, reputation, ownership transfer",
+    responsibilities:
+      "Skill registration, versioning, approvals, reputation, ownership transfer",
   },
   {
     name: "claw_orchestrator",
@@ -116,7 +163,8 @@ export const CLAW_DEPLOYED_PROGRAMS: ClawDeployedProgram[] = [
     programId: "CLAWMem11111111111111111111111111111111111",
     type: "Anchor program",
     status: "Active",
-    responsibilities: "Memory anchors, recall links, pruning policies, trust scoring",
+    responsibilities:
+      "Memory anchors, recall links, pruning policies, trust scoring",
   },
   {
     name: "claw_receipts",
@@ -130,7 +178,8 @@ export const CLAW_DEPLOYED_PROGRAMS: ClawDeployedProgram[] = [
     programId: "CLAWGov1111111111111111111111111111111111",
     type: "Anchor program",
     status: "Active",
-    responsibilities: "Curator roles, risk flags, upgrade controls, emergency pause",
+    responsibilities:
+      "Curator roles, risk flags, upgrade controls, emergency pause",
   },
 ];
 
@@ -143,27 +192,93 @@ export const CLAW_PROGRAM_CONFIG = {
 } as const;
 
 export const CLAW_PDA_EXAMPLES = [
-  { name: "Skill PDA: research.solana-analyzer", address: "7p8R4o...fQ1d", status: "Active" },
+  {
+    name: "Skill PDA: research.solana-analyzer",
+    address: "7p8R4o...fQ1d",
+    status: "Active",
+  },
   { name: "Skill Version PDA v12", address: "2sWz8m...Gk9a", status: "Active" },
-  { name: "Memory PDA: session-8841", address: "Aw3nJk...tM33", status: "Anchored" },
-  { name: "Reflection PDA: turn-99213", address: "9Lq2Vh...Xc77", status: "Anchored" },
-  { name: "Receipt PDA: run-551882", address: "4Qf7Ms...Rz10", status: "Confirmed" },
+  {
+    name: "Memory PDA: session-8841",
+    address: "Aw3nJk...tM33",
+    status: "Anchored",
+  },
+  {
+    name: "Reflection PDA: turn-99213",
+    address: "9Lq2Vh...Xc77",
+    status: "Anchored",
+  },
+  {
+    name: "Receipt PDA: run-551882",
+    address: "4Qf7Ms...Rz10",
+    status: "Confirmed",
+  },
 ] as const;
 
 export const CLAW_WALLET_COHORTS = [
-  { cohort: "Builders", wallets: 8_102, sharePct: 43.8, behavior: "Test skills, deploy agents, inspect receipts" },
-  { cohort: "Researchers", wallets: 2_944, sharePct: 15.9, behavior: "Run analysis pipelines and memory experiments" },
-  { cohort: "Operators", wallets: 1_881, sharePct: 10.2, behavior: "Manage production workloads and reports" },
-  { cohort: "Enterprise Pilots", wallets: 1_214, sharePct: 6.6, behavior: "Dedicated agents under policy control" },
-  { cohort: "Hackathon Users", wallets: 4_351, sharePct: 23.5, behavior: "Rapid iteration and demo workflows" },
+  {
+    cohort: "Builders",
+    wallets: 8_102,
+    sharePct: 43.8,
+    behavior: "Test skills, deploy agents, inspect receipts",
+  },
+  {
+    cohort: "Researchers",
+    wallets: 2_944,
+    sharePct: 15.9,
+    behavior: "Run analysis pipelines and memory experiments",
+  },
+  {
+    cohort: "Operators",
+    wallets: 1_881,
+    sharePct: 10.2,
+    behavior: "Manage production workloads and reports",
+  },
+  {
+    cohort: "Enterprise Pilots",
+    wallets: 1_214,
+    sharePct: 6.6,
+    behavior: "Dedicated agents under policy control",
+  },
+  {
+    cohort: "Hackathon Users",
+    wallets: 4_351,
+    sharePct: 23.5,
+    behavior: "Rapid iteration and demo workflows",
+  },
 ] as const;
 
 export const CLAW_WALLET_METADATA = [
-  { label: "lucy-builder", address: "F6P1...aK22", role: "creator", trust: "high" },
-  { label: "swarm-coordinator", address: "9Nw2...kQ87", role: "operator", trust: "high" },
-  { label: "demo-wallet-01", address: "3Hk8...mT41", role: "demo", trust: "medium" },
-  { label: "enterprise-pilot-07", address: "8Qv4...zL12", role: "org", trust: "high" },
-  { label: "research-lab-03", address: "2Zm1...rC90", role: "lab", trust: "medium" },
+  {
+    label: "lucy-builder",
+    address: "F6P1...aK22",
+    role: "creator",
+    trust: "high",
+  },
+  {
+    label: "swarm-coordinator",
+    address: "9Nw2...kQ87",
+    role: "operator",
+    trust: "high",
+  },
+  {
+    label: "demo-wallet-01",
+    address: "3Hk8...mT41",
+    role: "demo",
+    trust: "medium",
+  },
+  {
+    label: "enterprise-pilot-07",
+    address: "8Qv4...zL12",
+    role: "org",
+    trust: "high",
+  },
+  {
+    label: "research-lab-03",
+    address: "2Zm1...rC90",
+    role: "lab",
+    trust: "medium",
+  },
 ] as const;
 
 export const CLAW_WALLET_ACTIVITY = {
@@ -206,7 +321,8 @@ export const CLAW_SKILL_SEEDS: ClawSkillSeed[] = [
     id: "skill_multi_planner",
     name: "Multi-Agent Planner",
     category: "orchestration",
-    description: "Decomposes goals into CPI-safe multi-step agent plans on Solana",
+    description:
+      "Decomposes goals into CPI-safe multi-step agent plans on Solana",
     authorWallet: "3Hk8mT41ExampleWallet333333333333333333333",
     version: "3.0.1",
     reputation: 94,
@@ -232,7 +348,8 @@ export const CLAW_SKILL_SEEDS: ClawSkillSeed[] = [
     id: "skill_mem_consolidator",
     name: "Memory Consolidator",
     category: "memory",
-    description: "Merges short- and mid-term agent memory into long-term anchors",
+    description:
+      "Merges short- and mid-term agent memory into long-term anchors",
     authorWallet: "2Zm1rC90ExampleWallet555555555555555555555",
     version: "2.0.6",
     reputation: 91,
@@ -245,7 +362,8 @@ export const CLAW_SKILL_SEEDS: ClawSkillSeed[] = [
     id: "skill_proposal",
     name: "Proposal Drafting Agent",
     category: "business",
-    description: "Drafts governance and partnership memos with on-chain citation hooks",
+    description:
+      "Drafts governance and partnership memos with on-chain citation hooks",
     authorWallet: "G9hnKjk8YvZ2mVx3u6Bm1pqf5xg2SkRtVwVjRk4aA9yx",
     version: "1.2.9",
     reputation: 90,
@@ -271,7 +389,8 @@ export const CLAW_SKILL_SEEDS: ClawSkillSeed[] = [
     id: "skill_reflection_gen",
     name: "Reflection Generator",
     category: "reasoning",
-    description: "Structured root-cause and retry hints after failed agent runs",
+    description:
+      "Structured root-cause and retry hints after failed agent runs",
     authorWallet: "8qFwzE9wC2vYVh2kGTH8A7fWjMc2R7qM6wQh4QYzR7uD",
     version: "1.0.4",
     reputation: 91,
@@ -310,8 +429,16 @@ export const CLAW_MEMORY_TYPES = [
   { kind: "Short-term", purpose: "Active run context", retention: "24 hours" },
   { kind: "Mid-term", purpose: "Recent lessons", retention: "30 days" },
   { kind: "Long-term", purpose: "Stable patterns", retention: "180 days" },
-  { kind: "Governance memory", purpose: "Policy history", retention: "permanent" },
-  { kind: "Reputation memory", purpose: "Skill scoring", retention: "permanent" },
+  {
+    kind: "Governance memory",
+    purpose: "Policy history",
+    retention: "permanent",
+  },
+  {
+    kind: "Reputation memory",
+    purpose: "Skill scoring",
+    retention: "permanent",
+  },
 ] as const;
 
 export const CLAW_MEMORY_RETRIEVAL = {
@@ -323,7 +450,11 @@ export const CLAW_MEMORY_RETRIEVAL = {
 
 export const CLAW_AGENT_FLEET_ROLES = [
   { role: "Planner", count: 814, duties: "Break goals into tasks" },
-  { role: "Researcher", count: 1_122, duties: "Collect facts and source context" },
+  {
+    role: "Researcher",
+    count: 1_122,
+    duties: "Collect facts and source context",
+  },
   { role: "Executor", count: 1_402, duties: "Run operations and actions" },
   { role: "Critic", count: 398, duties: "Detect errors and inconsistencies" },
   { role: "Summarizer", count: 611, duties: "Produce outputs and reports" },
@@ -353,10 +484,22 @@ export const CLAW_GOVERNANCE_EVENTS = {
 } as const;
 
 export const CLAW_RISK_FLAGS = [
-  { flag: "High latency skill", active: 18, description: "Slower than threshold" },
+  {
+    flag: "High latency skill",
+    active: 18,
+    description: "Slower than threshold",
+  },
   { flag: "Low success skill", active: 27, description: "Below 80% success" },
-  { flag: "Unreviewed skill", active: 614, description: "Pending curator review" },
-  { flag: "Suspicious usage pattern", active: 11, description: "Likely automated abuse" },
+  {
+    flag: "Unreviewed skill",
+    active: 614,
+    description: "Pending curator review",
+  },
+  {
+    flag: "Suspicious usage pattern",
+    active: 11,
+    description: "Likely automated abuse",
+  },
 ] as const;
 
 export const CLAW_COMMERCIAL = {
@@ -441,12 +584,36 @@ export const CLAW_TRACTION_PILLS = [
 ] as const;
 
 export const CLAW_TRACTION_TABLE = [
-  { metric: "Connected wallets", value: "18,492", proof: "Registry index + Helius (demo appendix)" },
-  { metric: "Skills registered", value: "12,640", proof: "claw_registry · SkillRoot PDAs (mock)" },
-  { metric: "Skills active", value: "9,384", proof: "SkillRoot + SkillVersion PDAs (mock)" },
-  { metric: "Receipts anchored", value: "2,491,220", proof: "claw_receipts · slot ~317.8M (mock)" },
-  { metric: "Reflections generated", value: "1,120,554", proof: "Reflection PDAs + off-chain narrative (mock)" },
-  { metric: "Avg. tx finality", value: "420 ms", proof: "RPC sample · mainnet-beta (mock)" },
+  {
+    metric: "Connected wallets",
+    value: "18,492",
+    proof: "Registry index + Helius (demo appendix)",
+  },
+  {
+    metric: "Skills registered",
+    value: "12,640",
+    proof: "claw_registry · SkillRoot PDAs (mock)",
+  },
+  {
+    metric: "Skills active",
+    value: "9,384",
+    proof: "SkillRoot + SkillVersion PDAs (mock)",
+  },
+  {
+    metric: "Receipts anchored",
+    value: "2,491,220",
+    proof: "claw_receipts · slot ~317.8M (mock)",
+  },
+  {
+    metric: "Reflections generated",
+    value: "1,120,554",
+    proof: "Reflection PDAs + off-chain narrative (mock)",
+  },
+  {
+    metric: "Avg. tx finality",
+    value: "420 ms",
+    proof: "RPC sample · mainnet-beta (mock)",
+  },
 ] as const;
 
 export function formatClawInteger(n: number): string {

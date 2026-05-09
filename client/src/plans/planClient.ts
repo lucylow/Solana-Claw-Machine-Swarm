@@ -68,11 +68,12 @@ export async function createPlanResult(input: {
   reflection?: PlanResultReceipt["reflection"];
   memory?: PlanResultReceipt["memory"];
 }) {
-  return request<{ result: PlanResultReceipt; planReceipt: PlanReceipt; degraded: boolean }>(
-    "/api/plans/result",
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    }
-  );
+  return request<{
+    result: PlanResultReceipt;
+    planReceipt: PlanReceipt;
+    degraded: boolean;
+  }>("/api/plans/result", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

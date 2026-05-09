@@ -1,4 +1,10 @@
-import { CcMetric, CcMiniLoopOrbit, CcPanel, CcSectionHeader, CcStatusDot } from "@/components/command-center/CcPrimitives";
+import {
+  CcMetric,
+  CcMiniLoopOrbit,
+  CcPanel,
+  CcSectionHeader,
+  CcStatusDot,
+} from "@/components/command-center/CcPrimitives";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +27,11 @@ import {
   DEMO_SKILLS,
   DEMO_WALLET_SNAPSHOT,
 } from "@shared/solana/demoCanonical";
-import { AGENT_LOOP_STEPS_DETAILED, SOLANA_COPY, STORY_LOOP_LABELS } from "@shared/copy";
+import {
+  AGENT_LOOP_STEPS_DETAILED,
+  SOLANA_COPY,
+  STORY_LOOP_LABELS,
+} from "@shared/copy";
 import {
   CLAW_TRACTION_PILLS,
   formatClawInteger,
@@ -92,17 +102,42 @@ function useAutoAdvance(total: number, intervalMs = 1800): number {
   return idx;
 }
 
-const EXECUTION_LOG: Array<{ step: string; tone: "live" | "warn" | "proof" }> = [
-  { step: "solana.wallet → signed session verified against backend nonce", tone: "proof" },
-  { step: "planner.discover_skills → ranked by reputation (SWARM discovery)", tone: "live" },
-  { step: "policy.evaluate → review_required (confidence below threshold)", tone: "warn" },
-  { step: "operator.execute → step failed: stale context window", tone: "warn" },
-  { step: "critic.reflect → root cause + next action emitted", tone: "live" },
-  { step: "zerog.storage.put → reflection JSON / narrative blob", tone: "live" },
-  { step: "zerog.da.append → payload hash + batch root for replay", tone: "live" },
-  { step: "solana.record_receipt → compact summary hash + storage commitment", tone: "proof" },
-  { step: "explorer.verify → wallet sees signature + PDAs + 0G URIs", tone: "proof" },
-];
+const EXECUTION_LOG: Array<{ step: string; tone: "live" | "warn" | "proof" }> =
+  [
+    {
+      step: "solana.wallet → signed session verified against backend nonce",
+      tone: "proof",
+    },
+    {
+      step: "planner.discover_skills → ranked by reputation (SWARM discovery)",
+      tone: "live",
+    },
+    {
+      step: "policy.evaluate → review_required (confidence below threshold)",
+      tone: "warn",
+    },
+    {
+      step: "operator.execute → step failed: stale context window",
+      tone: "warn",
+    },
+    { step: "critic.reflect → root cause + next action emitted", tone: "live" },
+    {
+      step: "zerog.storage.put → reflection JSON / narrative blob",
+      tone: "live",
+    },
+    {
+      step: "zerog.da.append → payload hash + batch root for replay",
+      tone: "live",
+    },
+    {
+      step: "solana.record_receipt → compact summary hash + storage commitment",
+      tone: "proof",
+    },
+    {
+      step: "explorer.verify → wallet sees signature + PDAs + 0G URIs",
+      tone: "proof",
+    },
+  ];
 
 const OPERATING_MODULES: Array<{
   icon: ComponentType<{ className?: string }>;
@@ -161,7 +196,10 @@ const OPERATING_MODULES: Array<{
   },
 ];
 
-const SIDE_NAV_PREVIEW: Array<{ icon: ComponentType<{ className?: string }>; label: string }> = [
+const SIDE_NAV_PREVIEW: Array<{
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}> = [
   { icon: PlayCircle, label: "Mission deck" },
   { icon: Cpu, label: "Live run" },
   { icon: SearchCode, label: "Skill registry" },
@@ -175,7 +213,10 @@ const SIDE_NAV_PREVIEW: Array<{ icon: ComponentType<{ className?: string }>; lab
   { icon: Database, label: "0G sidecar" },
 ];
 
-const AUTONOMY_BANDS: Array<{ label: string; tier: "manual" | "guided" | "agency" | "autonomous" }> = [
+const AUTONOMY_BANDS: Array<{
+  label: string;
+  tier: "manual" | "guided" | "agency" | "autonomous";
+}> = [
   { label: "Automation only", tier: "manual" },
   { label: "Assisted", tier: "manual" },
   { label: "Guided", tier: "guided" },
@@ -202,7 +243,12 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
   const heroPills = useMemo(
     () => [
       {
-        tone: status === "verified" ? "proof" : status === "connected" ? "live" : "warn",
+        tone:
+          status === "verified"
+            ? "proof"
+            : status === "connected"
+              ? "live"
+              : "warn",
         label:
           status === "verified"
             ? `Session verified · ${shortenAddress(wallet.walletAddress!, 4, 4)}`
@@ -210,7 +256,10 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               ? `Connected · sign session next`
               : "Solana wallet offline",
       } as const,
-      { tone: "live" as const, label: `Cluster · ${wallet.walletState.cluster}` },
+      {
+        tone: "live" as const,
+        label: `Cluster · ${wallet.walletState.cluster}`,
+      },
       { tone: "neutral" as const, label: `Loop · 9 phases · 0G + Solana` },
     ],
     [status, wallet.walletAddress, wallet.walletState.cluster],
@@ -265,7 +314,11 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               onClick={() => wallet.connectAndVerify().catch(() => undefined)}
             >
               <Wallet className="mr-1.5 h-4 w-4" aria-hidden />
-              {verified ? "Session verified" : walletConnected ? "Sign session" : "Connect wallet"}
+              {verified
+                ? "Session verified"
+                : walletConnected
+                  ? "Sign session"
+                  : "Connect Phantom"}
             </Button>
 
             <DropdownMenu>
@@ -286,22 +339,44 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                   Modules
                 </DropdownMenuLabel>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/how-it-works")}>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/how-it-works")}
+                  >
                     <BookOpen className="h-4 w-4 text-[#5ee4c7]" /> How it works
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/skills")}>
-                    <LayoutGrid className="h-4 w-4 text-[#5ee4c7]" /> Skill registry
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/skills")}
+                  >
+                    <LayoutGrid className="h-4 w-4 text-[#5ee4c7]" /> Skill
+                    registry
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/receipts")}>
-                    <ReceiptText className="h-4 w-4 text-[#5ee4c7]" /> Receipts on Solana
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/receipts")}
+                  >
+                    <ReceiptText className="h-4 w-4 text-[#5ee4c7]" /> Receipts
+                    on Solana
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/onchain")}>
-                    <Link2 className="h-4 w-4 text-[#5ee4c7]" /> On-chain proof rail
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/onchain")}
+                  >
+                    <Link2 className="h-4 w-4 text-[#5ee4c7]" /> On-chain proof
+                    rail
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/proofs")}>
-                    <ShieldCheck className="h-4 w-4 text-[#5ee4c7]" /> Solana proof explorer
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/proofs")}
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#5ee4c7]" /> Solana
+                    proof explorer
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/zerog")}>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/zerog")}
+                  >
                     <Database className="h-4 w-4 text-[#5ee4c7]" /> 0G sidecar
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -310,13 +385,23 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                   Demos &amp; apps
                 </DropdownMenuLabel>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/demo/hub")}>
-                    <PlayCircle className="h-4 w-4 text-[#5ee4c7]" /> Mock demo hub
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/demo/hub")}
+                  >
+                    <PlayCircle className="h-4 w-4 text-[#5ee4c7]" /> Mock demo
+                    hub
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/dao")}>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/dao")}
+                  >
                     <Landmark className="h-4 w-4 text-[#5ee4c7]" /> DAO
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-white/10" onSelect={() => setLocation("/nft")}>
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 focus:bg-white/10"
+                    onSelect={() => setLocation("/nft")}
+                  >
                     <Image className="h-4 w-4 text-[#5ee4c7]" /> Solana NFTs
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -331,13 +416,21 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               key={pill.label}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium uppercase tracking-wider",
-                pill.tone === "proof" && "border-[#14f195]/45 bg-[#14f195]/10 text-[#c8ffe8]",
-                pill.tone === "live" && "border-[#38d7d0]/40 bg-[#38d7d0]/10 text-[#bdf6f0]",
-                pill.tone === "neutral" && "border-white/10 bg-black/40 text-slate-400",
-                pill.tone === "warn" && "border-amber-400/35 bg-amber-500/10 text-amber-100",
+                pill.tone === "proof" &&
+                  "border-[#14f195]/45 bg-[#14f195]/10 text-[#c8ffe8]",
+                pill.tone === "live" &&
+                  "border-[#38d7d0]/40 bg-[#38d7d0]/10 text-[#bdf6f0]",
+                pill.tone === "neutral" &&
+                  "border-white/10 bg-black/40 text-slate-400",
+                pill.tone === "warn" &&
+                  "border-amber-400/35 bg-amber-500/10 text-amber-100",
               )}
             >
-              <CcStatusDot tone={pill.tone === "neutral" ? "idle" : pill.tone} pulse={pill.tone === "live"} size="sm" />
+              <CcStatusDot
+                tone={pill.tone === "neutral" ? "idle" : pill.tone}
+                pulse={pill.tone === "live"}
+                size="sm"
+              />
               {pill.label}
             </span>
           ))}
@@ -348,15 +441,27 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto max-w-[1600px] space-y-10 px-4 py-8 sm:px-6 md:py-12">
+      <main
+        id="main-content"
+        className="mx-auto max-w-[1600px] space-y-10 px-4 py-8 sm:px-6 md:py-12"
+      >
         {/* ===========================================================
          * 1. HERO — mission stage with live mini-loop orbit
          * =========================================================== */}
         <section className="grid gap-5 lg:grid-cols-[1.5fr_minmax(280px,420px)]">
           <CcPanel tone="proof" className="relative overflow-hidden p-6 sm:p-8">
-            <div className="pointer-events-none absolute inset-0 cc-grid opacity-50" aria-hidden />
-            <div className="pointer-events-none absolute -right-24 -top-32 h-72 w-72 rounded-full bg-[#14f195]/12 blur-3xl" aria-hidden />
-            <div className="pointer-events-none absolute -bottom-28 -left-12 h-60 w-72 rounded-full bg-[#38d7d0]/10 blur-3xl" aria-hidden />
+            <div
+              className="pointer-events-none absolute inset-0 cc-grid opacity-50"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -right-24 -top-32 h-72 w-72 rounded-full bg-[#14f195]/12 blur-3xl"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-28 -left-12 h-60 w-72 rounded-full bg-[#38d7d0]/10 blur-3xl"
+              aria-hidden
+            />
 
             <div className="relative">
               <span className="inline-flex items-center gap-2 rounded-full border border-[#14f195]/35 bg-[#14f195]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#bcffd9]">
@@ -368,9 +473,13 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 <span className="text-[#bcffd9]">command center</span>.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
-                Connect a Solana wallet, choose a published skill, and watch the system{" "}
-                <span className="text-white">plan, execute, reflect, write memory,</span> and{" "}
-                <span className="text-white">anchor a compact receipt</span> you can verify on Solana Explorer in seconds.
+                Connect a Solana wallet, choose a published skill, and watch the
+                system{" "}
+                <span className="text-white">
+                  plan, execute, reflect, write memory,
+                </span>{" "}
+                and <span className="text-white">anchor a compact receipt</span>{" "}
+                you can verify on Solana Explorer in seconds.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">
@@ -384,10 +493,14 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 <Button
                   variant="outline"
                   className="border-[#38d7d0]/45 text-[#b5fff8]"
-                  onClick={() => wallet.connectAndVerify().catch(() => undefined)}
+                  onClick={() =>
+                    wallet.connectAndVerify().catch(() => undefined)
+                  }
                 >
                   <Wallet className="mr-1.5 h-4 w-4" aria-hidden />
-                  {verified ? SOLANA_COPY.wallet.refreshSignedSession : SOLANA_COPY.wallet.connectVerify}
+                  {verified
+                    ? SOLANA_COPY.wallet.refreshSignedSession
+                    : SOLANA_COPY.wallet.connectVerify}
                 </Button>
                 <Button
                   variant="outline"
@@ -402,29 +515,45 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               {/* Wallet / session band — operational, not marketing */}
               <CcPanel className="relative mt-6 grid gap-3 p-4 sm:grid-cols-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Solana wallet</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Solana wallet
+                  </p>
                   <p className="mt-1 truncate font-mono text-[12px] text-slate-100">
                     {walletConnected
                       ? shortenAddress(wallet.walletAddress!, 6, 6)
                       : SOLANA_COPY.wallet.notConnected}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-slate-500">{wallet.walletName ?? "Adapter"}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    {wallet.walletName ?? "Adapter"}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Session</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Session
+                  </p>
                   <p className="mt-1 capitalize text-slate-200">
                     {wallet.walletState.connectionStatus.replaceAll("_", " ")}
                   </p>
                   <p className="mt-0.5 text-[10px] text-slate-500">
-                    Expires · {formatSessionExpiry(wallet.sessionProfile?.expiresAt)}
+                    Expires ·{" "}
+                    {formatSessionExpiry(wallet.sessionProfile?.expiresAt)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Proof channel</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Proof channel
+                  </p>
                   <div className="mt-1 flex items-center gap-1.5">
-                    <CcStatusDot tone={verified ? "proof" : "warn"} pulse={!verified && walletConnected} />
+                    <CcStatusDot
+                      tone={verified ? "proof" : "warn"}
+                      pulse={!verified && walletConnected}
+                    />
                     <span className="text-slate-200">
-                      {verified ? "verified" : walletConnected ? "session pending" : "offline · demo fixtures"}
+                      {verified
+                        ? "verified"
+                        : walletConnected
+                          ? "session pending"
+                          : "offline · demo fixtures"}
                     </span>
                   </div>
                   {wallet.walletAddress ? (
@@ -434,17 +563,21 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                       rel="noreferrer"
                       className="mt-1 inline-flex items-center gap-1 text-[10px] text-cyan-200 underline-offset-4 hover:underline"
                     >
-                      Open on Solana Explorer <ExternalLink className="h-3 w-3" aria-hidden />
+                      Open on Solana Explorer{" "}
+                      <ExternalLink className="h-3 w-3" aria-hidden />
                     </a>
                   ) : (
-                    <p className="mt-1 text-[10px] text-slate-600">Connect to bind receipts.</p>
+                    <p className="mt-1 text-[10px] text-slate-600">
+                      Connect to bind receipts.
+                    </p>
                   )}
                 </div>
               </CcPanel>
 
               {!isAuthenticated ? (
                 <p className="mt-3 text-[11px] text-amber-200/95">
-                  Sign in to bind runs to your Solana wallet, stream memory writes, and surface explorer-verifiable receipts.
+                  Sign in to bind runs to your Solana wallet, stream memory
+                  writes, and surface explorer-verifiable receipts.
                 </p>
               ) : null}
             </div>
@@ -464,9 +597,14 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               }
               className="w-full"
             />
-            <CcMiniLoopOrbit activeIndex={orbitIdx} size={240} caption="proof-anchored loop" />
+            <CcMiniLoopOrbit
+              activeIndex={orbitIdx}
+              size={240}
+              caption="proof-anchored loop"
+            />
             <p className="px-2 text-center text-[11px] leading-relaxed text-slate-500">
-              Each ring node represents a phase. The active stage glows; completed stages mint receipts the wallet can verify on Solana.
+              Each ring node represents a phase. The active stage glows;
+              completed stages mint receipts the wallet can verify on Solana.
             </p>
             <div className="grid w-full grid-cols-2 gap-2">
               {CLAW_TRACTION_PILLS.slice(0, 4).map((pill) => (
@@ -508,10 +646,18 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                       <span className="font-mono text-[10px] text-slate-500">
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <CcStatusDot tone={tone === "idle" ? "idle" : tone} size="sm" pulse={tone === "live"} />
+                      <CcStatusDot
+                        tone={tone === "idle" ? "idle" : tone}
+                        size="sm"
+                        pulse={tone === "live"}
+                      />
                     </div>
-                    <p className="text-[12px] font-medium leading-snug text-slate-100">{label}</p>
-                    <p className="text-[10px] text-slate-500">{AGENT_LOOP_STEPS_DETAILED[i]}</p>
+                    <p className="text-[12px] font-medium leading-snug text-slate-100">
+                      {label}
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      {AGENT_LOOP_STEPS_DETAILED[i]}
+                    </p>
                   </div>
                 );
               })}
@@ -544,10 +690,14 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#87f7d0]/80">
                         {m.kicker}
                       </p>
-                      <h3 className="mt-0.5 text-base font-semibold tracking-tight text-white">{m.title}</h3>
+                      <h3 className="mt-0.5 text-base font-semibold tracking-tight text-white">
+                        {m.title}
+                      </h3>
                     </div>
                   </div>
-                  <p className="text-[12.5px] leading-relaxed text-slate-400">{m.detail}</p>
+                  <p className="text-[12.5px] leading-relaxed text-slate-400">
+                    {m.detail}
+                  </p>
                   <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
                     {m.tags.map((tag) => (
                       <span
@@ -580,7 +730,9 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               }
             />
             <p className="mt-2 text-[11.5px] leading-relaxed text-slate-500">
-              Scripted replay of one failed step: policy hold → critic reflection → memory tier bump → Solana receipt. Swap in your RPC and this becomes production telemetry.
+              Scripted replay of one failed step: policy hold → critic
+              reflection → memory tier bump → Solana receipt. Swap in your RPC
+              and this becomes production telemetry.
             </p>
             <ol className="mt-4 space-y-1.5 rounded-xl border border-white/8 bg-black/40 p-3 font-mono text-[11px] text-slate-300">
               {EXECUTION_LOG.map((line, i) => (
@@ -590,7 +742,9 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                   </span>
                   <CcStatusDot
                     tone={line.tone}
-                    pulse={line.tone === "live" && i === EXECUTION_LOG.length - 3}
+                    pulse={
+                      line.tone === "live" && i === EXECUTION_LOG.length - 3
+                    }
                     className="mt-1.5 shrink-0"
                   />
                   <span>{line.step}</span>
@@ -612,9 +766,25 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 }
               />
               <dl className="mt-3 space-y-1.5 text-[11px]">
-                <KV label="tx signature" value={shortenAddress(DEMO_CHAIN_RECEIPT.txSignature, 8, 8)} mono />
-                <KV label="account" value={shortenAddress(DEMO_CHAIN_RECEIPT.account ?? "—", 8, 8)} mono />
-                <KV label="summary hash" value={DEMO_CHAIN_RECEIPT.summaryHash ?? "—"} mono />
+                <KV
+                  label="tx signature"
+                  value={shortenAddress(DEMO_CHAIN_RECEIPT.txSignature, 8, 8)}
+                  mono
+                />
+                <KV
+                  label="account"
+                  value={shortenAddress(
+                    DEMO_CHAIN_RECEIPT.account ?? "—",
+                    8,
+                    8,
+                  )}
+                  mono
+                />
+                <KV
+                  label="summary hash"
+                  value={DEMO_CHAIN_RECEIPT.summaryHash ?? "—"}
+                  mono
+                />
                 <KV label="cluster" value={DEMO_CHAIN_RECEIPT.cluster} />
               </dl>
               <a
@@ -635,9 +805,21 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 title="Structured critique · injected next turn"
               />
               <dl className="mt-3 space-y-1.5 text-[11px]">
-                <KV label="root cause" value={DEMO_REFLECTION.rootCause} multiline />
-                <KV label="advice" value={DEMO_REFLECTION.correctiveAdvice} multiline />
-                <KV label="next action" value={DEMO_REFLECTION.nextAction} multiline />
+                <KV
+                  label="root cause"
+                  value={DEMO_REFLECTION.rootCause}
+                  multiline
+                />
+                <KV
+                  label="advice"
+                  value={DEMO_REFLECTION.correctiveAdvice}
+                  multiline
+                />
+                <KV
+                  label="next action"
+                  value={DEMO_REFLECTION.nextAction}
+                  multiline
+                />
               </dl>
             </CcPanel>
 
@@ -652,12 +834,18 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                   </span>
                 }
               />
-              <p className="mt-2 text-[11.5px] text-slate-400">{DEMO_SKILLS[0]?.description}</p>
+              <p className="mt-2 text-[11.5px] text-slate-400">
+                {DEMO_SKILLS[0]?.description}
+              </p>
               <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                <Tag>author {shortenAddress(DEMO_SKILLS[0]!.authorWallet, 4, 4)}</Tag>
+                <Tag>
+                  author {shortenAddress(DEMO_SKILLS[0]!.authorWallet, 4, 4)}
+                </Tag>
                 <Tag>rep {DEMO_SKILLS[0]?.reputationScore}</Tag>
                 <Tag>{DEMO_SKILLS[0]?.successRate}% success</Tag>
-                <Tag>{formatClawInteger(DEMO_SKILLS[0]?.usageCount ?? 0)} uses</Tag>
+                <Tag>
+                  {formatClawInteger(DEMO_SKILLS[0]?.usageCount ?? 0)} uses
+                </Tag>
                 <Tag mono>{DEMO_SKILLS[0]?.contentHash}</Tag>
               </div>
             </CcPanel>
@@ -673,7 +861,11 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 <KV label="status" value={DEMO_AGENT_PLAN.status} />
                 <KV
                   label="anchor tx"
-                  value={shortenAddress(DEMO_AGENT_PLAN.solana?.txSignature ?? "—", 8, 8)}
+                  value={shortenAddress(
+                    DEMO_AGENT_PLAN.solana?.txSignature ?? "—",
+                    8,
+                    8,
+                  )}
                   mono
                 />
               </div>
@@ -700,7 +892,9 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40 text-slate-300 group-hover:border-[#14f195]/35 group-hover:text-[#bcffd9]">
                   <item.icon className="h-3.5 w-3.5" />
                 </span>
-                <span className="flex-1 text-[12.5px] text-slate-200 group-hover:text-white">{item.label}</span>
+                <span className="flex-1 text-[12.5px] text-slate-200 group-hover:text-white">
+                  {item.label}
+                </span>
                 <ArrowRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-[#bcffd9]" />
               </Link>
             ))}
@@ -742,9 +936,14 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                       <span className="font-mono text-[10px] text-slate-500">
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <CcStatusDot tone={tone === "info" ? "info" : tone} size="sm" />
+                      <CcStatusDot
+                        tone={tone === "info" ? "info" : tone}
+                        size="sm"
+                      />
                     </div>
-                    <p className="mt-2 text-[12px] font-medium leading-tight text-slate-100">{b.label}</p>
+                    <p className="mt-2 text-[12px] font-medium leading-tight text-slate-100">
+                      {b.label}
+                    </p>
                   </div>
                 );
               })}
@@ -757,7 +956,10 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
          * =========================================================== */}
         <section className="grid gap-3 lg:grid-cols-2">
           <CcPanel className="p-5">
-            <CcSectionHeader kicker="Stateless agents" title="Generic LLM stack (contrast)" />
+            <CcSectionHeader
+              kicker="Stateless agents"
+              title="Generic LLM stack (contrast)"
+            />
             <ul className="mt-3 space-y-1.5 text-[12px] text-slate-400">
               {[
                 "Stateless turns",
@@ -768,7 +970,10 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 "Reputation not on-ledger",
               ].map((item) => (
                 <li key={item} className="flex items-center gap-2">
-                  <span className="inline-block h-1 w-1 rounded-full bg-slate-600" aria-hidden />
+                  <span
+                    className="inline-block h-1 w-1 rounded-full bg-slate-600"
+                    aria-hidden
+                  />
                   {item}
                 </li>
               ))}
@@ -791,7 +996,10 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 "OpenClaw bridge with provenance",
               ].map((item) => (
                 <li key={item} className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3 w-3 text-[#14f195]" aria-hidden />
+                  <CheckCircle2
+                    className="h-3 w-3 text-[#14f195]"
+                    aria-hidden
+                  />
                   {item}
                 </li>
               ))}
@@ -801,7 +1009,8 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
                 className="bg-[#14f195] font-semibold text-black hover:bg-[#5cffb8]"
                 onClick={() => setLocation("/dashboard?section=overview")}
               >
-                <PlayCircle className="mr-1.5 h-4 w-4" aria-hidden /> Enter command center
+                <PlayCircle className="mr-1.5 h-4 w-4" aria-hidden /> Enter
+                command center
               </Button>
               <Button
                 variant="outline"
@@ -824,28 +1033,50 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
               title="Frontier &amp; SWARM next steps"
             />
             <p className="mt-2 text-[12px] text-slate-300">
-              Ship the demo from inside the command center. External links open in a new tab; receipts cite{" "}
-              <span className="font-mono text-[#bcffd9]">{shortenAddress(DEMO_WALLET_SNAPSHOT.publicKey, 4, 4)}</span> as the demo signer.
+              Ship the demo from inside the command center. External links open
+              in a new tab; receipts cite{" "}
+              <span className="font-mono text-[#bcffd9]">
+                {shortenAddress(DEMO_WALLET_SNAPSHOT.publicKey, 4, 4)}
+              </span>{" "}
+              as the demo signer.
             </p>
           </CcPanel>
           <div className="flex flex-col gap-2 md:items-end">
             <Button
               className="w-full bg-[#14f195] text-black hover:bg-[#5cffb8] md:w-auto"
-              onClick={() => window.open("https://arena.colosseum.org", "_blank", "noopener,noreferrer")}
+              onClick={() =>
+                window.open(
+                  "https://arena.colosseum.org",
+                  "_blank",
+                  "noopener,noreferrer",
+                )
+              }
             >
               Frontier arena (Colosseum)
             </Button>
             <Button
               variant="outline"
               className="w-full border-[#38d7d0]/50 text-[#9dfbf5] md:w-auto"
-              onClick={() => window.open("https://swarm.thecanteenapp", "_blank", "noopener,noreferrer")}
+              onClick={() =>
+                window.open(
+                  "https://swarm.thecanteenapp",
+                  "_blank",
+                  "noopener,noreferrer",
+                )
+              }
             >
               SWARM · thecanteenapp
             </Button>
             <Button
               variant="outline"
               className="w-full border-white/15 text-slate-200 md:w-auto"
-              onClick={() => window.open("https://github.com/lucylow/CLAW_MACHINE", "_blank", "noopener,noreferrer")}
+              onClick={() =>
+                window.open(
+                  "https://github.com/lucylow/CLAW_MACHINE",
+                  "_blank",
+                  "noopener,noreferrer",
+                )
+              }
             >
               Fork reference repo
             </Button>
@@ -855,7 +1086,10 @@ export default function SwarmLanding({ isAuthenticated }: SwarmLandingProps) {
 
       <footer className="border-t border-white/[0.06] bg-black/80">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-5 text-xs text-slate-400 sm:px-6">
-          <p>CLAW_MACHINE SWARM · Solana agent command layer · Frontier submission ready</p>
+          <p>
+            CLAW_MACHINE SWARM · Solana agent command layer · Frontier
+            submission ready
+          </p>
           <div className="flex items-center gap-4">
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-[#4fe5d1]" aria-hidden />
@@ -894,7 +1128,9 @@ function SectionHeading({
       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#87f7d0]/80">
         {kicker}
       </p>
-      <h2 className="text-xl font-semibold tracking-tight text-white md:text-2xl">{title}</h2>
+      <h2 className="text-xl font-semibold tracking-tight text-white md:text-2xl">
+        {title}
+      </h2>
       {description ? (
         <p className="max-w-3xl text-[12.5px] text-slate-400">{description}</p>
       ) : null}
@@ -920,11 +1156,15 @@ function KV({
         multiline ? "flex-col" : "items-center justify-between",
       )}
     >
-      <dt className="shrink-0 text-[10px] uppercase tracking-wide text-slate-500">{label}</dt>
+      <dt className="shrink-0 text-[10px] uppercase tracking-wide text-slate-500">
+        {label}
+      </dt>
       <dd
         className={cn(
           "min-w-0 text-slate-200",
-          multiline ? "text-[11.5px] leading-relaxed text-slate-300" : "text-right",
+          multiline
+            ? "text-[11.5px] leading-relaxed text-slate-300"
+            : "text-right",
           mono && "font-mono text-[11px] text-slate-300",
         )}
       >

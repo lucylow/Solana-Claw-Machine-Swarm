@@ -72,7 +72,11 @@ export class DaoStore {
   private async persist() {
     if (!this.filePath) return;
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.state, null, 2), "utf8");
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(this.state, null, 2),
+      "utf8",
+    );
   }
 
   async setConfig(config: DaoConfigRecord) {
@@ -93,7 +97,7 @@ export class DaoStore {
   }
 
   async upsertMember(member: DaoMemberRecord) {
-    const idx = this.state.members.findIndex(m => m.wallet === member.wallet);
+    const idx = this.state.members.findIndex((m) => m.wallet === member.wallet);
     if (idx >= 0) this.state.members[idx] = member;
     else this.state.members.unshift(member);
     await this.persist();
@@ -101,7 +105,9 @@ export class DaoStore {
   }
 
   async upsertProposal(proposal: DaoProposalRecord) {
-    const idx = this.state.proposals.findIndex(p => p.proposalId === proposal.proposalId);
+    const idx = this.state.proposals.findIndex(
+      (p) => p.proposalId === proposal.proposalId,
+    );
     if (idx >= 0) this.state.proposals[idx] = proposal;
     else this.state.proposals.unshift(proposal);
     await this.persist();
@@ -109,7 +115,9 @@ export class DaoStore {
   }
 
   async upsertDiscovery(row: DaoDiscoveryRecord) {
-    const idx = this.state.discovery.findIndex(d => d.proposalId === row.proposalId);
+    const idx = this.state.discovery.findIndex(
+      (d) => d.proposalId === row.proposalId,
+    );
     if (idx >= 0) this.state.discovery[idx] = row;
     else this.state.discovery.unshift(row);
     await this.persist();
@@ -125,15 +133,17 @@ export class DaoStore {
   }
 
   listDiscovery() {
-    return [...this.state.discovery].sort((a, b) => b.rankScoreBps - a.rankScoreBps);
+    return [...this.state.discovery].sort(
+      (a, b) => b.rankScoreBps - a.rankScoreBps,
+    );
   }
 
   getMember(wallet: string) {
-    return this.state.members.find(m => m.wallet === wallet);
+    return this.state.members.find((m) => m.wallet === wallet);
   }
 
   getProposal(proposalId: number) {
-    return this.state.proposals.find(p => p.proposalId === proposalId);
+    return this.state.proposals.find((p) => p.proposalId === proposalId);
   }
 
   listDelegations() {
@@ -142,7 +152,7 @@ export class DaoStore {
 
   async appendDelegation(row: DaoDelegationRecord) {
     const now = Date.now();
-    this.state.delegations = this.state.delegations.map(d => {
+    this.state.delegations = this.state.delegations.map((d) => {
       if (d.fromWallet === row.fromWallet && d.status === "active") {
         return { ...d, status: "revoked" as const, revokedAt: now };
       }
@@ -156,7 +166,7 @@ export class DaoStore {
   async revokeDelegation(fromWallet: string) {
     const now = Date.now();
     let changed = false;
-    this.state.delegations = this.state.delegations.map(d => {
+    this.state.delegations = this.state.delegations.map((d) => {
       if (d.fromWallet === fromWallet && d.status === "active") {
         changed = true;
         return { ...d, status: "revoked" as const, revokedAt: now };
@@ -169,7 +179,7 @@ export class DaoStore {
   listVoteLedger(proposalId?: number) {
     const rows = [...this.state.voteLedger];
     if (proposalId === undefined) return rows;
-    return rows.filter(v => v.proposalId === proposalId);
+    return rows.filter((v) => v.proposalId === proposalId);
   }
 
   async appendVoteLedger(row: DaoVoteLedgerRecord) {
@@ -181,11 +191,14 @@ export class DaoStore {
   listAgentRecommendations(proposalId?: number) {
     const rows = [...this.state.agentRecommendations];
     if (proposalId === undefined) return rows;
-    return rows.filter(a => a.proposalId === proposalId);
+    return rows.filter((a) => a.proposalId === proposalId);
   }
 
   async appendAgentRecommendations(rows: DaoAgentRecommendationRecord[]) {
-    this.state.agentRecommendations = [...rows, ...this.state.agentRecommendations];
+    this.state.agentRecommendations = [
+      ...rows,
+      ...this.state.agentRecommendations,
+    ];
     await this.persist();
   }
 
@@ -214,7 +227,7 @@ export class DaoStore {
   }
 
   async upsertTreasurySnapshot(row: DaoTreasurySnapshotPersist) {
-    const idx = this.state.treasurySnapshots.findIndex(t => t.id === row.id);
+    const idx = this.state.treasurySnapshots.findIndex((t) => t.id === row.id);
     if (idx >= 0) this.state.treasurySnapshots[idx] = row;
     else this.state.treasurySnapshots.unshift(row);
     await this.persist();

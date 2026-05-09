@@ -102,17 +102,25 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
                   {receipt.receiptType?.toUpperCase() || "UNKNOWN"}
                 </span>
                 <span className="text-xs text-gray-500">
-                  {receipt.createdAt ? new Date(receipt.createdAt).toLocaleString() : "Unknown date"}
+                  {receipt.createdAt
+                    ? new Date(receipt.createdAt).toLocaleString()
+                    : "Unknown date"}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 {receipt.autonomyLevel ? (
-                  <Badge className={`border ${autonomyLevelClass(receipt.autonomyLevel)}`}>
+                  <Badge
+                    className={`border ${autonomyLevelClass(receipt.autonomyLevel)}`}
+                  >
                     {AUTONOMY_LEVEL_LABELS[receipt.autonomyLevel]}
                   </Badge>
                 ) : null}
-                {receipt.policyStatus ? <Badge variant="outline">{receipt.policyStatus}</Badge> : null}
-                {receipt.proofType ? <Badge variant="secondary">proof:{receipt.proofType}</Badge> : null}
+                {receipt.policyStatus ? (
+                  <Badge variant="outline">{receipt.policyStatus}</Badge>
+                ) : null}
+                {receipt.proofType ? (
+                  <Badge variant="secondary">proof:{receipt.proofType}</Badge>
+                ) : null}
               </div>
               {expandedId === receipt.id && (
                 <div className="mt-3 space-y-2">
@@ -149,7 +157,9 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
                   ) : null}
                   {receipt.referenceId ? (
                     <div className="bg-black/30 rounded p-2">
-                      <p className="text-xs text-gray-600 mb-1">Reference ID:</p>
+                      <p className="text-xs text-gray-600 mb-1">
+                        Reference ID:
+                      </p>
                       <p className="text-xs text-cyan-300 font-mono break-all">
                         {receipt.referenceId}
                       </p>
@@ -168,7 +178,7 @@ export function ReceiptViewer({ receipts, isLoading }: ReceiptViewerProps) {
                     e.stopPropagation();
                     window.open(
                       `https://explorer.solana.com/tx/${receipt.transactionHash}?cluster=devnet`,
-                      "_blank"
+                      "_blank",
                     );
                   }}
                 >

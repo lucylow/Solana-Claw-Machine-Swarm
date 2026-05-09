@@ -112,7 +112,12 @@ export interface SkillQuery {
   authorWallet?: string;
   tag?: string;
   minReputation?: number;
-  sortBy?: "latest_published" | "most_used" | "highest_reputation" | "success_rate" | "alphabetical";
+  sortBy?:
+    | "latest_published"
+    | "most_used"
+    | "highest_reputation"
+    | "success_rate"
+    | "alphabetical";
   order?: "asc" | "desc";
   limit?: number;
   offset?: number;

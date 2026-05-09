@@ -5,14 +5,26 @@ import { addressExplorerUrl, txExplorerUrl } from "@/lib/solana/explorer";
 import { shortenAddress } from "@/lib/solana/format";
 import { SOLANA_COPY } from "@shared/copy";
 import type { ZeroGIntegrationStatus } from "@shared/zerog";
-import { ChevronDown, ChevronUp, Copy, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  RefreshCw,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-export default function SolanaWalletPanel({ compact = false }: { compact?: boolean }) {
+export default function SolanaWalletPanel({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const wallet = useSolanaWallet();
   const snap = wallet.walletState;
-  const [zgIntegration, setZgIntegration] = useState<ZeroGIntegrationStatus | null>(null);
+  const [zgIntegration, setZgIntegration] =
+    useState<ZeroGIntegrationStatus | null>(null);
 
   const [debugOpen, setDebugOpen] = useState(false);
 
@@ -21,7 +33,10 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
     void (async () => {
       try {
         const res = await fetch("/api/zerog/integration");
-        const body = (await res.json()) as { ok: boolean; data?: ZeroGIntegrationStatus };
+        const body = (await res.json()) as {
+          ok: boolean;
+          data?: ZeroGIntegrationStatus;
+        };
         if (!cancelled && body.ok && body.data) setZgIntegration(body.data);
       } catch {
         if (!cancelled) setZgIntegration(null);
@@ -51,11 +66,17 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
             <Wallet className="h-4 w-4 text-[#8cf8d4]" aria-hidden />
           </div>
           <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8ceada]">{SOLANA_COPY.wallet.panelTitle}</p>
-            <p className="mt-1 font-mono text-sm text-white">
-              {snap.publicKey ? shortenAddress(snap.publicKey, 6, 6) : SOLANA_COPY.wallet.notConnected}
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8ceada]">
+              {SOLANA_COPY.wallet.panelTitle}
             </p>
-            <p className="text-[11px] text-slate-500">{wallet.walletName ?? "Adapter"}</p>
+            <p className="mt-1 font-mono text-sm text-white">
+              {snap.publicKey
+                ? shortenAddress(snap.publicKey, 6, 6)
+                : SOLANA_COPY.wallet.notConnected}
+            </p>
+            <p className="text-[11px] text-slate-500">
+              {wallet.walletName ?? "Adapter"}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -75,27 +96,45 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
         </div>
       </div>
 
-      <p className="mt-3 text-[10px] leading-snug text-slate-500">{SOLANA_COPY.wallet.identityLayerNote}</p>
+      <p className="mt-3 text-[10px] leading-snug text-slate-500">
+        {SOLANA_COPY.wallet.identityLayerNote}
+      </p>
 
-      <dl className={`mt-3 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-5"}`}>
+      <dl
+        className={`mt-3 grid gap-3 text-xs ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-5"}`}
+      >
         <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
-          <dt className="text-slate-500">{SOLANA_COPY.wallet.connectionState}</dt>
-          <dd className="mt-0.5 capitalize text-slate-100">{snap.connectionStatus.replaceAll("_", " ")}</dd>
+          <dt className="text-slate-500">
+            {SOLANA_COPY.wallet.connectionState}
+          </dt>
+          <dd className="mt-0.5 capitalize text-slate-100">
+            {snap.connectionStatus.replaceAll("_", " ")}
+          </dd>
         </div>
         <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
           <dt className="text-slate-500">{SOLANA_COPY.wallet.balanceLabel}</dt>
           <dd className="mt-0.5 font-mono text-slate-100">
-            {snap.balanceSol !== null ? `${snap.balanceSol} SOL` : snap.isBalanceLoading ? "…" : "—"}
+            {snap.balanceSol !== null
+              ? `${snap.balanceSol} SOL`
+              : snap.isBalanceLoading
+                ? "…"
+                : "—"}
           </dd>
         </div>
         <div className="rounded-lg border border-white/10 bg-black/35 px-3 py-2">
-          <dt className="text-slate-500">{SOLANA_COPY.wallet.latestSignature}</dt>
+          <dt className="text-slate-500">
+            {SOLANA_COPY.wallet.latestSignature}
+          </dt>
           <dd className="mt-0.5 truncate font-mono text-[11px] text-slate-300">
-            {snap.lastTxSignature ? shortenAddress(snap.lastTxSignature, 8, 6) : "—"}
+            {snap.lastTxSignature
+              ? shortenAddress(snap.lastTxSignature, 8, 6)
+              : "—"}
           </dd>
         </div>
         <div className="rounded-lg border border-cyan-500/25 bg-black/35 px-3 py-2">
-          <dt className="text-slate-500">{SOLANA_COPY.wallet.clusterRpcTitle}</dt>
+          <dt className="text-slate-500">
+            {SOLANA_COPY.wallet.clusterRpcTitle}
+          </dt>
           <dd className="mt-0.5 text-[11px] text-slate-100">
             {snap.rpcReachable == null ? (
               <span className="text-slate-400">Probing…</span>
@@ -103,25 +142,39 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
               <span>
                 <span className="text-[#8cf8d4]">Reachable</span>
                 {snap.rpcSlot ? (
-                  <span className="mt-0.5 block font-mono text-[10px] text-slate-400">slot {snap.rpcSlot}</span>
+                  <span className="mt-0.5 block font-mono text-[10px] text-slate-400">
+                    slot {snap.rpcSlot}
+                  </span>
                 ) : null}
                 {snap.rpcLatencyMs != null ? (
-                  <span className="block font-mono text-[10px] text-slate-500">{snap.rpcLatencyMs} ms</span>
+                  <span className="block font-mono text-[10px] text-slate-500">
+                    {snap.rpcLatencyMs} ms
+                  </span>
                 ) : null}
               </span>
             ) : (
-              <span className="text-amber-200">{snap.rpcError ?? "Unreachable"}</span>
+              <span className="text-amber-200">
+                {snap.rpcError ?? "Unreachable"}
+              </span>
             )}
           </dd>
         </div>
         <div className="rounded-lg border border-violet-500/20 bg-black/35 px-3 py-2">
           <dt className="text-slate-500">0G Storage + DA</dt>
           <dd className="mt-0.5 text-[11px] leading-snug text-slate-100">
-            <span className="font-semibold capitalize text-[#c4b5fd]">{zgIntegration?.mode ?? "loading…"}</span>
+            <span className="font-semibold capitalize text-[#c4b5fd]">
+              {zgIntegration?.mode ?? "loading…"}
+            </span>
             <span className="mx-1.5 text-slate-600">·</span>
-            <span>{zgIntegration?.storage.available ? "Storage path up" : "Storage path down"}</span>
+            <span>
+              {zgIntegration?.storage.available
+                ? "Storage path up"
+                : "Storage path down"}
+            </span>
             <span className="mx-1.5 text-slate-600">·</span>
-            <span>{zgIntegration?.da.available ? "DA path up" : "DA path down"}</span>
+            <span>
+              {zgIntegration?.da.available ? "DA path up" : "DA path down"}
+            </span>
           </dd>
           {zgIntegration?.storage.lastUploadAt ? (
             <p className="mt-1 truncate font-mono text-[10px] text-slate-500">
@@ -153,7 +206,13 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
           variant="outline"
           className="border-[#3bff96]/45 text-[#c9ffe7]"
           disabled={!snap.publicKey}
-          onClick={() => window.open(addressExplorerUrl(snap.publicKey!, snap.cluster), "_blank", "noopener,noreferrer")}
+          onClick={() =>
+            window.open(
+              addressExplorerUrl(snap.publicKey!, snap.cluster),
+              "_blank",
+              "noopener,noreferrer",
+            )
+          }
         >
           {SOLANA_COPY.wallet.explorerAccount}
         </Button>
@@ -163,7 +222,11 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
             variant="outline"
             className="border-cyan-500/45 text-cyan-100"
             onClick={() =>
-              window.open(txExplorerUrl(snap.lastTxSignature!, snap.cluster), "_blank", "noopener,noreferrer")
+              window.open(
+                txExplorerUrl(snap.lastTxSignature!, snap.cluster),
+                "_blank",
+                "noopener,noreferrer",
+              )
             }
           >
             {SOLANA_COPY.wallet.explorerTx}
@@ -194,27 +257,50 @@ export default function SolanaWalletPanel({ compact = false }: { compact?: boole
           onClick={() => wallet.connectAndVerify().catch(() => undefined)}
         >
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-          {snap.isSessionVerified ? SOLANA_COPY.wallet.signSolanaSessionAgain : SOLANA_COPY.wallet.connectVerify}
+          {snap.isSessionVerified
+            ? SOLANA_COPY.wallet.signSolanaSessionAgain
+            : SOLANA_COPY.wallet.connectVerify}
         </Button>
       </div>
 
       {!compact ? (
         <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{SOLANA_COPY.wallet.permissionsTitle}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              {SOLANA_COPY.wallet.permissionsTitle}
+            </p>
             <button
               type="button"
               className="inline-flex items-center gap-1 text-[11px] text-[#7dccb8] hover:text-[#b8ffe0]"
               onClick={() => setDebugOpen(!debugOpen)}
             >
               Debug state
-              {debugOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              {debugOpen ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
           <ul className="mt-2 space-y-1 text-[11px] text-slate-400">
-            <li>Publish skill (Solana program): {snap.permissions.canPublishSkill ? "yes" : "needs verified session"}</li>
-            <li>Execute task: {snap.permissions.canExecuteTask ? "yes" : "needs verified session"}</li>
-            <li>Anchor Solana receipt: {snap.permissions.canAnchorReceipt ? "yes" : "needs verified session"}</li>
+            <li>
+              Publish skill (Solana program):{" "}
+              {snap.permissions.canPublishSkill
+                ? "yes"
+                : "needs verified session"}
+            </li>
+            <li>
+              Execute task:{" "}
+              {snap.permissions.canExecuteTask
+                ? "yes"
+                : "needs verified session"}
+            </li>
+            <li>
+              Anchor Solana receipt:{" "}
+              {snap.permissions.canAnchorReceipt
+                ? "yes"
+                : "needs verified session"}
+            </li>
           </ul>
           {debugOpen ? (
             <pre className="mt-3 max-h-48 overflow-auto rounded-lg bg-black/50 p-2 text-[10px] leading-relaxed text-slate-400">

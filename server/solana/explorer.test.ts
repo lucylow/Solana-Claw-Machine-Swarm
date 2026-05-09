@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildExplorerAddressUrl, buildExplorerTxUrl, explorerBaseUrl } from "./explorer";
+import {
+  buildExplorerAddressUrl,
+  buildExplorerTxUrl,
+  explorerBaseUrl,
+} from "./explorer";
 
 describe("server solana explorer helpers", () => {
   it("buildExplorerTxUrl includes cluster query", () => {
@@ -9,7 +13,10 @@ describe("server solana explorer helpers", () => {
   });
 
   it("buildExplorerAddressUrl includes cluster query", () => {
-    const url = buildExplorerAddressUrl("SoL11111111111111111111111111111111111111112", "mainnet-beta");
+    const url = buildExplorerAddressUrl(
+      "SoL11111111111111111111111111111111111111112",
+      "mainnet-beta",
+    );
     expect(url).toContain("/address/");
     expect(url).toContain("cluster=mainnet-beta");
   });

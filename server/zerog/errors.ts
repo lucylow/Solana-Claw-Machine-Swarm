@@ -1,6 +1,9 @@
 import type { ErrorCode } from "@shared/errorTypes";
 
-export function mapZeroGErrorMessage(message: string, phase: "storage" | "da" | "verify"): ErrorCode {
+export function mapZeroGErrorMessage(
+  message: string,
+  phase: "storage" | "da" | "verify",
+): ErrorCode {
   const m = message.toLowerCase();
   if (phase === "storage") {
     if (m.includes("verify")) return "ZERO_G_VERIFY_FAILED";

@@ -45,7 +45,11 @@ export default function ProofExplorerPage() {
       setLoading(true);
       try {
         const res = await fetch("/api/solana/history?limit=50");
-        const body = (await res.json()) as { ok: boolean; data?: ProofRow[]; error?: string };
+        const body = (await res.json()) as {
+          ok: boolean;
+          data?: ProofRow[];
+          error?: string;
+        };
         if (!res.ok || !body.ok || !body.data) {
           throw new Error(body.error || "proof_history_failed");
         }
@@ -54,7 +58,8 @@ export default function ProofExplorerPage() {
           setError(null);
         }
       } catch (err: unknown) {
-        if (!canceled) setError(err instanceof Error ? err.message : "proof_history_failed");
+        if (!canceled)
+          setError(err instanceof Error ? err.message : "proof_history_failed");
       } finally {
         if (!canceled) setLoading(false);
       }
@@ -78,7 +83,7 @@ export default function ProofExplorerPage() {
           row.id.toLowerCase().includes(term) ||
           row.walletAddress.toLowerCase().includes(term) ||
           row.accountAddress.toLowerCase().includes(term) ||
-          row.payloadHash.toLowerCase().includes(term)
+          row.payloadHash.toLowerCase().includes(term),
       );
     }
     return out;
@@ -97,13 +102,16 @@ export default function ProofExplorerPage() {
         </header>
         <ul className="mt-3 space-y-2 text-[11px] text-slate-400">
           <li>
-            <DappOnchainTag scope="onchain" size="sm" /> — anchored signature on Solana.
+            <DappOnchainTag scope="onchain" size="sm" /> — anchored signature on
+            Solana.
           </li>
           <li>
-            <DappOnchainTag scope="offchain" size="sm" /> — referenced via storage / sidecar.
+            <DappOnchainTag scope="offchain" size="sm" /> — referenced via
+            storage / sidecar.
           </li>
           <li>
-            <DappOnchainTag scope="demo" size="sm" /> — fixture row for demo mode.
+            <DappOnchainTag scope="demo" size="sm" /> — fixture row for demo
+            mode.
           </li>
         </ul>
       </article>
@@ -115,7 +123,12 @@ export default function ProofExplorerPage() {
       brand="Solana proof explorer"
       sideRail={sideRail}
       topRightSlot={
-        <Button asChild size="sm" variant="outline" className="rounded-full border-white/15 text-[11px] text-slate-200">
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="rounded-full border-white/15 text-[11px] text-slate-200"
+        >
           <Link href="/dashboard?section=proof-explorer">
             {SOLANA_COPY.navigation.backCommandCenter}
             <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
@@ -225,7 +238,11 @@ export default function ProofExplorerPage() {
             </header>
 
             <dl className="grid gap-2 text-[11px] sm:grid-cols-2">
-              <Field label="Author wallet" value={shortenAddress(row.walletAddress, 6, 6)} copy={row.walletAddress} />
+              <Field
+                label="Author wallet"
+                value={shortenAddress(row.walletAddress, 6, 6)}
+                copy={row.walletAddress}
+              />
               <Field
                 label="Account / PDA"
                 value={shortenAddress(row.accountAddress, 6, 6)}

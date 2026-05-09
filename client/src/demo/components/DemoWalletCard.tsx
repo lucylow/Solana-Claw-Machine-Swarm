@@ -1,4 +1,7 @@
-import { ExplorerLinkButton, SolanaStatusBadge } from "@/components/command-center/CommandCenterComponents";
+import {
+  ExplorerLinkButton,
+  SolanaStatusBadge,
+} from "@/components/command-center/CommandCenterComponents";
 import { addressExplorerUrl } from "@/lib/solana/explorer";
 import { shortenAddress } from "@/lib/solana/format";
 import { cn } from "@/lib/utils";
@@ -8,44 +11,74 @@ import { Copy, Wallet } from "lucide-react";
 import { useDemo } from "../DemoProvider";
 import { DemoPanel } from "./DemoPanel";
 
-export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: boolean; glow?: boolean }) {
-  const { walletConnectedDemo, setWalletConnectedDemo, demoSnapshot } = useDemo();
+export function DemoWalletCard({
+  presentationMode,
+  glow,
+}: {
+  presentationMode?: boolean;
+  glow?: boolean;
+}) {
+  const { walletConnectedDemo, setWalletConnectedDemo, demoSnapshot } =
+    useDemo();
   const w = demoSnapshot.wallet;
   const posture = demoSnapshot.derived.dataPosture;
   const showConnected = walletConnectedDemo || w.connected;
-  const displayKey = w.publicKey ?? (walletConnectedDemo ? DEMO_WALLET.address : null);
-  const displayBalance = w.balanceSol ?? (walletConnectedDemo ? DEMO_WALLET.balanceSol.toFixed(4) : null);
+  const displayKey =
+    w.publicKey ?? (walletConnectedDemo ? DEMO_WALLET.address : null);
+  const displayBalance =
+    w.balanceSol ??
+    (walletConnectedDemo ? DEMO_WALLET.balanceSol.toFixed(4) : null);
 
   return (
-    <DemoPanel glow={glow} presentationMode={presentationMode} className="space-y-4">
+    <DemoPanel
+      glow={glow}
+      presentationMode={presentationMode}
+      className="space-y-4"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-[#8ceada]">Solana wallet (demo)</p>
-          <h3 className={cn("mt-1 font-semibold text-white", presentationMode ? "text-2xl" : "text-lg")}>
+          <p className="text-xs uppercase tracking-[0.16em] text-[#8ceada]">
+            Solana wallet (demo)
+          </p>
+          <h3
+            className={cn(
+              "mt-1 font-semibold text-white",
+              presentationMode ? "text-2xl" : "text-lg",
+            )}
+          >
             Identity surface
           </h3>
           <p className="mt-1 text-sm text-slate-400">
-            Session nonce, cluster, and latest tx preview mirror the live wallet model — explicitly labeled demo where
-            proofs are fixtures.
+            Session nonce, cluster, and latest tx preview mirror the live wallet
+            model — explicitly labeled demo where proofs are fixtures.
           </p>
         </div>
         <Wallet className="h-6 w-6 text-[#3bff96]" />
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Badge variant="outline" className="border-amber-400/40 text-[10px] uppercase tracking-wide text-amber-100">
+        <Badge
+          variant="outline"
+          className="border-amber-400/40 text-[10px] uppercase tracking-wide text-amber-100"
+        >
           Demo mode
         </Badge>
-        <Badge variant="outline" className="border-white/20 text-[10px] uppercase tracking-wide text-slate-300">
+        <Badge
+          variant="outline"
+          className="border-white/20 text-[10px] uppercase tracking-wide text-slate-300"
+        >
           {posture.replace(/_/g, " ")}
         </Badge>
       </div>
 
       {!showConnected ? (
         <div className="rounded-xl border border-dashed border-white/20 bg-black/30 p-6 text-center">
-          <p className="text-sm text-slate-300">Solana wallet disconnected (demo)</p>
+          <p className="text-sm text-slate-300">
+            Solana wallet disconnected (demo)
+          </p>
           <p className="mt-2 text-xs text-slate-500">
-            The demo simulates connect + sign once you continue — no funds move in mock mode.
+            The demo simulates connect + sign once you continue — no funds move
+            in mock mode.
           </p>
           <button
             type="button"
@@ -58,10 +91,21 @@ export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: 
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <SolanaStatusBadge label={showConnected ? `Connected · ${w.cluster}` : "Disconnected"} active={showConnected} />
+            <SolanaStatusBadge
+              label={
+                showConnected ? `Connected · ${w.cluster}` : "Disconnected"
+              }
+              active={showConnected}
+            />
             <SolanaStatusBadge label="Solana" active={showConnected} subtle />
             <SolanaStatusBadge
-              label={w.isSessionVerified ? "Session verified" : w.isSessionLoading ? "Session verifying" : "Session idle"}
+              label={
+                w.isSessionVerified
+                  ? "Session verified"
+                  : w.isSessionLoading
+                    ? "Session verifying"
+                    : "Session idle"
+              }
               active={w.isSessionVerified}
               subtle={!w.isSessionVerified}
             />
@@ -69,7 +113,9 @@ export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: 
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-lg border border-white/10 bg-black/40 p-3">
               <p className="text-xs text-slate-500">Wallet name</p>
-              <p className="mt-1 text-sm text-white">{w.walletName ?? DEMO_WALLET.label}</p>
+              <p className="mt-1 text-sm text-white">
+                {w.walletName ?? DEMO_WALLET.label}
+              </p>
             </div>
             <div className="rounded-lg border border-white/10 bg-black/40 p-3">
               <p className="text-xs text-slate-500">Address</p>
@@ -91,14 +137,20 @@ export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: 
             </div>
             <div className="rounded-lg border border-white/10 bg-black/40 p-3">
               <p className="text-xs text-slate-500">SOL balance (mock)</p>
-              <p className="mt-1 text-sm font-medium text-white">{displayBalance ? `${displayBalance} SOL` : "—"}</p>
+              <p className="mt-1 text-sm font-medium text-white">
+                {displayBalance ? `${displayBalance} SOL` : "—"}
+              </p>
             </div>
             <div className="rounded-lg border border-white/10 bg-black/40 p-3">
               <p className="text-xs text-slate-500">Session nonce (cached)</p>
-              <p className="mt-1 font-mono text-[11px] text-slate-300">{w.sessionNonce ?? "—"}</p>
+              <p className="mt-1 font-mono text-[11px] text-slate-300">
+                {w.sessionNonce ?? "—"}
+              </p>
             </div>
             <div className="rounded-lg border border-white/10 bg-black/40 p-3 sm:col-span-2">
-              <p className="text-xs text-slate-500">Latest tx signature (demo)</p>
+              <p className="text-xs text-slate-500">
+                Latest tx signature (demo)
+              </p>
               <p className="mt-1 break-all font-mono text-[11px] text-slate-300">
                 {w.lastTxSignature ?? "None on this beat — advance playback"}
               </p>
@@ -107,7 +159,10 @@ export function DemoWalletCard({ presentationMode, glow }: { presentationMode?: 
           <div className="flex flex-wrap gap-2">
             {displayKey ? (
               <ExplorerLinkButton
-                payload={{ label: "Open on Solana Explorer", url: addressExplorerUrl(displayKey) }}
+                payload={{
+                  label: "Open on Solana Explorer",
+                  url: addressExplorerUrl(displayKey),
+                }}
               />
             ) : null}
             <button

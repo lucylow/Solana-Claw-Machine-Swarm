@@ -1,10 +1,17 @@
 import crypto from "crypto";
 import type { Express } from "express";
-import type { OpenClawBridgeReceipt, OpenClawBridgeSession, OpenClawSkillManifest } from "@shared/openclaw/types";
+import type {
+  OpenClawBridgeReceipt,
+  OpenClawBridgeSession,
+  OpenClawSkillManifest,
+} from "@shared/openclaw/types";
 import type { ClawSkillAsset, OpenClawBridgeState } from "./types";
 
 function hashJson(value: unknown) {
-  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex");
 }
 
 function receiptId() {
@@ -43,12 +50,18 @@ export class OpenClawBridgeService {
 
   /** Command-center bridge panel */
   getBridgeSession(): OpenClawBridgeSession {
-    const imported = this.state.receipts.filter(r => r.direction === "import").length;
-    const exported = this.state.receipts.filter(r => r.direction === "export").length;
+    const imported = this.state.receipts.filter(
+      (r) => r.direction === "import",
+    ).length;
+    const exported = this.state.receipts.filter(
+      (r) => r.direction === "export",
+    ).length;
     return {
       connected: this.state.connected && this.state.tier !== "unavailable",
       mode: this.state.mode,
-      lastSyncAt: this.state.lastSyncAt ? new Date(this.state.lastSyncAt).toISOString() : undefined,
+      lastSyncAt: this.state.lastSyncAt
+        ? new Date(this.state.lastSyncAt).toISOString()
+        : undefined,
       lastError: this.state.lastError,
       importedCount: imported,
       exportedCount: exported,
@@ -64,7 +77,9 @@ export class OpenClawBridgeService {
       contentHash: manifest.contentHash || manifestHash,
       provenanceHash: manifest.provenanceHash || manifestHash,
     };
-    const exists = this.state.manifests.findIndex(item => item.skillId === next.skillId && item.version === next.version);
+    const exists = this.state.manifests.findIndex(
+      (item) => item.skillId === next.skillId && item.version === next.version,
+    );
     if (exists >= 0) this.state.manifests[exists] = next;
     else this.state.manifests.unshift(next);
 
@@ -85,7 +100,10 @@ export class OpenClawBridgeService {
     return { manifest: next, receipt };
   }
 
-  exportSkill(skill: ClawSkillAsset): { manifest: OpenClawSkillManifest; receipt: OpenClawBridgeReceipt } {
+  exportSkill(skill: ClawSkillAsset): {
+    manifest: OpenClawSkillManifest;
+    receipt: OpenClawBridgeReceipt;
+  } {
     this.state.mode = "export";
     this.state.lastError = undefined;
     const manifest: OpenClawSkillManifest = {
@@ -121,7 +139,11 @@ export class OpenClawBridgeService {
   }
 
   /** Demo / degraded simulation */
-  setBridgeHealth(input: Partial<Pick<OpenClawBridgeState, "tier" | "connected" | "mode" | "lastError">>) {
+  setBridgeHealth(
+    input: Partial<
+      Pick<OpenClawBridgeState, "tier" | "connected" | "mode" | "lastError">
+    >,
+  ) {
     if (input.tier !== undefined) this.state.tier = input.tier;
     if (input.connected !== undefined) this.state.connected = input.connected;
     if (input.mode !== undefined) this.state.mode = input.mode;
@@ -129,7 +151,10 @@ export class OpenClawBridgeService {
   }
 }
 
-export function registerOpenClawBridgeRoutes(app: Express, service: OpenClawBridgeService) {
+export function registerOpenClawBridgeRoutes(
+  app: Express,
+  service: OpenClawBridgeService,
+) {
   app.get("/api/openclaw/status", (_req, res) => {
     res.json({ ok: true, data: service.getStatus() });
   });
@@ -150,11 +175,13 @@ export function registerOpenClawBridgeRoutes(app: Express, service: OpenClawBrid
     try {
       const wallet = String(req.body.wallet || "").trim();
       const manifest = req.body.manifest as OpenClawSkillManifest | undefined;
-      if (!wallet || !manifest?.skillId) throw new Error("wallet and manifest are required");
+      if (!wallet || !manifest?.skillId)
+        throw new Error("wallet and manifest are required");
       const data = service.importManifest(manifest, wallet);
       res.json({ ok: true, data });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "openclaw_import_failed";
+      const message =
+        error instanceof Error ? error.message : "openclaw_import_failed";
       res.status(400).json({ ok: false, error: message });
     }
   });
@@ -162,11 +189,13 @@ export function registerOpenClawBridgeRoutes(app: Express, service: OpenClawBrid
   app.post("/api/openclaw/export", (req, res) => {
     try {
       const skill = req.body.skill as ClawSkillAsset | undefined;
-      if (!skill?.skillId || !skill.authorWallet) throw new Error("skill payload is required");
+      if (!skill?.skillId || !skill.authorWallet)
+        throw new Error("skill payload is required");
       const data = service.exportSkill(skill);
       res.json({ ok: true, data });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "openclaw_export_failed";
+      const message =
+        error instanceof Error ? error.message : "openclaw_export_failed";
       res.status(400).json({ ok: false, error: message });
     }
   });

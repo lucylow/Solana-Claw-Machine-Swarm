@@ -58,19 +58,25 @@ export async function createChallenge(input: {
 }) {
   const walletAddress = walletAddressToString(input.walletAddress);
 
-  return requestJSON<{ ok: true; data: SolanaChallenge }>("/api/solana/identity/challenge", {
-    method: "POST",
-    body: JSON.stringify({
-      walletAddress,
-      chainId: input.chainId,
-      sessionId: input.sessionId,
-      requestId: input.requestId,
-      domain: CLAW_IDENTITY_DOMAIN,
-      uri: typeof window !== "undefined" ? window.location.origin : "http://localhost:3000",
-      appName: CLAW_IDENTITY_APP_NAME,
-      statement: input.statement || CLAW_IDENTITY_STATEMENT,
-    }),
-  });
+  return requestJSON<{ ok: true; data: SolanaChallenge }>(
+    "/api/solana/identity/challenge",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        walletAddress,
+        chainId: input.chainId,
+        sessionId: input.sessionId,
+        requestId: input.requestId,
+        domain: CLAW_IDENTITY_DOMAIN,
+        uri:
+          typeof window !== "undefined"
+            ? window.location.origin
+            : "http://localhost:3000",
+        appName: CLAW_IDENTITY_APP_NAME,
+        statement: input.statement || CLAW_IDENTITY_STATEMENT,
+      }),
+    },
+  );
 }
 
 export async function verifyChallenge(input: {
@@ -82,77 +88,82 @@ export async function verifyChallenge(input: {
 }) {
   const walletAddress = walletAddressToString(input.walletAddress);
 
-  return requestJSON<{ ok: true; data: SolanaIdentityBundle }>("/api/solana/identity/verify", {
-    method: "POST",
-    body: JSON.stringify({
-      walletAddress,
-      challengeId: input.challenge.id,
-      challenge: input.challenge,
-      message: input.challenge.message,
-      signature: bs58.encode(input.signature),
-      sessionId: input.sessionId,
-      requestId: input.requestId,
-    }),
-  });
+  return requestJSON<{ ok: true; data: SolanaIdentityBundle }>(
+    "/api/solana/identity/verify",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        walletAddress,
+        challengeId: input.challenge.id,
+        challenge: input.challenge,
+        message: input.challenge.message,
+        signature: bs58.encode(input.signature),
+        sessionId: input.sessionId,
+        requestId: input.requestId,
+      }),
+    },
+  );
 }
 
 export async function loadIdentity(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
-  return requestJSON<{ ok: true; data: SolanaIdentityBundle }>(`/api/solana/identity/${address}`);
+  return requestJSON<{ ok: true; data: SolanaIdentityBundle }>(
+    `/api/solana/identity/${address}`,
+  );
 }
 
 export async function loadProfile(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaIdentityProfile }>(
-    `/api/solana/identity/${address}/profile`
+    `/api/solana/identity/${address}/profile`,
   );
 }
 
 export async function loadSkills(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaSkillSummary[] }>(
-    `/api/solana/identity/${address}/skills`
+    `/api/solana/identity/${address}/skills`,
   );
 }
 
 export async function loadMemories(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaMemorySummary[] }>(
-    `/api/solana/identity/${address}/memories`
+    `/api/solana/identity/${address}/memories`,
   );
 }
 
 export async function loadReceipts(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaIdentityReceipt[] }>(
-    `/api/solana/identity/${address}/receipts`
+    `/api/solana/identity/${address}/receipts`,
   );
 }
 
 export async function loadPlannerRuns(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaPlannerRunSummary[] }>(
-    `/api/solana/identity/${address}/planner-runs`
+    `/api/solana/identity/${address}/planner-runs`,
   );
 }
 
 export async function loadDeployments(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaDeploymentSummary[] }>(
-    `/api/solana/identity/${address}/deployments`
+    `/api/solana/identity/${address}/deployments`,
   );
 }
 
 export async function loadReputation(walletAddress: PublicKey | string) {
   const address = walletAddressToString(walletAddress);
   return requestJSON<{ ok: true; data: SolanaReputationAccount }>(
-    `/api/solana/identity/${address}/reputation`
+    `/api/solana/identity/${address}/reputation`,
   );
 }
 
 export async function loadDiscoveryProfiles() {
   return requestJSON<{ ok: true; data: SolanaDiscoveryProfile[] }>(
-    "/api/solana/reputation/profiles"
+    "/api/solana/reputation/profiles",
   );
 }
 
@@ -162,15 +173,17 @@ export async function loadDiscoverySkills(filter?: SolanaDiscoveryFilter) {
   if (filter?.category) query.set("category", filter.category);
   if (filter?.tag) query.set("tag", filter.tag);
   if (filter?.language) query.set("language", filter.language);
-  if (typeof filter?.minTrustBps === "number") query.set("minTrustBps", String(filter.minTrustBps));
+  if (typeof filter?.minTrustBps === "number")
+    query.set("minTrustBps", String(filter.minTrustBps));
   if (typeof filter?.minDiscoveryBps === "number") {
     query.set("minDiscoveryBps", String(filter.minDiscoveryBps));
   }
-  if (typeof filter?.minUsage === "number") query.set("minUsage", String(filter.minUsage));
+  if (typeof filter?.minUsage === "number")
+    query.set("minUsage", String(filter.minUsage));
   if (filter?.verifiedOnly) query.set("verifiedOnly", "true");
   const suffix = query.toString() ? `?${query.toString()}` : "";
   return requestJSON<{ ok: true; data: SolanaDiscoveryRow[] }>(
-    `/api/solana/discovery/skills${suffix}`
+    `/api/solana/discovery/skills${suffix}`,
   );
 }
 

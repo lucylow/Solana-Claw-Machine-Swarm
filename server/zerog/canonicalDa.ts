@@ -6,17 +6,26 @@ function randomId(prefix: string) {
 }
 
 function leafHash(payloadHash: string, subjectId: string, ts: string) {
-  return crypto.createHash("sha256").update(`${payloadHash}|${subjectId}|${ts}`).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(`${payloadHash}|${subjectId}|${ts}`)
+    .digest("hex");
 }
 
 function combineRoot(hashes: string[]) {
-  return hashes.reduce((acc, h) => crypto.createHash("sha256").update(`${acc}:${h}`).digest("hex"), "GENESIS");
+  return hashes.reduce(
+    (acc, h) => crypto.createHash("sha256").update(`${acc}:${h}`).digest("hex"),
+    "GENESIS",
+  );
 }
 
 /** Append-only DA log + batch roots (demo/mock-safe). */
 export class CanonicalDaService implements ZeroGDaAdapter {
   private readonly records: ZeroGDaRecord[] = [];
-  private readonly roots = new Map<string, { batchId: string; createdAt: string; status: DaStatus }>();
+  private readonly roots = new Map<
+    string,
+    { batchId: string; createdAt: string; status: DaStatus }
+  >();
 
   async appendRecord(input: {
     subjectType: string;
@@ -27,7 +36,10 @@ export class CanonicalDaService implements ZeroGDaAdapter {
     wallet?: string;
     metadata?: Record<string, unknown>;
   }): Promise<ZeroGDaRecord> {
-    const batchId = `batch_${input.subjectType}_${input.subjectId}`.slice(0, 64);
+    const batchId = `batch_${input.subjectType}_${input.subjectId}`.slice(
+      0,
+      64,
+    );
     const createdAt = new Date().toISOString();
     const lh = leafHash(input.payloadHash, input.subjectId, createdAt);
     const rootHash = combineRoot([lh]);
@@ -53,11 +65,18 @@ export class CanonicalDaService implements ZeroGDaAdapter {
     subjectId?: string;
     records: ZeroGDaRecord[];
     metadata?: Record<string, unknown>;
-  }): Promise<{ batchId: string; rootHash: string; batchUri?: string; createdAt: string }> {
+  }): Promise<{
+    batchId: string;
+    rootHash: string;
+    batchUri?: string;
+    createdAt: string;
+  }> {
     const batchId = randomId(`batch_${input.batchType}`);
     const createdAt = new Date().toISOString();
-    const hashes = input.records.map(r => r.leafHash);
-    const rootHash = hashes.length ? combineRoot(hashes) : crypto.randomBytes(32).toString("hex");
+    const hashes = input.records.map((r) => r.leafHash);
+    const rootHash = hashes.length
+      ? combineRoot(hashes)
+      : crypto.randomBytes(32).toString("hex");
     this.roots.set(rootHash, { batchId, createdAt, status: "batched" });
     return {
       batchId,

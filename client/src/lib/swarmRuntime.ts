@@ -1,5 +1,9 @@
 import type { AutonomyLevel } from "@shared/autonomy";
-import { CLAW_MACHINE_CLUSTER, CLAW_MACHINE_ECOSYSTEM, CLAW_SKILL_SEEDS } from "@shared/clawMachineMock";
+import {
+  CLAW_MACHINE_CLUSTER,
+  CLAW_MACHINE_ECOSYSTEM,
+  CLAW_SKILL_SEEDS,
+} from "@shared/clawMachineMock";
 import type {
   SwarmAgentNode,
   SwarmExecutionEvent,
@@ -36,7 +40,10 @@ function uid(prefix: string) {
 
 function fakeSignature() {
   const token = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-  return Array.from({ length: 88 }, () => token[Math.floor(Math.random() * token.length)]).join("");
+  return Array.from(
+    { length: 88 },
+    () => token[Math.floor(Math.random() * token.length)],
+  ).join("");
 }
 
 function fakeHash(label: string) {
@@ -52,7 +59,7 @@ function shortWallet(seed: string) {
 }
 
 function createBaseSkills(): SwarmSkill[] {
-  return CLAW_SKILL_SEEDS.map(seed => ({
+  return CLAW_SKILL_SEEDS.map((seed) => ({
     id: seed.id,
     name: seed.name,
     category: seed.category,
@@ -79,10 +86,42 @@ function createAgents(): SwarmAgentNode[] {
     proofCount: number;
     level: AutonomyLevel;
   }> = [
-    { id: "planner", name: "Planner-01", role: "planner", reputation: 79, memoryCount: 41, proofCount: 227, level: "policy_gated" },
-    { id: "researcher", name: "Researcher-02", role: "researcher", reputation: 76, memoryCount: 37, proofCount: 201, level: "guided" },
-    { id: "operator", name: "Operator-03", role: "operator", reputation: 88, memoryCount: 54, proofCount: 298, level: "meaningful_agency" },
-    { id: "critic", name: "Critic-04", role: "critic", reputation: 82, memoryCount: 62, proofCount: 265, level: "policy_gated" },
+    {
+      id: "planner",
+      name: "Planner-01",
+      role: "planner",
+      reputation: 79,
+      memoryCount: 41,
+      proofCount: 227,
+      level: "policy_gated",
+    },
+    {
+      id: "researcher",
+      name: "Researcher-02",
+      role: "researcher",
+      reputation: 76,
+      memoryCount: 37,
+      proofCount: 201,
+      level: "guided",
+    },
+    {
+      id: "operator",
+      name: "Operator-03",
+      role: "operator",
+      reputation: 88,
+      memoryCount: 54,
+      proofCount: 298,
+      level: "meaningful_agency",
+    },
+    {
+      id: "critic",
+      name: "Critic-04",
+      role: "critic",
+      reputation: 82,
+      memoryCount: 62,
+      proofCount: 265,
+      level: "policy_gated",
+    },
     {
       id: "coordinator",
       name: "Coordinator-05",
@@ -94,7 +133,7 @@ function createAgents(): SwarmAgentNode[] {
     },
   ];
 
-  return specs.map(spec => ({
+  return specs.map((spec) => ({
     id: spec.id,
     name: spec.name,
     role: spec.role,
@@ -107,7 +146,9 @@ function createAgents(): SwarmAgentNode[] {
   }));
 }
 
-export function createInitialRuntime(walletAddress?: string): SwarmRuntimeState {
+export function createInitialRuntime(
+  walletAddress?: string,
+): SwarmRuntimeState {
   return {
     walletAddress,
     cluster: CLAW_MACHINE_CLUSTER,
@@ -192,7 +233,10 @@ function createPolicyPack(needsReview: boolean): SwarmPolicyGate[] {
   ];
 }
 
-export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): SwarmRuntimeState {
+export function executeAutonomousCycle(
+  prev: SwarmRuntimeState,
+  goal: string,
+): SwarmRuntimeState {
   const runId = uid("run");
   const now = new Date();
   const reusedMemory = prev.memories.length > 0;
@@ -294,9 +338,12 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     ? {
         id: uid("reflection"),
         runId,
-        rootCause: "Planner used stale market window, causing operator mismatch on execution target.",
-        correctiveAdvice: "Inject recent-window guard and prioritize low-latency source memory before operator handoff.",
-        nextAction: "Re-run with memory injection and critic-approved retry strategy.",
+        rootCause:
+          "Planner used stale market window, causing operator mismatch on execution target.",
+        correctiveAdvice:
+          "Inject recent-window guard and prioritize low-latency source memory before operator handoff.",
+        nextAction:
+          "Re-run with memory injection and critic-approved retry strategy.",
         createdAt: new Date(now.getTime() + 3_000).toISOString(),
         confidenceDelta: 16,
         reusable: true,
@@ -305,8 +352,10 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     : {
         id: uid("reflection"),
         runId,
-        rootCause: "No blocking failure. Reflection confirms memory-injected routing improved alignment.",
-        correctiveAdvice: "Promote successful route as preferred pattern for similar goals.",
+        rootCause:
+          "No blocking failure. Reflection confirms memory-injected routing improved alignment.",
+        correctiveAdvice:
+          "Promote successful route as preferred pattern for similar goals.",
         nextAction: "Increase autonomy confidence budget for this task family.",
         createdAt: new Date(now.getTime() + 3_000).toISOString(),
         confidenceDelta: 7,
@@ -407,7 +456,7 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
       id: uid("evt"),
       phase: "policy-check",
       title: "Policy checks completed",
-      detail: policy.map(item => `${item.label}: ${item.status}`).join(" | "),
+      detail: policy.map((item) => `${item.label}: ${item.status}`).join(" | "),
       status: fails ? ("running" as const) : ("success" as const),
       timestamp: new Date(now.getTime() + 1_700).toISOString(),
       policyGateId: policy[1]?.id,
@@ -456,7 +505,8 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
       id: uid("evt"),
       phase: "proof-anchor",
       title: "Solana proof anchored",
-      detail: "Decision, execution, reflection, and memory linked in one receipt chain.",
+      detail:
+        "Decision, execution, reflection, and memory linked in one receipt chain.",
       status: "success" as const,
       timestamp: new Date(now.getTime() + 3_600).toISOString(),
       proofReceiptId: receiptProof.id,
@@ -465,7 +515,9 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     {
       id: uid("evt"),
       phase: "completed",
-      title: fails ? "Run completed with learning" : "Run completed and improved",
+      title: fails
+        ? "Run completed with learning"
+        : "Run completed and improved",
       detail: fails
         ? "System converted failure into reflection + memory + proof."
         : "System reused memory to improve confidence and reduce retries.",
@@ -494,17 +546,77 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
   };
 
   const proofGraphNodes: SwarmProofGraphNode[] = [
-    { id: "wallet", label: "Solana wallet", type: "wallet", status: "verified", ref: prev.walletAddress || "preview" },
-    { id: "skill", label: "Skill selection", type: "skill", status: "verified", ref: selectedSkills.join(",") },
-    { id: "plan", label: "Plan artifact", type: "plan", status: "verified", ref: plan.id },
-    { id: "execution", label: "Execution trace", type: "execution", status: fails ? "degraded" : "verified", ref: receiptExecution.id },
-    { id: "reflection", label: "Reflection", type: "reflection", status: "verified", ref: reflection.id },
-    { id: "memory", label: "Memory write", type: "memory", status: "verified", ref: memory.id },
-    { id: "storage", label: "0G Storage", type: "storage", status: "verified", ref: storageRef },
-    { id: "compute", label: "0G Compute", type: "compute", status: fails ? "running" : "verified", ref: computeRef },
+    {
+      id: "wallet",
+      label: "Solana wallet",
+      type: "wallet",
+      status: "verified",
+      ref: prev.walletAddress || "preview",
+    },
+    {
+      id: "skill",
+      label: "Skill selection",
+      type: "skill",
+      status: "verified",
+      ref: selectedSkills.join(","),
+    },
+    {
+      id: "plan",
+      label: "Plan artifact",
+      type: "plan",
+      status: "verified",
+      ref: plan.id,
+    },
+    {
+      id: "execution",
+      label: "Execution trace",
+      type: "execution",
+      status: fails ? "degraded" : "verified",
+      ref: receiptExecution.id,
+    },
+    {
+      id: "reflection",
+      label: "Reflection",
+      type: "reflection",
+      status: "verified",
+      ref: reflection.id,
+    },
+    {
+      id: "memory",
+      label: "Memory write",
+      type: "memory",
+      status: "verified",
+      ref: memory.id,
+    },
+    {
+      id: "storage",
+      label: "0G Storage",
+      type: "storage",
+      status: "verified",
+      ref: storageRef,
+    },
+    {
+      id: "compute",
+      label: "0G Compute",
+      type: "compute",
+      status: fails ? "running" : "verified",
+      ref: computeRef,
+    },
     { id: "da", label: "0G DA", type: "da", status: "verified", ref: daRef },
-    { id: "receipt", label: "Solana receipt", type: "receipt", status: "verified", ref: receiptProof.txSignature },
-    { id: "explorer", label: "Proof explorer", type: "explorer", status: "ready", ref: receiptProof.explorerUrl },
+    {
+      id: "receipt",
+      label: "Solana receipt",
+      type: "receipt",
+      status: "verified",
+      ref: receiptProof.txSignature,
+    },
+    {
+      id: "explorer",
+      label: "Proof explorer",
+      type: "explorer",
+      status: "ready",
+      ref: receiptProof.explorerUrl,
+    },
   ];
   const proofGraphEdges: SwarmProofGraphEdge[] = [
     { id: "e1", from: "wallet", to: "skill", label: "authorizes" },
@@ -512,7 +624,12 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
     { id: "e3", from: "plan", to: "execution", label: "executes" },
     { id: "e4", from: "execution", to: "reflection", label: "learns" },
     { id: "e5", from: "reflection", to: "memory", label: "promotes" },
-    { id: "e6", from: "reflection", to: "storage", label: "stores full artifact" },
+    {
+      id: "e6",
+      from: "reflection",
+      to: "storage",
+      label: "stores full artifact",
+    },
     { id: "e7", from: "storage", to: "compute", label: "processes" },
     { id: "e8", from: "storage", to: "da", label: "publishes availability" },
     { id: "e9", from: "da", to: "receipt", label: "hash anchored" },
@@ -530,16 +647,26 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
           : run.autonomyScoreAfter > 68
             ? "meaningful_agency"
             : "policy_gated",
-    proofCompletionRate: Math.min(100, prev.proofCompletionRate + (fails ? 5 : 9)),
+    proofCompletionRate: Math.min(
+      100,
+      prev.proofCompletionRate + (fails ? 5 : 9),
+    ),
     memoryGrowth: prev.memoryGrowth + 1,
     plansCompleted: prev.plansCompleted + 1,
     successfulExecutions: prev.successfulExecutions + (fails ? 0 : 1),
     reflectionsGenerated: prev.reflectionsGenerated + 1,
-    policyApprovals: prev.policyApprovals + policy.filter(item => item.status === "approved").length,
+    policyApprovals:
+      prev.policyApprovals +
+      policy.filter((item) => item.status === "approved").length,
     runs: [run, ...prev.runs],
     memories: [memory, ...prev.memories],
     reflections: [reflection, ...prev.reflections],
-    receipts: [receiptProof, receiptExecution, receiptDecision, ...prev.receipts],
+    receipts: [
+      receiptProof,
+      receiptExecution,
+      receiptDecision,
+      ...prev.receipts,
+    ],
     zeroGLinks: [zeroGLink, ...prev.zeroGLinks].slice(0, 100),
     zeroGBridge: zeroGLink.bridgeState!,
     zeroGStatus: {
@@ -555,9 +682,11 @@ export function executeAutonomousCycle(prev: SwarmRuntimeState, goal: string): S
       edges: proofGraphEdges,
     },
     policyEvents: [...policy, ...prev.policyEvents].slice(0, 30),
-    agents: prev.agents.map(agent => ({
+    agents: prev.agents.map((agent) => ({
       ...agent,
-      status: ["planner", "operator", "coordinator"].includes(agent.id) ? "learning" : "running",
+      status: ["planner", "operator", "coordinator"].includes(agent.id)
+        ? "learning"
+        : "running",
       memoryCount: agent.memoryCount + (agent.id === "critic" ? 1 : 0),
       proofCount: agent.proofCount + 1,
     })),

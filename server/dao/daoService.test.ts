@@ -9,8 +9,18 @@ describe("DaoService governance accounting", () => {
     const dao = new DaoService(store);
     await dao.bootstrap();
 
-    await dao.registerMember("WalletAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "WalletAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 2_000_000, 5);
-    await dao.registerMember("WalletBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", "WalletBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", 1_000_000, 5);
+    await dao.registerMember(
+      "WalletAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "WalletAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      2_000_000,
+      5,
+    );
+    await dao.registerMember(
+      "WalletBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "WalletBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      1_000_000,
+      5,
+    );
 
     const a = "WalletAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     const b = "WalletBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
@@ -45,6 +55,8 @@ describe("DaoService governance accounting", () => {
     });
 
     await dao.castVote(4242, w, "yes", "first");
-    await expect(dao.castVote(4242, w, "no", "second")).rejects.toThrow("already_voted");
+    await expect(dao.castVote(4242, w, "no", "second")).rejects.toThrow(
+      "already_voted",
+    );
   });
 });

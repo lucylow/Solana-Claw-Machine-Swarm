@@ -1,11 +1,15 @@
 import type { DaoTimelineStage } from "@shared/dao/types";
 
-export default function DaoTimeline({ stages }: { stages: DaoTimelineStage[] }) {
+export default function DaoTimeline({
+  stages,
+}: {
+  stages: DaoTimelineStage[];
+}) {
   return (
     <div className="dao-panel">
       <div className="dao-cc-panel-title">Governance timeline</div>
       <div className="stack-list">
-        {stages.map(s => (
+        {stages.map((s) => (
           <div key={s.id} className="item-card">
             <div className="item-top">
               <strong className="text-white">{s.label}</strong>
@@ -18,7 +22,11 @@ export default function DaoTimeline({ stages }: { stages: DaoTimelineStage[] }) 
                   ? "Proposal receipt · compact proof"
                   : "Off-chain deliberation / 0G-capable storage"}
             </div>
-            {s.at ? <div className="muted-line">{new Date(s.at).toLocaleString()}</div> : null}
+            {s.at ? (
+              <div className="muted-line">
+                {new Date(s.at).toLocaleString()}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

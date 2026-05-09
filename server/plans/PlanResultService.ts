@@ -12,7 +12,9 @@ export class PlanResultService {
     private readonly store: PlanStore,
     private readonly storage: PlanStorageService,
     private readonly anchor: PlanAnchorService,
-    private readonly pushEvent: (event: Omit<PlanLifecycleEvent, "id" | "createdAt">) => Promise<void>
+    private readonly pushEvent: (
+      event: Omit<PlanLifecycleEvent, "id" | "createdAt">,
+    ) => Promise<void>,
   ) {}
 
   async createResult(input: CreatePlanResultInput) {
@@ -75,7 +77,11 @@ export class PlanResultService {
     return { result, degraded: storage.degraded };
   }
 
-  async linkReflection(planId: string, reflectionId: string, reflectionReceiptId?: string) {
+  async linkReflection(
+    planId: string,
+    reflectionId: string,
+    reflectionReceiptId?: string,
+  ) {
     const result = await this.store.getLatestResultByPlanId(planId);
     if (!result) throw new Error("plan_result_not_found");
 

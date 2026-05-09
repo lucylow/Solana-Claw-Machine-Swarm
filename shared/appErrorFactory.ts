@@ -1,9 +1,17 @@
 import { catalogEntry } from "./errorCatalog";
 import { newErrorId } from "./errorId";
 import { getRetryPolicyForCode } from "./retryPolicy";
-import type { AppError, ErrorCode, ErrorScope, ErrorSeverity } from "./errorTypes";
+import type {
+  AppError,
+  ErrorCode,
+  ErrorScope,
+  ErrorSeverity,
+} from "./errorTypes";
 
-export function createAppError(code: ErrorCode, overrides: Partial<AppError> = {}): AppError {
+export function createAppError(
+  code: ErrorCode,
+  overrides: Partial<AppError> = {},
+): AppError {
   const cat = catalogEntry(code);
   const policy = getRetryPolicyForCode(code);
   const now = new Date().toISOString();

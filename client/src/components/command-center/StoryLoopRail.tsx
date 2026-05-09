@@ -24,7 +24,7 @@ export function StoryLoopRail({
     <div
       className={cn(
         "relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#060a0f]/95 px-3 py-3.5",
-        className
+        className,
       )}
       role="list"
       aria-label="Solana agent story loop"
@@ -55,12 +55,10 @@ export function StoryLoopRail({
                 }}
                 className={cn(
                   "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium tracking-wide transition",
-                  done &&
-                    "border-[#14f195]/40 bg-[#14f195]/10 text-[#c8ffe8]",
+                  done && "border-[#14f195]/40 bg-[#14f195]/10 text-[#c8ffe8]",
                   current &&
                     "border-[#38d7d0]/55 bg-[#38d7d0]/15 text-[#d4fffb] shadow-[0_0_18px_rgba(56,215,208,0.32)]",
-                  upcoming &&
-                    "border-white/10 bg-black/30 text-slate-500"
+                  upcoming && "border-white/10 bg-black/30 text-slate-500",
                 )}
               >
                 <span
@@ -68,7 +66,7 @@ export function StoryLoopRail({
                     "flex h-4 w-4 items-center justify-center rounded-full",
                     done && "bg-[#14f195]/20 text-[#14f195]",
                     current && "bg-[#38d7d0]/25 text-[#bdf6f0]",
-                    upcoming && "bg-white/5 text-slate-600"
+                    upcoming && "bg-white/5 text-slate-600",
                   )}
                   aria-hidden
                 >
@@ -90,9 +88,10 @@ export function StoryLoopRail({
                   aria-hidden
                   className={cn(
                     "hidden h-px w-4 sm:block",
-                    done && "bg-gradient-to-r from-[#14f195]/60 to-[#38d7d0]/40",
+                    done &&
+                      "bg-gradient-to-r from-[#14f195]/60 to-[#38d7d0]/40",
                     current && "bg-gradient-to-r from-[#38d7d0]/60 to-white/10",
-                    upcoming && "bg-white/5"
+                    upcoming && "bg-white/5",
                   )}
                 />
               ) : null}

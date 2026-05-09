@@ -42,7 +42,11 @@ export function createZeroGModule() {
 
   const services = { store, storage, compute, da, bridge, replay };
 
-  async function runDemoFlow(input?: { wallet?: string; skill?: string; prompt?: string }) {
+  async function runDemoFlow(input?: {
+    wallet?: string;
+    skill?: string;
+    prompt?: string;
+  }) {
     const now = new Date().toISOString();
     const reflectionId = randomId("reflection");
     const fullReflection = `Root cause: schema mismatch\nCorrection: enforce schema-first tool calls\nNext action: replay using normalized receipt path`;
@@ -129,7 +133,17 @@ export function createZeroGModule() {
 
 const createArtifactSchema = z.object({
   id: z.string().optional(),
-  kind: z.enum(["reflection", "memory", "plan", "execution", "receipt", "proof", "skill", "bridge", "asset"]),
+  kind: z.enum([
+    "reflection",
+    "memory",
+    "plan",
+    "execution",
+    "receipt",
+    "proof",
+    "skill",
+    "bridge",
+    "asset",
+  ]),
   title: z.string().min(2),
   summary: z.string().min(2),
   content: z.unknown(),
@@ -170,7 +184,10 @@ const bridgeSimSchema = z.object({
   amount: z.string().optional(),
 });
 
-export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeof createZeroGModule>) {
+export function registerZeroGRoutes(
+  app: Express,
+  moduleParam?: ReturnType<typeof createZeroGModule>,
+) {
   const module = moduleParam ?? getZeroGModule();
   app.get("/api/zerog/config", (_req, res) => {
     ok(res, getZeroGConfig());
@@ -242,7 +259,7 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
           contentType: input.contentType,
           data: new Uint8Array(data),
           metadata: input.metadata,
-        })
+        }),
       );
     } catch (error) {
       fail(res, error);
@@ -260,7 +277,9 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
 
-  app.get("/api/zerog/storage/health", async (_req, res) => ok(res, await module.storage.getHealth()));
+  app.get("/api/zerog/storage/health", async (_req, res) =>
+    ok(res, await module.storage.getHealth()),
+  );
 
   app.get("/api/zerog/storage/blob/:storageId", async (req, res) => {
     try {
@@ -304,7 +323,7 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
           blobRef: input.blobRef,
           wallet: input.wallet,
           metadata: input.metadata,
-        })
+        }),
       );
     } catch (error) {
       fail(res, error);
@@ -322,7 +341,7 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
           subjectId: input.subjectId,
           records: input.records as import("@shared/zerog").ZeroGDaRecord[],
           metadata: input.metadata,
-        })
+        }),
       );
     } catch (error) {
       fail(res, error);
@@ -340,11 +359,19 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
 
-  app.get("/api/zerog/compute/health", async (_req, res) => ok(res, await module.compute.getHealth()));
-  app.get("/api/zerog/da/health", async (_req, res) => ok(res, await module.da.getHealth()));
-  app.get("/api/zerog/bridge/health", async (_req, res) => ok(res, await module.bridge.getHealth()));
+  app.get("/api/zerog/compute/health", async (_req, res) =>
+    ok(res, await module.compute.getHealth()),
+  );
+  app.get("/api/zerog/da/health", async (_req, res) =>
+    ok(res, await module.da.getHealth()),
+  );
+  app.get("/api/zerog/bridge/health", async (_req, res) =>
+    ok(res, await module.bridge.getHealth()),
+  );
 
-  app.get("/api/zerog/bridge/status", async (_req, res) => ok(res, await module.bridge.getStatus()));
+  app.get("/api/zerog/bridge/status", async (_req, res) =>
+    ok(res, await module.bridge.getStatus()),
+  );
   app.post("/api/zerog/bridge/simulate", async (req, res) => {
     try {
       const input = bridgeSimSchema.parse(req.body ?? {});
@@ -353,7 +380,9 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
       fail(res, error);
     }
   });
-  app.get("/api/zerog/bridge/history", async (_req, res) => ok(res, await module.bridge.listHistory()));
+  app.get("/api/zerog/bridge/history", async (_req, res) =>
+    ok(res, await module.bridge.listHistory()),
+  );
 
   app.post("/api/zerog/artifacts", async (req, res) => {
     try {
@@ -381,15 +410,14 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
 
-  app.get("/api/zerog/artifacts", (_req, res) => ok(res, module.store.listArtifacts()));
+  app.get("/api/zerog/artifacts", (_req, res) =>
+    ok(res, module.store.listArtifacts()),
+  );
   app.get("/api/zerog/artifacts/kind/:kind", (req, res) => {
     const kind = String(req.params.kind) as ZeroGStorageArtifact["kind"];
     ok(
       res,
-      module
-        .store
-        .listArtifacts()
-        .filter(item => item.kind === kind)
+      module.store.listArtifacts().filter((item) => item.kind === kind),
     );
   });
 
@@ -409,7 +437,10 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
       const storageRef = decodeURIComponent(String(req.params.storageRef));
       const expectedHash = String(req.body?.expectedHash || "");
       if (!expectedHash) throw new Error("expectedHash_required");
-      const verified = await module.storage.verifyArtifact(storageRef, expectedHash);
+      const verified = await module.storage.verifyArtifact(
+        storageRef,
+        expectedHash,
+      );
       ok(res, { verified, storageRef, expectedHash });
     } catch (error) {
       fail(res, error);
@@ -437,7 +468,9 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
     }
   });
 
-  app.get("/api/zerog/compute/jobs", (_req, res) => ok(res, module.store.listComputeJobs()));
+  app.get("/api/zerog/compute/jobs", (_req, res) =>
+    ok(res, module.store.listComputeJobs()),
+  );
   app.get("/api/zerog/compute/jobs/:jobId", async (req, res) => {
     const job = await module.compute.getJob(String(req.params.jobId));
     if (!job) return fail(res, "compute_job_not_found", 404);
@@ -460,13 +493,17 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
       fail(res, error);
     }
   });
-  app.get("/api/zerog/da/records", (_req, res) => ok(res, module.store.listAvailability()));
+  app.get("/api/zerog/da/records", (_req, res) =>
+    ok(res, module.store.listAvailability()),
+  );
 
   /** Lookup append-only lineage row — path avoids shadowing `/api/zerog/da/records` and `/health`. */
   app.get("/api/zerog/da/root/:rootHash", async (req, res) => {
     try {
       const rootHash = decodeURIComponent(String(req.params.rootHash));
-      const hit = canonicalDaService.listRecords().find(r => r.rootHash === rootHash);
+      const hit = canonicalDaService
+        .listRecords()
+        .find((r) => r.rootHash === rootHash);
       if (!hit) return fail(res, "da_record_not_found", 404);
       ok(res, hit);
     } catch (error) {
@@ -475,8 +512,12 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
   });
 
   app.get("/api/zerog/links", (_req, res) => ok(res, module.store.listLinks()));
-  app.get("/api/zerog/receipts", (_req, res) => ok(res, module.store.listReceipts()));
-  app.get("/api/zerog/proof-graph", (_req, res) => ok(res, module.replay.getGraph()));
+  app.get("/api/zerog/receipts", (_req, res) =>
+    ok(res, module.store.listReceipts()),
+  );
+  app.get("/api/zerog/proof-graph", (_req, res) =>
+    ok(res, module.replay.getGraph()),
+  );
 
   app.get("/api/zerog/replay/artifact", (req, res) => {
     const storageRef = String(req.query.storageRef || "");
@@ -504,7 +545,9 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
 
   const persistSchema = z.object({
     wallet: z.string().min(32),
-    cluster: z.enum(["devnet", "testnet", "mainnet-beta", "localnet"]).default("devnet"),
+    cluster: z
+      .enum(["devnet", "testnet", "mainnet-beta", "localnet"])
+      .default("devnet"),
     namespace: z.string().min(1).default("claw_sidecar"),
     receiptType: z.enum([
       "skill",
@@ -538,7 +581,7 @@ export function registerZeroGRoutes(app: Express, moduleParam?: ReturnType<typeo
           contentType: input.contentType,
           payload,
           explorerBaseUrl: input.explorerBaseUrl,
-        })
+        }),
       );
     } catch (error) {
       fail(res, error);

@@ -20,7 +20,7 @@ export const DAPP_NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", Icon: HomeIcon, match: (p) => p === "/" },
   {
     href: "/skills",
-    label: "Actions",
+    label: "Skills",
     Icon: LayoutGrid,
     match: (p) => p.startsWith("/skills"),
   },
@@ -56,7 +56,7 @@ export function DappMobileNav({ className }: { className?: string }) {
       aria-label="Primary navigation"
       className={cn(
         "fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-white/[0.06] bg-[#040508]/95 px-1 pb-[env(safe-area-inset-bottom,0px)] pt-1 backdrop-blur-xl sm:hidden",
-        className
+        className,
       )}
     >
       {DAPP_NAV_ITEMS.map((item) => {
@@ -70,7 +70,7 @@ export function DappMobileNav({ className }: { className?: string }) {
               active
                 ? "bg-[#14f195]/10 text-[#d6ffe9]"
                 : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#040508]"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14f195]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#040508]",
             )}
             aria-current={active ? "page" : undefined}
           >

@@ -10,7 +10,7 @@ export class PlanStorageService {
       const upload = await storagePut(
         `${namespace}/${id}.json`,
         JSON.stringify(payload, null, 2),
-        "application/json"
+        "application/json",
       );
       return {
         ref: upload.url,

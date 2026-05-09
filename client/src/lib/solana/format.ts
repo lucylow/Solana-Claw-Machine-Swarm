@@ -8,7 +8,10 @@ export function shortenAddress(address?: string | null, left = 4, right = 4) {
   return `${address.slice(0, left)}…${address.slice(-right)}`;
 }
 
-export function formatSol(balanceLamports: string | number | bigint, precision = 4): string {
+export function formatSol(
+  balanceLamports: string | number | bigint,
+  precision = 4,
+): string {
   const lamports =
     typeof balanceLamports === "bigint"
       ? balanceLamports

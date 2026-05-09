@@ -52,7 +52,10 @@ export function createSidecarOrchestrator(module: ZeroGModuleCore) {
         });
       }
 
-      const payloadHash = crypto.createHash("sha256").update(Buffer.from(input.payload)).digest("hex");
+      const payloadHash = crypto
+        .createHash("sha256")
+        .update(Buffer.from(input.payload))
+        .digest("hex");
 
       try {
         daRecord = await canonicalDaService.appendRecord({
@@ -107,7 +110,12 @@ export function createSidecarOrchestrator(module: ZeroGModuleCore) {
           zeroGStorageRef: blobRef?.uri,
           zeroGAvailabilityRef: daBatch?.batchUri,
         });
-        receipt = solanaProofToReceiptRecord(proof, input.cluster, input.receiptType, input.explorerBaseUrl);
+        receipt = solanaProofToReceiptRecord(
+          proof,
+          input.cluster,
+          input.receiptType,
+          input.explorerBaseUrl,
+        );
         receipt.daRoot = daBatch?.rootHash;
       } catch (e) {
         errors.push({
@@ -118,11 +126,21 @@ export function createSidecarOrchestrator(module: ZeroGModuleCore) {
       }
 
       const status: ZeroGOrchestrationResult["status"] =
-        blobRef && daRecord && receipt ? "success" : blobRef || daRecord || receipt ? "partial" : errors.length ? "failed" : "degraded";
+        blobRef && daRecord && receipt
+          ? "success"
+          : blobRef || daRecord || receipt
+            ? "partial"
+            : errors.length
+              ? "failed"
+              : "degraded";
 
       const zerogCfg = getZeroGConfig();
       const zerogMode =
-        zerogCfg.mode === "live" ? "live" : zerogCfg.mode === "degraded" ? "degraded" : ("mock" as const);
+        zerogCfg.mode === "live"
+          ? "live"
+          : zerogCfg.mode === "degraded"
+            ? "degraded"
+            : ("mock" as const);
       const proofStatus = inferProofIntegrity({
         txSignature: receipt?.txSignature,
         zerogMode,

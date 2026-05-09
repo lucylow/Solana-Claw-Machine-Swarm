@@ -13,9 +13,11 @@ import type {
 } from "./demoTypes";
 
 /** Stable demo authority — reads like a funded devnet operator wallet. */
-export const DEMO_AUTHORITY_WALLET = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
+export const DEMO_AUTHORITY_WALLET =
+  "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
 
-export const DEMO_PUBLISHER_WALLET = "GJBQWrRod8m8W2BftQBW3M9E15E9U7xzfnMmqf1kMDsC";
+export const DEMO_PUBLISHER_WALLET =
+  "GJBQWrRod8m8W2BftQBW3M9E15E9U7xzfnMmqf1kMDsC";
 
 /** Deterministic pseudo–tx id for demo UI (not a real signature). */
 const SIG = (seed: string) => {
@@ -51,7 +53,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-support-triage",
     name: "Support Triage",
-    description: "Classify inbound tickets, route severity, and draft first-response with policy citations.",
+    description:
+      "Classify inbound tickets, route severity, and draft first-response with policy citations.",
     tags: ["support", "triage", "policy"],
     version: "2.4.1",
     authorWallet: DEMO_PUBLISHER_WALLET,
@@ -69,7 +72,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-research-summary",
     name: "Research Summary",
-    description: "Multi-source synthesis with citations, confidence bands, and contradiction detection.",
+    description:
+      "Multi-source synthesis with citations, confidence bands, and contradiction detection.",
     tags: ["research", "synthesis", "citations"],
     version: "1.9.0",
     authorWallet: DEMO_PUBLISHER_WALLET,
@@ -86,7 +90,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-tool-exec",
     name: "Tool Execution",
-    description: "Sandboxed tool calls with argument validation, timeouts, and structured stderr capture.",
+    description:
+      "Sandboxed tool calls with argument validation, timeouts, and structured stderr capture.",
     tags: ["tools", "execution", "sandbox"],
     version: "3.1.2",
     authorWallet: DEMO_AUTHORITY_WALLET,
@@ -103,7 +108,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-reflection-writer",
     name: "Reflection Writer",
-    description: "Turn failures into structured reflections with root cause, corrective advice, and next actions.",
+    description:
+      "Turn failures into structured reflections with root cause, corrective advice, and next actions.",
     tags: ["reflection", "learning", "quality"],
     version: "1.2.0",
     authorWallet: DEMO_PUBLISHER_WALLET,
@@ -119,7 +125,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-memory-consolidator",
     name: "Memory Consolidator",
-    description: "Merge episodic traces into durable memory records with lineage and retrieval hooks.",
+    description:
+      "Merge episodic traces into durable memory records with lineage and retrieval hooks.",
     tags: ["memory", "consolidation", "lineage"],
     version: "4.0.3",
     authorWallet: DEMO_AUTHORITY_WALLET,
@@ -136,7 +143,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-receipt-anchor",
     name: "Receipt Anchor",
-    description: "Anchor compact summaries on Solana: subject hash, wallet scope, and verification pointers.",
+    description:
+      "Anchor compact summaries on Solana: subject hash, wallet scope, and verification pointers.",
     tags: ["solana", "receipt", "anchor"],
     version: "2.0.0",
     authorWallet: DEMO_PUBLISHER_WALLET,
@@ -153,7 +161,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-multi-coordinator",
     name: "Multi-Agent Coordinator",
-    description: "Decompose goals, assign lanes, merge outputs, and resolve conflicts with explicit rationale.",
+    description:
+      "Decompose goals, assign lanes, merge outputs, and resolve conflicts with explicit rationale.",
     tags: ["orchestration", "coordination", "swarm"],
     version: "5.3.0",
     authorWallet: DEMO_AUTHORITY_WALLET,
@@ -169,7 +178,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-reputation-monitor",
     name: "Reputation Monitor",
-    description: "Track usage-weighted success, drift, and trust badges for skills and agent lanes.",
+    description:
+      "Track usage-weighted success, drift, and trust badges for skills and agent lanes.",
     tags: ["reputation", "economy", "monitoring"],
     version: "1.1.4",
     authorWallet: DEMO_PUBLISHER_WALLET,
@@ -185,7 +195,8 @@ export const DEMO_SKILLS: DemoSkillFixture[] = [
   {
     id: "skill-proof-publisher",
     name: "On-Chain Proof Publisher",
-    description: "Package execution artifacts for Solana verification: hashes, PDAs, and explorer-ready links.",
+    description:
+      "Package execution artifacts for Solana verification: hashes, PDAs, and explorer-ready links.",
     tags: ["proof", "solana", "publish"],
     version: "1.0.8",
     authorWallet: DEMO_AUTHORITY_WALLET,
@@ -205,8 +216,13 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "wallet-skill-discovery",
     title: "Solana wallet + skill discovery",
     subtitle: "Solana identity first, then a ranked skill registry.",
-    summary: "Walk from disconnected Solana wallet to a reputation-sorted skill surface.",
-    whatYouWillSee: ["Mock connect flow", "Registry search + sort", "Trust-weighted ranking"],
+    summary:
+      "Walk from disconnected Solana wallet to a reputation-sorted skill surface.",
+    whatYouWillSee: [
+      "Mock connect flow",
+      "Registry search + sort",
+      "Trust-weighted ranking",
+    ],
     accent: "green",
     defaultSkillId: "skill-support-triage",
     preferredOutcome: "success",
@@ -215,8 +231,13 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "publish-skill",
     title: "Publish skill asset",
     subtitle: "A capability becomes a versioned, addressable asset.",
-    summary: "Simulate publishing a skill with content hash and Solana receipt.",
-    whatYouWillSee: ["Author wallet", "Content hash", "Publication receipt on Solana"],
+    summary:
+      "Simulate publishing a skill with content hash and Solana receipt.",
+    whatYouWillSee: [
+      "Author wallet",
+      "Content hash",
+      "Publication receipt on Solana",
+    ],
     accent: "teal",
     defaultSkillId: "skill-receipt-anchor",
     preferredOutcome: "success",
@@ -225,7 +246,8 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "execute-task",
     title: "Execute a task",
     subtitle: "Planner output becomes an execution timeline.",
-    summary: "Run a multi-step execution with live progress and completion hash.",
+    summary:
+      "Run a multi-step execution with live progress and completion hash.",
     whatYouWillSee: ["Plan artifact", "Step rail", "Result hash + receipt ref"],
     accent: "cyan",
     defaultSkillId: "skill-tool-exec",
@@ -235,8 +257,13 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "failure-reflection-memory",
     title: "Failure → reflection → memory",
     subtitle: "The emotional core: one miss becomes durable learning.",
-    summary: "Operator timeout, critic reflection, memory write, then a better retry.",
-    whatYouWillSee: ["Failed step", "Structured reflection", "Memory + lesson injection"],
+    summary:
+      "Operator timeout, critic reflection, memory write, then a better retry.",
+    whatYouWillSee: [
+      "Failed step",
+      "Structured reflection",
+      "Memory + lesson injection",
+    ],
     accent: "green",
     defaultSkillId: "skill-support-triage",
     preferredOutcome: "recovery",
@@ -245,7 +272,8 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "receipt-anchor",
     title: "Solana receipt anchoring",
     subtitle: "Proof surface anyone can verify on Solana.",
-    summary: "Show how execution summaries settle as compact on-chain receipts.",
+    summary:
+      "Show how execution summaries settle as compact on-chain receipts.",
     whatYouWillSee: ["Tx signature", "Explorer handoff", "Verified badge"],
     accent: "teal",
     defaultSkillId: "skill-receipt-anchor",
@@ -255,7 +283,8 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "reputation-update",
     title: "Reputation update",
     subtitle: "SWARM economy: trust moves after every anchored turn.",
-    summary: "Usage and success signals shift ranking for the next discovery pass.",
+    summary:
+      "Usage and success signals shift ranking for the next discovery pass.",
     whatYouWillSee: ["Before / after counters", "Trust badge", "Rank motion"],
     accent: "cyan",
     defaultSkillId: "skill-research-summary",
@@ -265,7 +294,8 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "multi-agent",
     title: "Multi-agent coordination",
     subtitle: "Planner, fleet, coordinator — one merged decision.",
-    summary: "Lanes with inputs, outputs, merge rationale, and coordinator verdict.",
+    summary:
+      "Lanes with inputs, outputs, merge rationale, and coordinator verdict.",
     whatYouWillSee: ["Role cards", "Delegation rail", "Merged output"],
     accent: "green",
     defaultSkillId: "skill-multi-coordinator",
@@ -275,8 +305,13 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "full-e2e",
     title: "Full end-to-end story",
     subtitle: "The complete CLAW loop in one guided pass.",
-    summary: "Solana wallet → discovery → execution → reflection → memory → Solana receipt → reputation.",
-    whatYouWillSee: ["All panels", "Stepper + presenter notes", "Replay controls"],
+    summary:
+      "Solana wallet → discovery → execution → reflection → memory → Solana receipt → reputation.",
+    whatYouWillSee: [
+      "All panels",
+      "Stepper + presenter notes",
+      "Replay controls",
+    ],
     accent: "teal",
     defaultSkillId: "skill-support-triage",
     preferredOutcome: "recovery",
@@ -285,8 +320,13 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "proof-degraded",
     title: "Proof degraded / pending",
     subtitle: "Receipt exists while verification lags — honest UX.",
-    summary: "Execution exhausts retries; anchoring stays pending or degraded until RPC/indexer recover.",
-    whatYouWillSee: ["Degraded stage", "Pending verification labels", "Demo-only explorer handoff"],
+    summary:
+      "Execution exhausts retries; anchoring stays pending or degraded until RPC/indexer recover.",
+    whatYouWillSee: [
+      "Degraded stage",
+      "Pending verification labels",
+      "Demo-only explorer handoff",
+    ],
     accent: "cyan",
     defaultSkillId: "skill-proof-publisher",
     preferredOutcome: "failure",
@@ -295,7 +335,8 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
     id: "openclaw-bridge",
     title: "OpenClaw bridge",
     subtitle: "Import / export skills with provenance and bridge receipts.",
-    summary: "Skill crosses OpenClaw ↔ CLAW with compatibility markers and mirrored manifests.",
+    summary:
+      "Skill crosses OpenClaw ↔ CLAW with compatibility markers and mirrored manifests.",
     whatYouWillSee: ["Import lane", "Sync", "Export lane", "0G storage mock"],
     accent: "teal",
     defaultSkillId: "skill-receipt-anchor",
@@ -304,12 +345,16 @@ export const DEMO_SCENARIOS: DemoScenarioFixture[] = [
 ];
 
 export function getSkillById(id: string): DemoSkillFixture | undefined {
-  return DEMO_SKILLS.find(s => s.id === id);
+  return DEMO_SKILLS.find((s) => s.id === id);
 }
 
-export function buildAgentsForScenario(scenarioId: string, outcome: "success" | "failure" | "recovery"): DemoAgentFixture[] {
+export function buildAgentsForScenario(
+  scenarioId: string,
+  outcome: "success" | "failure" | "recovery",
+): DemoAgentFixture[] {
   void scenarioId;
-  const operatorStatus = outcome === "success" ? "done" : outcome === "failure" ? "blocked" : "done";
+  const operatorStatus =
+    outcome === "success" ? "done" : outcome === "failure" ? "blocked" : "done";
   return [
     {
       role: "planner",
@@ -387,7 +432,10 @@ export function buildAgentsForScenario(scenarioId: string, outcome: "success" | 
   ];
 }
 
-export function buildPlan(skill: DemoSkillFixture, outcome: "success" | "failure" | "recovery"): DemoPlanFixture {
+export function buildPlan(
+  skill: DemoSkillFixture,
+  outcome: "success" | "failure" | "recovery",
+): DemoPlanFixture {
   const base: DemoPlanFixture = {
     id: `plan_${skill.id}_20260507`,
     taskType: skill.taskTypes[0] ?? "general",
@@ -398,7 +446,12 @@ export function buildPlan(skill: DemoSkillFixture, outcome: "success" | "failure
     expectedOutcome: "User-visible resolution + anchored receipt",
     planSummaryHash: HASH(`plan-summary-${skill.id}`),
     planStatus: "approved",
-    executionStatus: outcome === "success" ? "success" : outcome === "failure" ? "failed" : "recovered",
+    executionStatus:
+      outcome === "success"
+        ? "success"
+        : outcome === "failure"
+          ? "failed"
+          : "recovered",
     resultSummary:
       outcome === "success"
         ? "Execution closed cleanly; proof anchor queued."
@@ -411,7 +464,9 @@ export function buildPlan(skill: DemoSkillFixture, outcome: "success" | "failure
   return base;
 }
 
-export function buildExecutionSteps(outcome: "success" | "failure" | "recovery"): DemoExecutionStepFixture[] {
+export function buildExecutionSteps(
+  outcome: "success" | "failure" | "recovery",
+): DemoExecutionStepFixture[] {
   const failed = outcome !== "success";
   return [
     {
@@ -454,7 +509,9 @@ export function buildExecutionSteps(outcome: "success" | "failure" | "recovery")
   ];
 }
 
-export function buildReflection(outcome: "success" | "failure" | "recovery"): DemoReflectionFixture | null {
+export function buildReflection(
+  outcome: "success" | "failure" | "recovery",
+): DemoReflectionFixture | null {
   if (outcome === "success") return null;
   return {
     id: "refl_CLAW_RFX_9182",
@@ -464,8 +521,10 @@ export function buildReflection(outcome: "success" | "failure" | "recovery"): De
       outcome === "failure"
         ? "Primary retrieval timed out; context window excluded the latest policy addendum."
         : "Same timeout class; retry succeeded after memory injected addendum hash.",
-    correctiveAdvice: "Pin policy version in args; extend retrieval timeout to 18s for this lane.",
-    nextAction: "Re-run operator with memory key MEM-CTX-ADD-17 injected into bootstrap.",
+    correctiveAdvice:
+      "Pin policy version in args; extend retrieval timeout to 18s for this lane.",
+    nextAction:
+      "Re-run operator with memory key MEM-CTX-ADD-17 injected into bootstrap.",
     confidence: outcome === "failure" ? 74 : 91,
     linkedMemoryId: "mem_CLAW_4412_ctx",
     linkedReceiptId: "rcpt_reflection_store_9182",
@@ -473,7 +532,9 @@ export function buildReflection(outcome: "success" | "failure" | "recovery"): De
   };
 }
 
-export function buildMemory(refl: DemoReflectionFixture | null): DemoMemoryFixture | null {
+export function buildMemory(
+  refl: DemoReflectionFixture | null,
+): DemoMemoryFixture | null {
   if (!refl) return null;
   return {
     id: refl.linkedMemoryId,
@@ -489,7 +550,10 @@ export function buildMemory(refl: DemoReflectionFixture | null): DemoMemoryFixtu
   };
 }
 
-export function buildReceipts(skill: DemoSkillFixture, outcome: "success" | "failure" | "recovery"): DemoReceiptFixture[] {
+export function buildReceipts(
+  skill: DemoSkillFixture,
+  outcome: "success" | "failure" | "recovery",
+): DemoReceiptFixture[] {
   const wallet = DEMO_AUTHORITY_WALLET;
   const baseTime = "2026-05-07T09:22:01.000Z";
   const list: DemoReceiptFixture[] = [
@@ -501,7 +565,8 @@ export function buildReceipts(skill: DemoSkillFixture, outcome: "success" | "fai
       wallet,
       chain: "Solana",
       txSignature: SIG("4vANMG"),
-      accountOrProofRef: skill.explorerSkillAccount ?? `SkillPDA${skill.id.slice(0, 8)}…`,
+      accountOrProofRef:
+        skill.explorerSkillAccount ?? `SkillPDA${skill.id.slice(0, 8)}…`,
       status: "verified",
       summaryHash: HASH(`skill-publish-${skill.id}`),
       createdIso: "2026-05-01T16:00:00.000Z",
@@ -563,7 +628,7 @@ export function buildReceipts(skill: DemoSkillFixture, outcome: "success" | "fai
         summaryHash: HASH("memory-store"),
         createdIso: "2026-05-07T09:20:18.000Z",
         storageReference: "ipfs://bafyCLAWdemo4412memoryctxaddendum",
-      }
+      },
     );
   }
   list.push({
@@ -597,7 +662,9 @@ export function buildReceipts(skill: DemoSkillFixture, outcome: "success" | "fai
   return list;
 }
 
-export function buildMemoryTimeline(hasFailure: boolean): DemoMemoryTimelineStage[] {
+export function buildMemoryTimeline(
+  hasFailure: boolean,
+): DemoMemoryTimelineStage[] {
   const stages: DemoMemoryTimelineStage[] = [
     {
       id: "mt-1",
@@ -612,7 +679,9 @@ export function buildMemoryTimeline(hasFailure: boolean): DemoMemoryTimelineStag
       id: "mt-2",
       stage: "reflected",
       title: "Reflected",
-      description: hasFailure ? "Critic emitted structured reflection CLAW-RFX-9182." : "Critic pass — no reflection required.",
+      description: hasFailure
+        ? "Critic emitted structured reflection CLAW-RFX-9182."
+        : "Critic pass — no reflection required.",
       status: "complete",
       timestampIso: "2026-05-07T09:15:10.000Z",
       proofOrStorageRef: hasFailure ? "rcpt_reflection_store_9182" : undefined,
@@ -626,7 +695,9 @@ export function buildMemoryTimeline(hasFailure: boolean): DemoMemoryTimelineStag
         : "Episodic trace retained; no lesson memory.",
       status: "complete",
       timestampIso: "2026-05-07T09:20:18.000Z",
-      proofOrStorageRef: hasFailure ? "ipfs://bafyCLAWdemo4412memoryctxaddendum" : "blob:turn4412/episodic",
+      proofOrStorageRef: hasFailure
+        ? "ipfs://bafyCLAWdemo4412memoryctxaddendum"
+        : "blob:turn4412/episodic",
     },
     {
       id: "mt-4",
@@ -640,15 +711,21 @@ export function buildMemoryTimeline(hasFailure: boolean): DemoMemoryTimelineStag
       id: "mt-5",
       stage: "retrieved",
       title: "Retrieved",
-      description: hasFailure ? "Next turn bootstrap pulled MEM-CTX-ADD-17." : "No retrieval on success-only path.",
+      description: hasFailure
+        ? "Next turn bootstrap pulled MEM-CTX-ADD-17."
+        : "No retrieval on success-only path.",
       status: hasFailure ? "complete" : "pending",
-      timestampIso: hasFailure ? "2026-05-07T09:21:02.000Z" : "2026-05-07T09:21:02.000Z",
+      timestampIso: hasFailure
+        ? "2026-05-07T09:21:02.000Z"
+        : "2026-05-07T09:21:02.000Z",
     },
     {
       id: "mt-6",
       stage: "used",
       title: "Used",
-      description: hasFailure ? "Operator retry consumed injected lesson context." : "—",
+      description: hasFailure
+        ? "Operator retry consumed injected lesson context."
+        : "—",
       status: hasFailure ? "complete" : "pending",
       timestampIso: "2026-05-07T09:21:30.000Z",
     },
@@ -656,7 +733,8 @@ export function buildMemoryTimeline(hasFailure: boolean): DemoMemoryTimelineStag
       id: "mt-7",
       stage: "verified",
       title: "Verified",
-      description: "Anyone can verify the Solana receipt against published hashes.",
+      description:
+        "Anyone can verify the Solana receipt against published hashes.",
       status: "complete",
       timestampIso: "2026-05-07T09:22:01.000Z",
       proofOrStorageRef: "9kPROOF… (demo tx)",
@@ -670,28 +748,33 @@ export const DEMO_GUIDED_STEPS: DemoGuidedStep[] = [
     id: "g1",
     title: "Solana wallet connect",
     presenterNote: "Emphasize Solana as default identity and signing surface.",
-    detail: "Demo Solana wallet connects on devnet; scopes for publish, run, and Solana receipt anchor are granted.",
+    detail:
+      "Demo Solana wallet connects on devnet; scopes for publish, run, and Solana receipt anchor are granted.",
     highlight: "wallet",
   },
   {
     id: "g2",
     title: "Skill discovery",
-    presenterNote: "Discovery = search + reputation ranking, not a static list.",
-    detail: "Registry sorts by reputation and usage; filters show agent and task lanes.",
+    presenterNote:
+      "Discovery = search + reputation ranking, not a static list.",
+    detail:
+      "Registry sorts by reputation and usage; filters show agent and task lanes.",
     highlight: "skills",
   },
   {
     id: "g3",
     title: "Skill selection",
     presenterNote: "Click a skill card — preview updates everywhere.",
-    detail: "Chosen skill drives plan hash, execution lane, and receipt subject lines.",
+    detail:
+      "Chosen skill drives plan hash, execution lane, and receipt subject lines.",
     highlight: "skills",
   },
   {
     id: "g4",
     title: "Agent planning",
     presenterNote: "Planner is a first-class artifact, not a chat bubble.",
-    detail: "Plan id, dependencies, chosen skills, and summary hash appear as durable metadata.",
+    detail:
+      "Plan id, dependencies, chosen skills, and summary hash appear as durable metadata.",
     highlight: "plan",
   },
   {
@@ -712,7 +795,8 @@ export const DEMO_GUIDED_STEPS: DemoGuidedStep[] = [
     id: "g7",
     title: "Reflection created",
     presenterNote: "This is the product heart — structured, not prose sludge.",
-    detail: "Root cause, corrective advice, next action, and links to memory + receipt.",
+    detail:
+      "Root cause, corrective advice, next action, and links to memory + receipt.",
     highlight: "reflection",
   },
   {
@@ -725,22 +809,26 @@ export const DEMO_GUIDED_STEPS: DemoGuidedStep[] = [
   {
     id: "g9",
     title: "Receipt anchored on Solana",
-    presenterNote: "Open explorer — judges should touch the proof surface once.",
+    presenterNote:
+      "Open explorer — judges should touch the proof surface once.",
     detail: "Confirmed tx, compact hash, verification language.",
     highlight: "receipt",
   },
   {
     id: "g10",
     title: "Reputation updated",
-    presenterNote: "SWARM economy: the next discovery pass sees new trust signals.",
+    presenterNote:
+      "SWARM economy: the next discovery pass sees new trust signals.",
     detail: "Usage-weighted success and trust badge shift after anchored turn.",
     highlight: "reputation",
   },
   {
     id: "g11",
     title: "Next turn uses the lesson",
-    presenterNote: "Close the loop: same lane, higher confidence after memory injection.",
-    detail: "Coordinator merges retry; operator confidence jumps after MEM-CTX-ADD-17.",
+    presenterNote:
+      "Close the loop: same lane, higher confidence after memory injection.",
+    detail:
+      "Coordinator merges retry; operator confidence jumps after MEM-CTX-ADD-17.",
     highlight: "coordination",
   },
 ];

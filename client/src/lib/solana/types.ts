@@ -22,7 +22,8 @@ export type {
 export type { MemoryRecord, ReflectionRecord } from "@shared/domainModel";
 
 /** Legacy alias — matches WalletConnectionStatus */
-export type SolanaWalletMachineState = import("@shared/solana/types").SolanaConnectionStatus;
+export type SolanaWalletMachineState =
+  import("@shared/solana/types").SolanaConnectionStatus;
 
 export interface SolanaSessionNonce {
   nonceId: string;

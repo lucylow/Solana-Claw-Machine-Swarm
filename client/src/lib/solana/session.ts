@@ -3,7 +3,12 @@ import type { SolanaCluster } from "./types";
 import type { SolanaSessionNonce, SolanaSessionStatus } from "./types";
 
 /** Human-readable preview matching server `SolanaSessionService.issueNonce` format */
-export function buildSessionSignPreview(wallet: string, cluster: SolanaCluster, nonce: string, isoTimestamp: string) {
+export function buildSessionSignPreview(
+  wallet: string,
+  cluster: SolanaCluster,
+  nonce: string,
+  isoTimestamp: string,
+) {
   return [
     `${CLAW_PRODUCT_NAME.toUpperCase()} Solana session verification`,
     `Wallet: ${wallet}`,
@@ -14,7 +19,11 @@ export function buildSessionSignPreview(wallet: string, cluster: SolanaCluster, 
   ].join("\n");
 }
 
-type SessionResponse = { ok: boolean; data?: SolanaSessionStatus; error?: string };
+type SessionResponse = {
+  ok: boolean;
+  data?: SolanaSessionStatus;
+  error?: string;
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -24,7 +33,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
   });
-  const body = (await response.json()) as { ok: boolean; data?: T; error?: string };
+  const body = (await response.json()) as {
+    ok: boolean;
+    data?: T;
+    error?: string;
+  };
   if (!response.ok || !body.ok || body.data === undefined) {
     throw new Error(body.error || `Request failed: ${response.status}`);
   }
@@ -51,7 +64,10 @@ export function storeSessionToken(token: string | null) {
   }
 }
 
-export async function requestSolanaSessionNonce(walletAddress: string, cluster: SolanaCluster) {
+export async function requestSolanaSessionNonce(
+  walletAddress: string,
+  cluster: SolanaCluster,
+) {
   return request<SolanaSessionNonce>("/api/solana/session/nonce", {
     method: "POST",
     body: JSON.stringify({ walletAddress, cluster }),
@@ -65,10 +81,13 @@ export async function verifySolanaSession(input: {
   cluster: SolanaCluster;
   message: string;
 }) {
-  return request<{ token: string; profile: SolanaSessionStatus["profile"] }>("/api/solana/session/verify", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return request<{ token: string; profile: SolanaSessionStatus["profile"] }>(
+    "/api/solana/session/verify",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export async function fetchSolanaSession(token: string) {
@@ -78,18 +97,22 @@ export async function fetchSolanaSession(token: string) {
     },
   });
   const body = (await response.json()) as SessionResponse;
-  if (!response.ok || !body.ok || !body.data) throw new Error(body.error || "session_fetch_failed");
+  if (!response.ok || !body.ok || !body.data)
+    throw new Error(body.error || "session_fetch_failed");
   return body.data;
 }
 
 export async function refreshSolanaSession(token: string) {
-  return request<{ token: string; profile: SolanaSessionStatus["profile"] }>("/api/solana/session/refresh", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  return request<{ token: string; profile: SolanaSessionStatus["profile"] }>(
+    "/api/solana/session/refresh",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ token }),
     },
-    body: JSON.stringify({ token }),
-  });
+  );
 }
 
 export async function logoutSolanaSession(token: string) {

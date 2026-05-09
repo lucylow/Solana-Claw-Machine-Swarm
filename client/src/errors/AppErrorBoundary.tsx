@@ -28,7 +28,13 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError && this.state.error) {
-      return <FallbackScreen title="UI failed to render" error={this.state.error} onRetry={this.reset} />;
+      return (
+        <FallbackScreen
+          title="UI failed to render"
+          error={this.state.error}
+          onRetry={this.reset}
+        />
+      );
     }
     return this.props.children;
   }

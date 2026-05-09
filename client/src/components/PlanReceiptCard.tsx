@@ -20,10 +20,18 @@ export function PlanReceiptCard({ plan, onOpenDetails }: PlanReceiptCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs text-gray-400">Plan receipt</p>
-          <h4 className="text-base font-semibold text-[#c9ffdf]">{plan.title}</h4>
+          <h4 className="text-base font-semibold text-[#c9ffdf]">
+            {plan.title}
+          </h4>
           <p className="text-xs text-gray-400 mt-1">{plan.planId}</p>
         </div>
-        <Badge className={verified ? "bg-[#3bff96]/15 text-[#73ffb6] border-[#3bff96]/40" : "bg-cyan-500/15 text-cyan-300 border-cyan-500/40"}>
+        <Badge
+          className={
+            verified
+              ? "bg-[#3bff96]/15 text-[#73ffb6] border-[#3bff96]/40"
+              : "bg-cyan-500/15 text-cyan-300 border-cyan-500/40"
+          }
+        >
           {verified ? (
             <span className="inline-flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" />
@@ -63,7 +71,7 @@ export function PlanReceiptCard({ plan, onOpenDetails }: PlanReceiptCardProps) {
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {plan.chosenSkills.map(skill => (
+        {plan.chosenSkills.map((skill) => (
           <Badge key={skill.id} variant="secondary" className="text-[10px]">
             {skill.name}
           </Badge>
@@ -81,7 +89,7 @@ export function PlanReceiptCard({ plan, onOpenDetails }: PlanReceiptCardProps) {
               onClick={() =>
                 window.open(
                   `https://explorer.solana.com/tx/${plan.solana?.txSignature}?cluster=devnet`,
-                  "_blank"
+                  "_blank",
                 )
               }
             >

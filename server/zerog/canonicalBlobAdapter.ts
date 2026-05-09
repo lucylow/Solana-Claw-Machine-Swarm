@@ -1,4 +1,9 @@
-import type { StorageStatus, ZeroGArtifactKind, ZeroGBlobRef, ZeroGStorageAdapter } from "@shared/zerog";
+import type {
+  StorageStatus,
+  ZeroGArtifactKind,
+  ZeroGBlobRef,
+  ZeroGStorageAdapter,
+} from "@shared/zerog";
 import { hashValue, ZeroGOrchestratorStore } from "./artifacts";
 import { getZeroGConfig } from "./config";
 import { ZeroGStorageService } from "./storage";
@@ -10,9 +15,16 @@ function blobStorageStatus(): StorageStatus {
   return "stored";
 }
 
-async function loadBlobBytes(inner: ZeroGStorageService, uri: string): Promise<Uint8Array> {
+async function loadBlobBytes(
+  inner: ZeroGStorageService,
+  uri: string,
+): Promise<Uint8Array> {
   const artifact = await inner.getArtifact(uri);
-  if (!artifact || typeof artifact.content !== "object" || artifact.content === null) {
+  if (
+    !artifact ||
+    typeof artifact.content !== "object" ||
+    artifact.content === null
+  ) {
     throw new Error("blob_not_found");
   }
   const bytesB64 = (artifact.content as { bytesB64?: string }).bytesB64;
@@ -21,7 +33,9 @@ async function loadBlobBytes(inner: ZeroGStorageService, uri: string): Promise<U
 }
 
 /** Canonical blob adapter over the existing artifact store (namespaced, hashed payloads). */
-export function createCanonicalBlobAdapter(store: ZeroGOrchestratorStore): ZeroGStorageAdapter {
+export function createCanonicalBlobAdapter(
+  store: ZeroGOrchestratorStore,
+): ZeroGStorageAdapter {
   const inner = new ZeroGStorageService(store);
 
   return {
@@ -78,13 +92,17 @@ export function createCanonicalBlobAdapter(store: ZeroGOrchestratorStore): ZeroG
     async listBlobs(namespace?: string) {
       const kinds = await inner.listArtifactsByKind("asset");
       return kinds
-        .filter(a => !namespace || a.tags.includes(namespace))
+        .filter((a) => !namespace || a.tags.includes(namespace))
         .map(
           (a): ZeroGBlobRef => ({
             blobId: a.id,
             namespace:
-              typeof a.content === "object" && a.content && "namespace" in a.content
-                ? String((a.content as { namespace?: string }).namespace ?? a.title)
+              typeof a.content === "object" &&
+              a.content &&
+              "namespace" in a.content
+                ? String(
+                    (a.content as { namespace?: string }).namespace ?? a.title,
+                  )
                 : a.title || "default",
             checksum: a.checksum,
             sizeBytes: a.sizeBytes,
@@ -92,7 +110,7 @@ export function createCanonicalBlobAdapter(store: ZeroGOrchestratorStore): ZeroG
             uri: a.storageRef || `zg://storage/artifacts/${a.id}`,
             createdAt: a.createdAt,
             status: blobStorageStatus(),
-          })
+          }),
         );
     },
   };

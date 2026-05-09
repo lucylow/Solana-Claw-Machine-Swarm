@@ -4,7 +4,10 @@ import type { SolanaRpcProbe } from "@shared/solana/types";
 /**
  * Lightweight RPC reachability check (slot + latency). Uses the same RPC URL the server is configured for.
  */
-export async function probeSolanaRpc(rpcUrl: string, timeoutMs = 4500): Promise<SolanaRpcProbe> {
+export async function probeSolanaRpc(
+  rpcUrl: string,
+  timeoutMs = 4500,
+): Promise<SolanaRpcProbe> {
   const started = Date.now();
   const connection = new Connection(rpcUrl, {
     commitment: "confirmed",

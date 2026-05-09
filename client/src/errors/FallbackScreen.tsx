@@ -19,7 +19,7 @@ export default function FallbackScreen({
       <div
         className={cn(
           "w-full max-w-lg rounded-2xl border border-[#14f195]/25 bg-[#0d151c]/95",
-          "shadow-[0_0_40px_rgba(20,241,149,0.08)] p-8 space-y-6"
+          "shadow-[0_0_40px_rgba(20,241,149,0.08)] p-8 space-y-6",
         )}
       >
         <div className="flex items-start gap-4">
@@ -27,9 +27,13 @@ export default function FallbackScreen({
             <AlertTriangle className="h-8 w-8" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.2em] text-[#14f195]/80">CLAW_MACHINE</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#14f195]/80">
+              CLAW_MACHINE
+            </p>
             <h1 className="text-xl font-semibold text-white">{title}</h1>
-            <p className="text-sm text-slate-300 leading-relaxed">{app.message}</p>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {app.message}
+            </p>
             <p className="text-[11px] text-slate-500 font-mono">
               {app.code} · {app.scope}
             </p>

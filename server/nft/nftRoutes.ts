@@ -7,7 +7,8 @@ export function registerNftRoutes(app: Express, nftService: NftService) {
       const data = await nftService.createCollection(req.body);
       res.json({ ok: true, data });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "create_collection_failed";
+      const message =
+        error instanceof Error ? error.message : "create_collection_failed";
       res.status(400).json({ ok: false, error: message });
     }
   });
@@ -36,7 +37,8 @@ export function registerNftRoutes(app: Express, nftService: NftService) {
 
   app.get("/api/nft/mint/:mint", (req, res) => {
     const data = nftService.getMint(req.params.mint);
-    if (!data) return res.status(404).json({ ok: false, error: "mint_not_found" });
+    if (!data)
+      return res.status(404).json({ ok: false, error: "mint_not_found" });
     res.json({ ok: true, data });
   });
 

@@ -79,9 +79,16 @@ const STATUS_DOT: Record<DappActivityStatus, string> = {
 function StatusIcon({ status }: { status: DappActivityStatus }) {
   switch (status) {
     case "complete":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-[#3bff96]" aria-hidden />;
+      return (
+        <CheckCircle2 className="h-3.5 w-3.5 text-[#3bff96]" aria-hidden />
+      );
     case "active":
-      return <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-300" aria-hidden />;
+      return (
+        <Loader2
+          className="h-3.5 w-3.5 animate-spin text-cyan-300"
+          aria-hidden
+        />
+      );
     case "failed":
       return <XCircle className="h-3.5 w-3.5 text-rose-300" aria-hidden />;
     case "skipped":
@@ -123,7 +130,7 @@ export function DappActivityTimeline({
       <div
         className={cn(
           "flex items-center gap-2 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/40 px-3 py-2 [scrollbar-width:thin]",
-          className
+          className,
         )}
         aria-label={title}
       >
@@ -137,7 +144,12 @@ export function DappActivityTimeline({
                 key={item.id}
                 className="flex shrink-0 items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400"
               >
-                <span className={cn("h-2 w-2 rounded-full", STATUS_DOT[item.status])} />
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    STATUS_DOT[item.status],
+                  )}
+                />
                 <span className="text-slate-300">{meta.eyebrow}</span>
                 {idx < items.length - 1 ? (
                   <span className="text-slate-700">→</span>
@@ -154,7 +166,7 @@ export function DappActivityTimeline({
     <div
       className={cn(
         "rounded-2xl border border-white/[0.08] bg-black/30 p-4",
-        className
+        className,
       )}
       aria-label={title}
     >
@@ -171,11 +183,11 @@ export function DappActivityTimeline({
       </header>
 
       {items.length === 0 ? (
-        empty ?? (
+        (empty ?? (
           <p className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-[11px] text-slate-500">
             Activity appears here as the wallet signs and transactions confirm.
           </p>
-        )
+        ))
       ) : (
         <ol className="relative ml-2 space-y-3 border-l border-white/10 pl-4">
           {items.map((item) => {
@@ -185,14 +197,17 @@ export function DappActivityTimeline({
                 <span
                   className={cn(
                     "absolute -left-[22px] top-1.5 flex h-3 w-3 items-center justify-center rounded-full ring-4 ring-black/40",
-                    STATUS_DOT[item.status]
+                    STATUS_DOT[item.status],
                   )}
                   aria-hidden
                 />
                 <div className="rounded-lg border border-white/[0.05] bg-white/[0.03] px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider">
-                      <meta.Icon className="h-3 w-3 text-[#9cf6d8]" aria-hidden />
+                      <meta.Icon
+                        className="h-3 w-3 text-[#9cf6d8]"
+                        aria-hidden
+                      />
                       <span className="text-[#9cf6d8]">{meta.eyebrow}</span>
                       {item.demo ? (
                         <DappOnchainTag scope="demo" size="sm" />
@@ -332,8 +347,10 @@ export function buildDappActivityFromState(input: {
 
   return DEFAULT_LOOP.map<DappActivityItem>((kind, idx) => {
     const matchingReceipt = input.receipts?.find((r) => {
-      if (kind === "receipt_anchored") return r.type === "proof" || r.type === "memory";
-      if (kind === "tx_confirmed") return r.status === "confirmed" || r.status === "verified";
+      if (kind === "receipt_anchored")
+        return r.type === "proof" || r.type === "memory";
+      if (kind === "tx_confirmed")
+        return r.status === "confirmed" || r.status === "verified";
       return false;
     });
     return {

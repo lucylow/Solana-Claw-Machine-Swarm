@@ -20,7 +20,11 @@ import type {
   DaoTreasurySnapshot,
   DaoVote,
 } from "@shared/dao/types";
-import { buildExplorerAddressUrl, buildExplorerTxUrl, explorerBaseUrl } from "../solana/explorer";
+import {
+  buildExplorerAddressUrl,
+  buildExplorerTxUrl,
+  explorerBaseUrl,
+} from "../solana/explorer";
 import type {
   DaoAgentRecommendationRecord,
   DaoConfigRecord,
@@ -47,20 +51,30 @@ function kindToProposalType(kind: DaoProposalKind): DaoProposalType {
   return m[kind] ?? "other";
 }
 
-function inferPolicy(kind: DaoProposalKind): "low" | "medium" | "high" | "critical" {
+function inferPolicy(
+  kind: DaoProposalKind,
+): "low" | "medium" | "high" | "critical" {
   if (kind === "treasury_spend" || kind === "dao_grant") return "high";
   if (kind === "parameter_change") return "medium";
   return "low";
 }
 
-function memberRoleFromRecord(m: DaoMemberRecord, incomingDelegationCount: number): DaoMemberRole {
+function memberRoleFromRecord(
+  m: DaoMemberRecord,
+  incomingDelegationCount: number,
+): DaoMemberRole {
   if (incomingDelegationCount > 0) return "delegate";
   if (m.reputationPoints > 80 && m.stakeLamports > 2_000_000) return "council";
   return "member";
 }
 
-export function mapMemberRecord(m: DaoMemberRecord, delegations: DaoDelegationRecord[]): DaoMember {
-  const incoming = delegations.filter(d => d.status === "active" && d.toWallet === m.wallet);
+export function mapMemberRecord(
+  m: DaoMemberRecord,
+  delegations: DaoDelegationRecord[],
+): DaoMember {
+  const incoming = delegations.filter(
+    (d) => d.status === "active" && d.toWallet === m.wallet,
+  );
   const delegatedPower = incoming.reduce((acc, d) => {
     // weight field stores delegator snapshot at delegation time
     return acc + d.weight;
@@ -108,13 +122,19 @@ export function mapProposalRecord(
   cfg: DaoConfigRecord | undefined,
   eligibleMembers: number,
   cluster: SolanaCluster,
-  programId: string
+  programId: string,
 ): DaoProposal {
-  const participationBps = participationBpsFromCounts(p.voterCount, Math.max(1, eligibleMembers));
+  const participationBps = participationBpsFromCounts(
+    p.voterCount,
+    Math.max(1, eligibleMembers),
+  );
   const vetoVotes = p.vetoVotes ?? 0;
   const approval = approvalRatio(p.yesVotes, p.noVotes + vetoVotes);
   const threshold = (cfg?.proposalThresholdBps ?? 5000) / 10000;
-  const finalized = p.status === "succeeded" || p.status === "defeated" || p.status === "executed";
+  const finalized =
+    p.status === "succeeded" ||
+    p.status === "defeated" ||
+    p.status === "executed";
   const executed = p.status === "executed";
   const canonicalStatus: DaoProposalStatus = deriveCanonicalStatus({
     legacyStatus: p.status,
@@ -193,7 +213,9 @@ export function mapVoteLedger(v: DaoVoteLedgerRecord): DaoVote {
   };
 }
 
-export function mapAgentRec(a: DaoAgentRecommendationRecord): DaoAgentRecommendation {
+export function mapAgentRec(
+  a: DaoAgentRecommendationRecord,
+): DaoAgentRecommendation {
   return {
     id: a.id,
     proposalId: String(a.proposalId),
@@ -211,7 +233,9 @@ export function mapAgentRec(a: DaoAgentRecommendationRecord): DaoAgentRecommenda
   };
 }
 
-export function mapMemory(m: DaoGovernanceMemoryPersist): DaoGovernanceMemoryRecord {
+export function mapMemory(
+  m: DaoGovernanceMemoryPersist,
+): DaoGovernanceMemoryRecord {
   return {
     id: m.id,
     proposalId: String(m.proposalId),
@@ -227,7 +251,7 @@ export function mapMemory(m: DaoGovernanceMemoryPersist): DaoGovernanceMemoryRec
 
 export function mapExecutionReceipt(
   r: import("./daoTypes").DaoExecutionReceiptPersist,
-  cluster: SolanaCluster
+  cluster: SolanaCluster,
 ): DaoExecutionReceipt {
   const explorerUrl =
     r.txSignature && r.explorerUrl === undefined
@@ -252,7 +276,7 @@ export function mapExecutionReceipt(
 
 export function mapTreasurySnapshot(
   t: DaoTreasurySnapshotPersist,
-  cluster: SolanaCluster
+  cluster: SolanaCluster,
 ): DaoTreasurySnapshot {
   return {
     id: t.id,
@@ -269,9 +293,15 @@ export function mapTreasurySnapshot(
   };
 }
 
-export function defaultAgentCouncilForProposal(proposalId: number): DaoAgentRecommendationRecord[] {
+export function defaultAgentCouncilForProposal(
+  proposalId: number,
+): DaoAgentRecommendationRecord[] {
   const now = Date.now();
-  const base = (suffix: string, role: DaoAgentRecommendationRecord["role"], name: string) =>
+  const base = (
+    suffix: string,
+    role: DaoAgentRecommendationRecord["role"],
+    name: string,
+  ) =>
     ({
       id: nanoid(),
       proposalId,
@@ -279,7 +309,8 @@ export function defaultAgentCouncilForProposal(proposalId: number): DaoAgentReco
       agentName: name,
       role,
       summary: `Automated ${name.toLowerCase()} pass for proposal ${proposalId}.`,
-      recommendation: "Review quorum, treasury impact, and execution path before finalizing.",
+      recommendation:
+        "Review quorum, treasury impact, and execution path before finalizing.",
       confidence: 0.7,
       risks: ["Data may be incomplete until treasury snapshot refreshes."],
       supportingEvidence: ["local_store", "policy_default"],
@@ -309,17 +340,24 @@ export function buildLiveCommandCenter(input: {
   effectiveWeight: number;
   programId?: string;
 }): DaoCommandCenterPayload {
-  const programId = input.programId || process.env.SOLANA_DAO_PROGRAM_ID || DAO_PROGRAM_ID_DEFAULT;
-  const eligible = input.members.filter(m => m.active).length;
+  const programId =
+    input.programId ||
+    process.env.SOLANA_DAO_PROGRAM_ID ||
+    DAO_PROGRAM_ID_DEFAULT;
+  const eligible = input.members.filter((m) => m.active).length;
   const delegations = input.delegations.map(mapDelegationRecord);
-  const members = input.members.map(m => mapMemberRecord(m, input.delegations));
-  const proposals = input.proposals.map(p =>
-    mapProposalRecord(p, input.cfg, eligible, input.cluster, programId)
+  const members = input.members.map((m) =>
+    mapMemberRecord(m, input.delegations),
+  );
+  const proposals = input.proposals.map((p) =>
+    mapProposalRecord(p, input.cfg, eligible, input.cluster, programId),
   );
   const votes = input.voteLedger.map(mapVoteLedger);
   const agentRecommendations = input.agentRecs.map(mapAgentRec);
   const governanceMemory = input.memories.map(mapMemory);
-  const executionReceipts = input.execReceipts.map(r => mapExecutionReceipt(r, input.cluster));
+  const executionReceipts = input.execReceipts.map((r) =>
+    mapExecutionReceipt(r, input.cluster),
+  );
   const treasury = input.treasurySnaps[0]
     ? mapTreasurySnapshot(input.treasurySnaps[0], input.cluster)
     : input.cfg?.treasury
@@ -336,11 +374,16 @@ export function buildLiveCommandCenter(input: {
       : null;
 
   const active = proposals.find(
-    p => p.status === "voting" || p.status === "quorum_reached" || p.status === "review"
+    (p) =>
+      p.status === "voting" ||
+      p.status === "quorum_reached" ||
+      p.status === "review",
   );
 
   const wallet = input.walletAddress;
-  const member = wallet ? members.find(mm => mm.walletAddress === wallet) ?? null : null;
+  const member = wallet
+    ? (members.find((mm) => mm.walletAddress === wallet) ?? null)
+    : null;
 
   return {
     cluster: input.cluster,
@@ -350,8 +393,16 @@ export function buildLiveCommandCenter(input: {
     walletAddress: wallet,
     member,
     effectiveVoteWeight: input.effectiveWeight,
-    delegationsIncoming: wallet ? delegations.filter(d => d.toWallet === wallet && d.status === "active") : [],
-    delegationsOutgoing: wallet ? delegations.filter(d => d.fromWallet === wallet && d.status === "active") : [],
+    delegationsIncoming: wallet
+      ? delegations.filter(
+          (d) => d.toWallet === wallet && d.status === "active",
+        )
+      : [],
+    delegationsOutgoing: wallet
+      ? delegations.filter(
+          (d) => d.fromWallet === wallet && d.status === "active",
+        )
+      : [],
     configSummary: {
       name: input.cfg?.name ?? "CLAW DAO",
       quorumBps: input.cfg?.quorumBps ?? 4000,
@@ -374,17 +425,59 @@ export function buildLiveCommandCenter(input: {
   };
 }
 
-function buildTimelineFromProposal(p: DaoProposal | undefined): import("@shared/dao/types").DaoTimelineStage[] {
+function buildTimelineFromProposal(
+  p: DaoProposal | undefined,
+): import("@shared/dao/types").DaoTimelineStage[] {
   if (!p) {
     return [
-      { id: "draft", label: "Proposal drafted", done: false, artifact: "offchain" },
-      { id: "agents", label: "Agent council review", done: false, artifact: "offchain" },
-      { id: "publish", label: "Published to wallet members", done: false, artifact: "receipt" },
-      { id: "vote", label: "Voting open on Solana", done: false, artifact: "chain" },
-      { id: "quorum", label: "Quorum progress", done: false, artifact: "chain" },
-      { id: "finalize", label: "Finalize proposal", done: false, artifact: "receipt" },
-      { id: "execute", label: "Execute with receipt anchor", done: false, artifact: "chain" },
-      { id: "memory", label: "Governance memory", done: false, artifact: "offchain" },
+      {
+        id: "draft",
+        label: "Proposal drafted",
+        done: false,
+        artifact: "offchain",
+      },
+      {
+        id: "agents",
+        label: "Agent council review",
+        done: false,
+        artifact: "offchain",
+      },
+      {
+        id: "publish",
+        label: "Published to wallet members",
+        done: false,
+        artifact: "receipt",
+      },
+      {
+        id: "vote",
+        label: "Voting open on Solana",
+        done: false,
+        artifact: "chain",
+      },
+      {
+        id: "quorum",
+        label: "Quorum progress",
+        done: false,
+        artifact: "chain",
+      },
+      {
+        id: "finalize",
+        label: "Finalize proposal",
+        done: false,
+        artifact: "receipt",
+      },
+      {
+        id: "execute",
+        label: "Execute with receipt anchor",
+        done: false,
+        artifact: "chain",
+      },
+      {
+        id: "memory",
+        label: "Governance memory",
+        done: false,
+        artifact: "offchain",
+      },
     ];
   }
   const doneDraft = true;
@@ -392,16 +485,49 @@ function buildTimelineFromProposal(p: DaoProposal | undefined): import("@shared/
   const donePublish = p.proposalReceiptId != null || p.status !== "draft";
   const doneVote = p.voteYes + p.voteNo + p.voteAbstain + p.voteVeto > 0;
   const doneQuorum = p.quorumReached >= p.quorumRequired;
-  const doneFinalize = p.status === "approved" || p.status === "rejected" || p.status === "executed";
+  const doneFinalize =
+    p.status === "approved" ||
+    p.status === "rejected" ||
+    p.status === "executed";
   const doneExec = p.status === "executed";
   return [
-    { id: "draft", label: "Proposal drafted", done: doneDraft, artifact: "offchain" },
-    { id: "agents", label: "Agent council review", done: doneAgents, artifact: "offchain" },
-    { id: "publish", label: "Published + proposal receipt", done: donePublish, artifact: "receipt" },
+    {
+      id: "draft",
+      label: "Proposal drafted",
+      done: doneDraft,
+      artifact: "offchain",
+    },
+    {
+      id: "agents",
+      label: "Agent council review",
+      done: doneAgents,
+      artifact: "offchain",
+    },
+    {
+      id: "publish",
+      label: "Published + proposal receipt",
+      done: donePublish,
+      artifact: "receipt",
+    },
     { id: "vote", label: "Votes cast", done: doneVote, artifact: "chain" },
-    { id: "quorum", label: "Quorum vs threshold", done: doneQuorum, artifact: "chain" },
-    { id: "finalize", label: "Finalize proposal", done: doneFinalize, artifact: "receipt" },
-    { id: "execute", label: "Execution receipt on Solana", done: doneExec, artifact: "chain" },
+    {
+      id: "quorum",
+      label: "Quorum vs threshold",
+      done: doneQuorum,
+      artifact: "chain",
+    },
+    {
+      id: "finalize",
+      label: "Finalize proposal",
+      done: doneFinalize,
+      artifact: "receipt",
+    },
+    {
+      id: "execute",
+      label: "Execution receipt on Solana",
+      done: doneExec,
+      artifact: "chain",
+    },
     {
       id: "memory",
       label: "Governance memory",
@@ -413,15 +539,19 @@ function buildTimelineFromProposal(p: DaoProposal | undefined): import("@shared/
 
 export function mergeDemoWithLive(
   demo: Omit<DaoCommandCenterPayload, "explorerBaseUrl">,
-  live: DaoCommandCenterPayload
+  live: DaoCommandCenterPayload,
 ): DaoCommandCenterPayload {
-  const proposalIds = new Set(demo.proposals.map(p => p.id));
-  const mergedProposals = [...demo.proposals, ...live.proposals.filter(p => !proposalIds.has(p.id))];
+  const proposalIds = new Set(demo.proposals.map((p) => p.id));
+  const mergedProposals = [
+    ...demo.proposals,
+    ...live.proposals.filter((p) => !proposalIds.has(p.id)),
+  ];
   return {
     ...demo,
     explorerBaseUrl: live.explorerBaseUrl,
     proposals: mergedProposals,
-    members: demo.members.length >= live.members.length ? demo.members : live.members,
+    members:
+      demo.members.length >= live.members.length ? demo.members : live.members,
     votes: [...demo.votes, ...live.votes],
     delegations: [...demo.delegations, ...live.delegations],
     governanceMemory: [...demo.governanceMemory, ...live.governanceMemory],
@@ -429,13 +559,20 @@ export function mergeDemoWithLive(
     walletAddress: live.walletAddress,
     member: live.member,
     effectiveVoteWeight: live.effectiveVoteWeight,
-    delegationsIncoming: live.delegationsIncoming.length ? live.delegationsIncoming : demo.delegationsIncoming,
-    delegationsOutgoing: live.delegationsOutgoing.length ? live.delegationsOutgoing : demo.delegationsOutgoing,
+    delegationsIncoming: live.delegationsIncoming.length
+      ? live.delegationsIncoming
+      : demo.delegationsIncoming,
+    delegationsOutgoing: live.delegationsOutgoing.length
+      ? live.delegationsOutgoing
+      : demo.delegationsOutgoing,
     degradedReasons: [...demo.degradedReasons, ...live.degradedReasons],
   };
 }
 
-export function treasurySnapshotFromConfig(cfg: DaoConfigRecord | undefined, cluster: SolanaCluster): DaoTreasurySnapshot | null {
+export function treasurySnapshotFromConfig(
+  cfg: DaoConfigRecord | undefined,
+  cluster: SolanaCluster,
+): DaoTreasurySnapshot | null {
   if (!cfg?.treasury) return null;
   return {
     id: `snap_${cfg.treasury.slice(0, 6)}`,
@@ -449,6 +586,9 @@ export function treasurySnapshotFromConfig(cfg: DaoConfigRecord | undefined, clu
   };
 }
 
-export function explorerLinkForAddress(address: string, cluster: SolanaCluster): string {
+export function explorerLinkForAddress(
+  address: string,
+  cluster: SolanaCluster,
+): string {
   return buildExplorerAddressUrl(address, cluster);
 }

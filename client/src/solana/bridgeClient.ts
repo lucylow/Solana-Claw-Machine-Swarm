@@ -32,7 +32,9 @@ export function getSolanaSession(walletAddress: string) {
     expiresAt?: string;
     sessionId?: number;
     userId?: number;
-  }>(`/api/solana/wallet-session?walletAddress=${encodeURIComponent(walletAddress)}`);
+  }>(
+    `/api/solana/wallet-session?walletAddress=${encodeURIComponent(walletAddress)}`,
+  );
 }
 
 export function getSolanaNetwork() {
@@ -74,7 +76,11 @@ export function confirmSolanaInstruction(input: {
   });
 }
 
-export function listMirrorAccounts(query?: { wallet?: string; kind?: string; status?: string }) {
+export function listMirrorAccounts(query?: {
+  wallet?: string;
+  kind?: string;
+  status?: string;
+}) {
   const params = new URLSearchParams();
   if (query?.wallet) params.set("wallet", query.wallet);
   if (query?.kind) params.set("kind", query.kind);

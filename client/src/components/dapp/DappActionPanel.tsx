@@ -72,7 +72,7 @@ export function DappActionPanel({
     <section
       className={cn(
         "relative overflow-hidden rounded-3xl border border-[#14f195]/15 bg-gradient-to-br from-[#0a120e]/95 via-[#070b0e]/95 to-[#04080b]/95 p-5 shadow-[0_28px_60px_rgba(0,0,0,0.55)] sm:p-6",
-        className
+        className,
       )}
       aria-label={title}
     >
@@ -127,7 +127,7 @@ export function DappActionPanel({
               onClick={() => wallet.connectAndVerify().catch(() => undefined)}
             >
               <Wallet className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-              Connect wallet to continue
+              Connect Phantom to continue
             </Button>
           ) : sessionGated ? (
             <Button
@@ -136,9 +136,12 @@ export function DappActionPanel({
               onClick={() => wallet.connectAndVerify().catch(() => undefined)}
             >
               {state.busy ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                <Loader2
+                  className="mr-1.5 h-3.5 w-3.5 animate-spin"
+                  aria-hidden
+                />
               ) : null}
-              Sign session to authorize
+              Sign Phantom session
             </Button>
           ) : primaryAction ? (
             <Button
@@ -148,7 +151,10 @@ export function DappActionPanel({
               disabled={primaryAction.disabled || primaryAction.busy}
             >
               {primaryAction.busy ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
+                <Loader2
+                  className="mr-1.5 h-3.5 w-3.5 animate-spin"
+                  aria-hidden
+                />
               ) : (
                 <ArrowRight className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               )}

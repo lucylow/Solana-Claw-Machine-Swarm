@@ -28,9 +28,20 @@ import type {
   DemoSection,
   DemoSkillFixture,
 } from "@shared/demoTypes";
-import { memoryRecordToDemoFixture, reflectionRecordToDemoFixture } from "@shared/demoUiAdapter";
+import {
+  memoryRecordToDemoFixture,
+  reflectionRecordToDemoFixture,
+} from "@shared/demoUiAdapter";
 import type { ExecutionRun, UnifiedStoryBeat } from "@shared/executionStory";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type { DemoSection };
 
@@ -82,8 +93,12 @@ export interface DemoContextValue {
   displayedExecutionRun: ExecutionRun;
 
   reflectionStory: ReturnType<typeof buildDemoExecutionArtifacts>["reflection"];
-  traceableMemory: ReturnType<typeof buildDemoExecutionArtifacts>["traceableMemory"];
-  commandReceipts: ReturnType<typeof buildDemoExecutionArtifacts>["commandReceipts"];
+  traceableMemory: ReturnType<
+    typeof buildDemoExecutionArtifacts
+  >["traceableMemory"];
+  commandReceipts: ReturnType<
+    typeof buildDemoExecutionArtifacts
+  >["commandReceipts"];
 
   applyScenarioDefaults: () => void;
 
@@ -99,9 +114,13 @@ const DemoCtx = createContext<DemoContextValue | null>(null);
 
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [walletConnectedDemo, setWalletConnectedDemo] = useState(false);
-  const [playbackDrivesDemoWallet, setPlaybackDrivesDemoWallet] = useState(true);
-  const [selectedScenarioId, setSelectedScenarioId] = useState<DemoScenarioFixture["id"]>("full-e2e");
-  const [selectedSkillId, setSelectedSkillId] = useState<string>("skill-support-triage");
+  const [playbackDrivesDemoWallet, setPlaybackDrivesDemoWallet] =
+    useState(true);
+  const [selectedScenarioId, setSelectedScenarioId] =
+    useState<DemoScenarioFixture["id"]>("full-e2e");
+  const [selectedSkillId, setSelectedSkillId] = useState<string>(
+    "skill-support-triage",
+  );
   const [runOutcome, setRunOutcome] = useState<DemoRunOutcome>("recovery");
   const [presentationMode, setPresentationMode] = useState(false);
   const [storyPlaybackIndex, setStoryPlaybackIndex] = useState(0);
@@ -111,8 +130,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [forceError, setForceError] = useState(false);
 
   const activeScenario = useMemo(
-    () => DEMO_SCENARIOS.find(s => s.id === selectedScenarioId) ?? DEMO_SCENARIOS[DEMO_SCENARIOS.length - 1]!,
-    [selectedScenarioId]
+    () =>
+      DEMO_SCENARIOS.find((s) => s.id === selectedScenarioId) ??
+      DEMO_SCENARIOS[DEMO_SCENARIOS.length - 1]!,
+    [selectedScenarioId],
   );
 
   const applyScenarioDefaults = useCallback(() => {
@@ -124,7 +145,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     applyScenarioDefaults();
   }, [applyScenarioDefaults, selectedScenarioId]);
 
-  const activeSkill = useMemo(() => getSkillById(selectedSkillId) ?? DEMO_SKILLS[0]!, [selectedSkillId]);
+  const activeSkill = useMemo(
+    () => getSkillById(selectedSkillId) ?? DEMO_SKILLS[0]!,
+    [selectedSkillId],
+  );
 
   const effectiveOutcome = useMemo((): DemoRunOutcome => {
     if (forceError) return "failure";
@@ -133,7 +157,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const playbackFrames = useMemo(
     () => getPlaybackFramesForScenario(selectedScenarioId, forceError),
-    [selectedScenarioId, forceError]
+    [selectedScenarioId, forceError],
   );
 
   const storyBeatCount = playbackFrames.length;
@@ -157,23 +181,39 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       storyPlaybackIndex,
       storyPlaybackAutoplay,
       presentationMode,
-    ]
+    ],
   );
 
-  const unifiedBeats = useMemo(() => getUnifiedStoryBeats(effectiveOutcome), [effectiveOutcome]);
-  const activeFrame = playbackFrames[Math.min(storyPlaybackIndex, Math.max(storyBeatCount - 1, 0))] ?? playbackFrames[0]!;
-  const activeUnifiedBeat = unifiedBeats[activeFrame.beatIndex] ?? unifiedBeats[0]!;
+  const unifiedBeats = useMemo(
+    () => getUnifiedStoryBeats(effectiveOutcome),
+    [effectiveOutcome],
+  );
+  const activeFrame =
+    playbackFrames[
+      Math.min(storyPlaybackIndex, Math.max(storyBeatCount - 1, 0))
+    ] ?? playbackFrames[0]!;
+  const activeUnifiedBeat =
+    unifiedBeats[activeFrame.beatIndex] ?? unifiedBeats[0]!;
 
-  const plan = useMemo(() => buildPlan(activeSkill, effectiveOutcome), [activeSkill, effectiveOutcome]);
+  const plan = useMemo(
+    () => buildPlan(activeSkill, effectiveOutcome),
+    [activeSkill, effectiveOutcome],
+  );
   const agents = useMemo(
     () => buildAgentsForScenario(selectedScenarioId, effectiveOutcome),
-    [effectiveOutcome, selectedScenarioId]
+    [effectiveOutcome, selectedScenarioId],
   );
-  const steps = useMemo(() => buildExecutionSteps(effectiveOutcome), [effectiveOutcome]);
-  const receipts = useMemo(() => buildReceipts(activeSkill, effectiveOutcome), [activeSkill, effectiveOutcome]);
+  const steps = useMemo(
+    () => buildExecutionSteps(effectiveOutcome),
+    [effectiveOutcome],
+  );
+  const receipts = useMemo(
+    () => buildReceipts(activeSkill, effectiveOutcome),
+    [activeSkill, effectiveOutcome],
+  );
   const memoryTimeline = useMemo(
     () => buildMemoryTimeline(effectiveOutcome !== "success"),
-    [effectiveOutcome]
+    [effectiveOutcome],
   );
 
   const artifact = useMemo(
@@ -186,7 +226,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         receipts,
         outcome: effectiveOutcome,
       }),
-    [activeSkill, plan, steps, receipts, effectiveOutcome]
+    [activeSkill, plan, steps, receipts, effectiveOutcome],
   );
 
   const executionRunFull = artifact.executionRun;
@@ -207,18 +247,29 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, [effectiveOutcome, selectedScenarioId, forceError]);
 
   useEffect(() => {
-    setStoryPlaybackIndex(idx => Math.min(idx, Math.max(storyBeatCount - 1, 0)));
+    setStoryPlaybackIndex((idx) =>
+      Math.min(idx, Math.max(storyBeatCount - 1, 0)),
+    );
   }, [storyBeatCount]);
 
   useEffect(() => {
     if (!storyPlaybackAutoplay) return undefined;
     const i = Math.min(storyPlaybackIndex, Math.max(storyBeatCount - 1, 0));
-    const delay = (playbackFrames[i]?.delayMs ?? 4800) * (presentationMode ? 1.15 : 1);
+    const delay =
+      (playbackFrames[i]?.delayMs ?? 4800) * (presentationMode ? 1.15 : 1);
     const id = window.setTimeout(() => {
-      setStoryPlaybackIndex(prev => (prev >= storyBeatCount - 1 ? 0 : prev + 1));
+      setStoryPlaybackIndex((prev) =>
+        prev >= storyBeatCount - 1 ? 0 : prev + 1,
+      );
     }, delay);
     return () => window.clearTimeout(id);
-  }, [storyPlaybackAutoplay, presentationMode, playbackFrames, storyPlaybackIndex, storyBeatCount]);
+  }, [
+    storyPlaybackAutoplay,
+    presentationMode,
+    playbackFrames,
+    storyPlaybackIndex,
+    storyBeatCount,
+  ]);
 
   useEffect(() => {
     if (!playbackDrivesDemoWallet) return undefined;
@@ -230,9 +281,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setStoryPlaybackIndex(0);
   }, []);
 
-  const setGuidedStepIndex = useCallback((i: number | ((p: number) => number)) => {
-    setStoryPlaybackIndex(i);
-  }, []);
+  const setGuidedStepIndex = useCallback(
+    (i: number | ((p: number) => number)) => {
+      setStoryPlaybackIndex(i);
+    },
+    [],
+  );
 
   const setGuidedAutoplay = useCallback((v: boolean) => {
     setStoryPlaybackAutoplay(v);
@@ -240,7 +294,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const replayGuided = replayStory;
   const guidedStepCount = storyBeatCount;
-  const activeBeatIndex = Math.min(storyPlaybackIndex, Math.max(storyBeatCount - 1, 0));
+  const activeBeatIndex = Math.min(
+    storyPlaybackIndex,
+    Math.max(storyBeatCount - 1, 0),
+  );
 
   const value = useMemo(
     () => ({
@@ -331,7 +388,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setGuidedAutoplay,
       guidedStepCount,
       replayGuided,
-    ]
+    ],
   );
 
   return <DemoCtx.Provider value={value}>{children}</DemoCtx.Provider>;

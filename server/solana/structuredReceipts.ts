@@ -1,5 +1,8 @@
 import type { SolanaProofReceipt } from "@shared/zerog";
-import { inferProofIntegrity, isDemoSimulatedTxSignature } from "@shared/proof/integrity";
+import {
+  inferProofIntegrity,
+  isDemoSimulatedTxSignature,
+} from "@shared/proof/integrity";
 import type { StructuredReceipt } from "@shared/structuredReceipt";
 import type { SolanaCluster, SolanaReceiptRecord } from "@shared/solana/types";
 import type { ZeroGIntegrationStatus } from "@shared/zerog";
@@ -14,11 +17,15 @@ export function pushManualStructuredReceipt(receipt: StructuredReceipt) {
   manualStructured.unshift(receipt);
 }
 
-function integrationMode(mode: ZeroGIntegrationStatus["mode"]): ZeroGIntegrationStatus["mode"] {
+function integrationMode(
+  mode: ZeroGIntegrationStatus["mode"],
+): ZeroGIntegrationStatus["mode"] {
   return mode;
 }
 
-function receiptRowTypeFromProofSubject(st: SolanaProofReceipt["subjectType"]): SolanaReceiptRecord["type"] {
+function receiptRowTypeFromProofSubject(
+  st: SolanaProofReceipt["subjectType"],
+): SolanaReceiptRecord["type"] {
   switch (st) {
     case "bridge":
       return "proof";
@@ -43,7 +50,9 @@ function receiptRowTypeFromProofSubject(st: SolanaProofReceipt["subjectType"]): 
   }
 }
 
-function structuredTypeFromMirrorRow(row: SolanaReceiptRecord): StructuredReceipt["receiptType"] {
+function structuredTypeFromMirrorRow(
+  row: SolanaReceiptRecord,
+): StructuredReceipt["receiptType"] {
   if (row.type === "session") return "wallet_session";
   if (row.type === "skill") return "skill_publish";
   if (row.type === "zerog_upload") return "zerog_storage";
@@ -56,7 +65,7 @@ function structuredTypeFromMirrorRow(row: SolanaReceiptRecord): StructuredReceip
 /** Maps sidecar mirrors + indexer rows into the canonical structured receipt surface. */
 export function mirrorReceiptRowToStructured(
   row: SolanaReceiptRecord,
-  integration: ZeroGIntegrationStatus
+  integration: ZeroGIntegrationStatus,
 ): StructuredReceipt {
   const cluster = row.cluster ?? getServerSolanaCluster();
   const now = new Date().toISOString();
@@ -68,7 +77,9 @@ export function mirrorReceiptRowToStructured(
     degradedFlags: row.status === "degraded",
   });
 
-  const showExplorer = Boolean(row.txSignature && !isDemoSimulatedTxSignature(row.txSignature));
+  const showExplorer = Boolean(
+    row.txSignature && !isDemoSimulatedTxSignature(row.txSignature),
+  );
   const explorerUrl =
     showExplorer &&
     row.explorerUrl === undefined &&
@@ -151,13 +162,21 @@ export function mirrorReceiptRowToStructured(
     claim: {
       text: `${row.wallet} anchored a ${row.type} receipt with summary hash ${row.summaryHash.slice(0, 16)}….`,
       supportedBy: [
-        ...(row.storageRef ? ["0G Storage ref present"] : ["No 0G Storage ref"]),
+        ...(row.storageRef
+          ? ["0G Storage ref present"]
+          : ["No 0G Storage ref"]),
         ...(row.daRoot ? ["0G DA root present"] : ["No DA root"]),
-        ...(row.txSignature ? (showExplorer ? ["Solana tx signature present"] : ["Demo Solana mirror signature"]) : ["No Solana signature"]),
+        ...(row.txSignature
+          ? showExplorer
+            ? ["Solana tx signature present"]
+            : ["Demo Solana mirror signature"]
+          : ["No Solana signature"]),
       ],
       unsupported:
         proofStatus === "demo_only"
-          ? ["Not an explorer-verified mainnet/devnet confirmation without RPC check"]
+          ? [
+              "Not an explorer-verified mainnet/devnet confirmation without RPC check",
+            ]
           : proofStatus === "pending"
             ? ["Awaiting confirmation / indexing"]
             : undefined,
@@ -174,22 +193,33 @@ export function proofsToStructuredReceipts(params: {
   integration: ZeroGIntegrationStatus;
 }): StructuredReceipt[] {
   const cluster = getServerSolanaCluster();
-  const rows = params.proofs.map(p =>
-    solanaProofToReceiptRecord(p, cluster, receiptRowTypeFromProofSubject(p.subjectType))
+  const rows = params.proofs.map((p) =>
+    solanaProofToReceiptRecord(
+      p,
+      cluster,
+      receiptRowTypeFromProofSubject(p.subjectType),
+    ),
   );
-  const structured = rows.map(r => mirrorReceiptRowToStructured(r, params.integration));
+  const structured = rows.map((r) =>
+    mirrorReceiptRowToStructured(r, params.integration),
+  );
 
   structured.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return structured;
 }
 
 /** Merge mirror-derived receipts with manually registered rows. */
-export function mergeStructuredReceiptLists(a: StructuredReceipt[], b: StructuredReceipt[]) {
+export function mergeStructuredReceiptLists(
+  a: StructuredReceipt[],
+  b: StructuredReceipt[],
+) {
   const map = new Map<string, StructuredReceipt>();
   for (const item of [...a, ...b]) {
     map.set(item.id, item);
   }
-  return [...map.values()].sort((x, y) => y.createdAt.localeCompare(x.createdAt));
+  return [...map.values()].sort((x, y) =>
+    y.createdAt.localeCompare(x.createdAt),
+  );
 }
 
 export function listManualStructuredReceipts() {
@@ -211,7 +241,8 @@ export function buildSessionStructuredStub(input: {
     walletAddress: input.walletAddress,
     cluster: input.cluster,
     title: "Solana wallet session",
-    summary: "Backend-verified session bound to adapter public key (Bearer token is a cache, not identity).",
+    summary:
+      "Backend-verified session bound to adapter public key (Bearer token is a cache, not identity).",
     status: "verified",
     proofStatus: "pending",
     createdAt: now,

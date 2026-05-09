@@ -94,7 +94,7 @@ function contentHash(input: {
       payload: input.payload ?? {},
       canonicalUri: input.canonicalUri ?? "",
       metadataUri: input.metadataUri ?? "",
-    })
+    }),
   );
 }
 
@@ -107,22 +107,33 @@ function successRate(successCount: number, failureCount: number) {
 function calcReputation(
   usageCount: number,
   skillSuccessRate: number,
-  lastUsedAt?: Date | null
+  lastUsedAt?: Date | null,
 ) {
   const usageWeight = Math.min(60, usageCount * 1.2);
   const successWeight = skillSuccessRate * 0.35;
   const recencyPenalty = lastUsedAt
-    ? Math.max(0, (Date.now() - lastUsedAt.getTime()) / (1000 * 60 * 60 * 24 * 30))
+    ? Math.max(
+        0,
+        (Date.now() - lastUsedAt.getTime()) / (1000 * 60 * 60 * 24 * 30),
+      )
     : 8;
   const recencyWeight = Math.max(0, 20 - recencyPenalty);
-  return Number(Math.max(0, Math.min(100, usageWeight + successWeight + recencyWeight)).toFixed(2));
+  return Number(
+    Math.max(
+      0,
+      Math.min(100, usageWeight + successWeight + recencyWeight),
+    ).toFixed(2),
+  );
 }
 
-function bumpVersion(currentVersion: string, bump: "major" | "minor" | "patch" = "patch") {
+function bumpVersion(
+  currentVersion: string,
+  bump: "major" | "minor" | "patch" = "patch",
+) {
   const [major, minor, patch] = currentVersion
     .split(".")
-    .map(part => Number.parseInt(part, 10))
-    .map(part => (Number.isFinite(part) ? part : 0));
+    .map((part) => Number.parseInt(part, 10))
+    .map((part) => (Number.isFinite(part) ? part : 0));
   if (bump === "major") return `${major + 1}.0.0`;
   if (bump === "minor") return `${major}.${minor + 1}.0`;
   return `${major}.${minor}.${patch + 1}`;
@@ -132,9 +143,16 @@ function shouldFailChain() {
   return process.env.SKILL_CHAIN_FORCE_FAIL === "1";
 }
 
-async function mockChainPublish(skillUid: string, versionAccount: string, hash: string) {
+async function mockChainPublish(
+  skillUid: string,
+  versionAccount: string,
+  hash: string,
+) {
   if (shouldFailChain()) throw new Error("chain_unavailable");
-  const txHash = shortHash(`${skillUid}:${versionAccount}:${hash}`).slice(0, 64);
+  const txHash = shortHash(`${skillUid}:${versionAccount}:${hash}`).slice(
+    0,
+    64,
+  );
   return {
     txHash,
     explorerUrl: `https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
@@ -185,8 +203,11 @@ export class SkillRegistryService {
   private async migrateLegacySkills() {
     const db = await getDb();
     if (!db) return;
-    const rows = await db.select().from(clawSkills).where(eq(clawSkills.userId, this.userId));
-    const legacyRows = rows.filter(row => !row.skillUid);
+    const rows = await db
+      .select()
+      .from(clawSkills)
+      .where(eq(clawSkills.userId, this.userId));
+    const legacyRows = rows.filter((row) => !row.skillUid);
     for (const row of legacyRows) {
       const skillUid = `skill_${nanoid(12)}`;
       const version = "1.0.0";
@@ -250,41 +271,49 @@ export class SkillRegistryService {
     const db = await getDb();
     if (!db) return [];
     let skills = (
-      await db.select().from(clawSkills).where(eq(clawSkills.userId, this.userId))
+      await db
+        .select()
+        .from(clawSkills)
+        .where(eq(clawSkills.userId, this.userId))
     ).map(rowToAsset);
 
     const search = query?.search?.trim().toLowerCase();
     if (search) {
       skills = skills.filter(
-        skill =>
+        (skill) =>
           skill.name.toLowerCase().includes(search) ||
           skill.description.toLowerCase().includes(search) ||
-          skill.tags.some(tag => tag.toLowerCase().includes(search)) ||
+          skill.tags.some((tag) => tag.toLowerCase().includes(search)) ||
           skill.authorWallet.toLowerCase().includes(search) ||
-          skill.contentHash.toLowerCase().includes(search)
+          skill.contentHash.toLowerCase().includes(search),
       );
     }
     if (query?.status && query.status !== "all") {
-      skills = skills.filter(skill => skill.status === query.status);
+      skills = skills.filter((skill) => skill.status === query.status);
     }
     if (query?.authorWallet) {
-      skills = skills.filter(skill => skill.authorWallet === query.authorWallet);
+      skills = skills.filter(
+        (skill) => skill.authorWallet === query.authorWallet,
+      );
     }
     if (query?.tag) {
-      skills = skills.filter(skill => skill.tags.includes(query.tag!));
+      skills = skills.filter((skill) => skill.tags.includes(query.tag!));
     }
     const minReputation = query?.minReputation;
     if (minReputation !== undefined) {
-      skills = skills.filter(skill => skill.reputationScore >= minReputation);
+      skills = skills.filter((skill) => skill.reputationScore >= minReputation);
     }
 
     const sortBy = query?.sortBy || "latest_published";
     const factor = (query?.order || "desc") === "asc" ? 1 : -1;
     skills = [...skills].sort((a, b) => {
-      if (sortBy === "alphabetical") return a.name.localeCompare(b.name) * factor;
+      if (sortBy === "alphabetical")
+        return a.name.localeCompare(b.name) * factor;
       if (sortBy === "most_used") return (a.usageCount - b.usageCount) * factor;
-      if (sortBy === "highest_reputation") return (a.reputationScore - b.reputationScore) * factor;
-      if (sortBy === "success_rate") return (a.successRate - b.successRate) * factor;
+      if (sortBy === "highest_reputation")
+        return (a.reputationScore - b.reputationScore) * factor;
+      if (sortBy === "success_rate")
+        return (a.successRate - b.successRate) * factor;
       return (Date.parse(a.publishedAt) - Date.parse(b.publishedAt)) * factor;
     });
 
@@ -295,7 +324,7 @@ export class SkillRegistryService {
 
   async getById(skillId: string) {
     const skills = await this.list();
-    return skills.find(skill => skill.id === skillId) || null;
+    return skills.find((skill) => skill.id === skillId) || null;
   }
 
   async versions(skillId: string): Promise<SkillVersionRecord[]> {
@@ -308,7 +337,7 @@ export class SkillRegistryService {
       .where(eq(clawSkillVersions.skillUid, skillId))
       .orderBy(desc(clawSkillVersions.publishedAt));
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: `${row.skillUid}:${row.version}`,
       skillId: row.skillUid,
       version: row.version,
@@ -336,7 +365,7 @@ export class SkillRegistryService {
     const version = "1.0.0";
     const versionAccount = `ver_${shortHash(`${skillUid}:${version}`).slice(0, 32)}`;
     const skillAccount = `skillacc_${shortHash(skillUid).slice(0, 32)}`;
-    const tags = (input.tags ?? []).map(tag => tag.trim()).filter(Boolean);
+    const tags = (input.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
     const hash = contentHash({
       name: input.name,
       description: input.description || "",
@@ -426,12 +455,19 @@ export class SkillRegistryService {
       await db
         .select()
         .from(clawSkills)
-        .where(and(eq(clawSkills.userId, this.userId), eq(clawSkills.skillUid, input.skillId)))
+        .where(
+          and(
+            eq(clawSkills.userId, this.userId),
+            eq(clawSkills.skillUid, input.skillId),
+          ),
+        )
         .limit(1)
     )[0];
     if (!row) throw new Error("Skill not found");
 
-    const nextVersion = input.version || bumpVersion(row.currentVersion || "1.0.0", input.versionBump);
+    const nextVersion =
+      input.version ||
+      bumpVersion(row.currentVersion || "1.0.0", input.versionBump);
     const nextDescription = input.description ?? row.description ?? "";
     const nextTags = input.tags ?? parseJsonArray(row.tags);
     const nextVersionAccount = `ver_${shortHash(`${input.skillId}:${nextVersion}`).slice(0, 32)}`;
@@ -451,7 +487,10 @@ export class SkillRegistryService {
         .select()
         .from(clawSkillVersions)
         .where(
-          and(eq(clawSkillVersions.skillUid, input.skillId), eq(clawSkillVersions.contentHash, hash))
+          and(
+            eq(clawSkillVersions.skillUid, input.skillId),
+            eq(clawSkillVersions.contentHash, hash),
+          ),
         )
         .limit(1)
     )[0];
@@ -473,7 +512,11 @@ export class SkillRegistryService {
     let explorerUrl: string | undefined;
     let chainConfirmed = true;
     try {
-      const chain = await mockChainPublish(input.skillId, nextVersionAccount, hash);
+      const chain = await mockChainPublish(
+        input.skillId,
+        nextVersionAccount,
+        hash,
+      );
       txHash = chain.txHash;
       explorerUrl = chain.explorerUrl;
     } catch {
@@ -518,7 +561,11 @@ export class SkillRegistryService {
         explorerTxHash: txHash,
         explorerUrl,
         syncState: chainConfirmed ? "ok" : "degraded",
-        reputationScore: calcReputation(row.usageCount, nextSuccessRate, row.lastUsedAt),
+        reputationScore: calcReputation(
+          row.usageCount,
+          nextSuccessRate,
+          row.lastUsedAt,
+        ),
         flags: JSON.stringify(chainConfirmed ? [] : ["chain_degraded"]),
       })
       .where(eq(clawSkills.id, row.id));
@@ -544,18 +591,31 @@ export class SkillRegistryService {
       await db
         .select()
         .from(clawSkills)
-        .where(and(eq(clawSkills.userId, this.userId), eq(clawSkills.skillUid, skillId)))
+        .where(
+          and(
+            eq(clawSkills.userId, this.userId),
+            eq(clawSkills.skillUid, skillId),
+          ),
+        )
         .limit(1)
     )[0];
     if (!row) throw new Error("Skill not found");
     if (!statusTransitions[row.status as SkillStatus].includes(status)) {
       throw new Error(`Invalid status transition: ${row.status} -> ${status}`);
     }
-    await db.update(clawSkills).set({ status }).where(eq(clawSkills.id, row.id));
+    await db
+      .update(clawSkills)
+      .set({ status })
+      .where(eq(clawSkills.id, row.id));
     await db
       .update(clawSkillVersions)
       .set({ status })
-      .where(and(eq(clawSkillVersions.skillUid, skillId), eq(clawSkillVersions.versionAccount, row.currentVersionAccount!)));
+      .where(
+        and(
+          eq(clawSkillVersions.skillUid, skillId),
+          eq(clawSkillVersions.versionAccount, row.currentVersionAccount!),
+        ),
+      );
     return { ok: true };
   }
 
@@ -567,7 +627,12 @@ export class SkillRegistryService {
       await db
         .select()
         .from(clawSkills)
-        .where(and(eq(clawSkills.userId, this.userId), eq(clawSkills.skillUid, input.skillId)))
+        .where(
+          and(
+            eq(clawSkills.userId, this.userId),
+            eq(clawSkills.skillUid, input.skillId),
+          ),
+        )
         .limit(1)
     )[0];
     if (!row) throw new Error("Skill not found");
@@ -575,7 +640,9 @@ export class SkillRegistryService {
     const successCount = row.successCount + (input.success ? 1 : 0);
     const failureCount = row.failureCount + (input.success ? 0 : 1);
     const skillSuccessRate = successRate(successCount, failureCount);
-    const lastResolvedAt = input.resolvedAt ? new Date(input.resolvedAt) : new Date();
+    const lastResolvedAt = input.resolvedAt
+      ? new Date(input.resolvedAt)
+      : new Date();
 
     await db
       .update(clawSkills)
@@ -585,7 +652,11 @@ export class SkillRegistryService {
         failureCount,
         lastUsedAt: new Date(),
         lastResolvedAt,
-        reputationScore: calcReputation(usageCount, skillSuccessRate, new Date()),
+        reputationScore: calcReputation(
+          usageCount,
+          skillSuccessRate,
+          new Date(),
+        ),
       })
       .where(eq(clawSkills.id, row.id));
 
@@ -619,8 +690,14 @@ export class SkillRegistryService {
     const skill = await this.getById(skillId);
     if (!skill) throw new Error("Skill not found");
     const versions = await this.versions(skillId);
-    const current = versions.find(version => version.version === skill.currentVersion) || versions[0];
-    const verified = Boolean(current && current.hash === skill.latestVersionHash && skill.currentVersionAccount);
+    const current =
+      versions.find((version) => version.version === skill.currentVersion) ||
+      versions[0];
+    const verified = Boolean(
+      current &&
+        current.hash === skill.latestVersionHash &&
+        skill.currentVersionAccount,
+    );
     return {
       skillId,
       version: skill.currentVersion,

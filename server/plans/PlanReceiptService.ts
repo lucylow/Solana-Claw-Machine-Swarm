@@ -1,18 +1,37 @@
 import { nanoid } from "nanoid";
-import type { PlanExecutionReceipt, PlanFilter, PlanReceipt, PlanResultReceipt } from "@shared/planReceipts";
+import type {
+  PlanExecutionReceipt,
+  PlanFilter,
+  PlanReceipt,
+  PlanResultReceipt,
+} from "@shared/planReceipts";
 import { hashExecution, hashPlan, hashPlanSummary } from "./hash";
-import { normalizeDate, normalizeMetadata, normalizePlanId, normalizeSteps, normalizeTags, nowIso } from "./normalize";
+import {
+  normalizeDate,
+  normalizeMetadata,
+  normalizePlanId,
+  normalizeSteps,
+  normalizeTags,
+  nowIso,
+} from "./normalize";
 import { PlanAnchorService } from "./PlanAnchorService";
 import { PlanStorageService } from "./PlanStorageService";
 import type { PlanStore } from "./store";
-import type { AnchorPlanInput, CreatePlanReceiptInput, ExecutePlanInput, PlanLifecycleEvent } from "./types";
+import type {
+  AnchorPlanInput,
+  CreatePlanReceiptInput,
+  ExecutePlanInput,
+  PlanLifecycleEvent,
+} from "./types";
 
 export class PlanReceiptService {
   constructor(
     private readonly store: PlanStore,
     private readonly storage: PlanStorageService,
     private readonly anchor: PlanAnchorService,
-    private readonly pushEvent: (event: Omit<PlanLifecycleEvent, "id" | "createdAt">) => Promise<void>
+    private readonly pushEvent: (
+      event: Omit<PlanLifecycleEvent, "id" | "createdAt">,
+    ) => Promise<void>,
   ) {}
 
   async create(input: CreatePlanReceiptInput) {
@@ -140,7 +159,9 @@ export class PlanReceiptService {
       planReceiptId: next.id,
       type: anchored.degraded ? "plan_anchor_degraded" : "plan_anchored",
       status: next.status,
-      summary: anchored.degraded ? "Plan anchor failed; degraded proof mode active." : "Plan anchored on Solana.",
+      summary: anchored.degraded
+        ? "Plan anchor failed; degraded proof mode active."
+        : "Plan anchored on Solana.",
       data: {
         txSignature: anchored.txSignature,
         hash: anchored.anchorHash,
@@ -165,7 +186,7 @@ export class PlanReceiptService {
       toolCalls: [...(input.toolCalls || [])],
       stepProgress:
         input.stepProgress ||
-        plan.steps.map(step => ({
+        plan.steps.map((step) => ({
           stepId: step.id,
           status: "pending",
         })),
@@ -205,14 +226,20 @@ export class PlanReceiptService {
 
   async list(query: PlanFilter = {}) {
     let plans = await this.store.listLatestReceipts();
-    plans = plans.filter(plan => {
+    plans = plans.filter((plan) => {
       if (query.taskType && plan.taskType !== query.taskType) return false;
       if (query.status && plan.status !== query.status) return false;
-      if (query.outcomeStatus && plan.outcomeStatus !== query.outcomeStatus) return false;
+      if (query.outcomeStatus && plan.outcomeStatus !== query.outcomeStatus)
+        return false;
       if (query.agentId && plan.agentId !== query.agentId) return false;
       if (query.wallet && plan.wallet !== query.wallet) return false;
-      if (query.conversationId && plan.conversationId !== query.conversationId) return false;
-      if (typeof query.verified === "boolean" && Boolean(plan.solana?.verified) !== query.verified) return false;
+      if (query.conversationId && plan.conversationId !== query.conversationId)
+        return false;
+      if (
+        typeof query.verified === "boolean" &&
+        Boolean(plan.solana?.verified) !== query.verified
+      )
+        return false;
       return true;
     });
     const offset = query.offset ?? 0;
@@ -240,10 +267,10 @@ export class PlanReceiptService {
       result.status === "success"
         ? "completed"
         : result.status === "partial"
-        ? "partially_completed"
-        : result.status === "failed"
-        ? "failed"
-        : "degraded";
+          ? "partially_completed"
+          : result.status === "failed"
+            ? "failed"
+            : "degraded";
 
     return this.cloneWithChanges(latest, {
       actualOutcome: result.actualOutcome,
@@ -254,7 +281,10 @@ export class PlanReceiptService {
     });
   }
 
-  private async cloneWithChanges(receipt: PlanReceipt, changes: Partial<PlanReceipt>) {
+  private async cloneWithChanges(
+    receipt: PlanReceipt,
+    changes: Partial<PlanReceipt>,
+  ) {
     const next: PlanReceipt = {
       ...receipt,
       ...changes,

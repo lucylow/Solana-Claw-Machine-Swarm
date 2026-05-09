@@ -8,10 +8,20 @@ type MinimalZeroGModule = {
   store: ZeroGOrchestratorStore;
 };
 
-export async function buildZeroGIntegrationStatus(module: MinimalZeroGModule): Promise<ZeroGIntegrationStatus> {
+export async function buildZeroGIntegrationStatus(
+  module: MinimalZeroGModule,
+): Promise<ZeroGIntegrationStatus> {
   const cfg = getZeroGConfig();
-  const [storageH, daH] = await Promise.all([module.storage.getHealth(), module.da.getHealth()]);
-  const mode = cfg.mode === "live" ? "live" : cfg.mode === "degraded" ? "degraded" : "mock";
+  const [storageH, daH] = await Promise.all([
+    module.storage.getHealth(),
+    module.da.getHealth(),
+  ]);
+  const mode =
+    cfg.mode === "live"
+      ? "live"
+      : cfg.mode === "degraded"
+        ? "degraded"
+        : "mock";
   const lastArtifact = module.store.listArtifacts()[0];
   const lastDa = module.store.listAvailability()[0];
   return {

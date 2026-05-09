@@ -1,5 +1,9 @@
 import crypto from "crypto";
-import type { PlanExecutionReceipt, PlanReceipt, PlanResultReceipt } from "@shared/planReceipts";
+import type {
+  PlanExecutionReceipt,
+  PlanReceipt,
+  PlanResultReceipt,
+} from "@shared/planReceipts";
 import {
   canonicalPlanPayload,
   canonicalPlanSummaryPayload,

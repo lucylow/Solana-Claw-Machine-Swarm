@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildDappActivityFromState,
-} from "./DappActivityTimeline";
+import { buildDappActivityFromState } from "./DappActivityTimeline";
 import { DEMO_CHAIN_RECEIPT } from "@shared/solana/demoCanonical";
 
 describe("buildDappActivityFromState", () => {
@@ -27,8 +25,7 @@ describe("buildDappActivityFromState", () => {
       memoryUpdated: true,
     });
 
-    const status = (kind: string) =>
-      items.find((i) => i.kind === kind)?.status;
+    const status = (kind: string) => items.find((i) => i.kind === kind)?.status;
 
     expect(status("wallet_connect")).toBe("complete");
     expect(status("session_verify")).toBe("complete");

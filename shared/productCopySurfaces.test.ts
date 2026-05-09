@@ -23,7 +23,7 @@ describe("product copy policy (no vague AI marketing)", () => {
       for (const phrase of BANNED_VAGUE_PHRASES) {
         expect(
           text.toLowerCase().includes(phrase.toLowerCase()),
-          `"${phrase}" leaked into ${rel}`
+          `"${phrase}" leaked into ${rel}`,
         ).toBe(false);
       }
     });

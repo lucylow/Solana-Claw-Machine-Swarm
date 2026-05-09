@@ -37,7 +37,7 @@ export function DemoNav({ presentationMode }: { presentationMode?: boolean }) {
     <nav
       className={cn(
         "flex flex-wrap gap-1 rounded-2xl border border-white/10 bg-[#05080d]/95 p-2",
-        presentationMode && "gap-2 p-3"
+        presentationMode && "gap-2 p-3",
       )}
     >
       {LINKS.map(({ path, label, icon: Icon }) => {
@@ -51,7 +51,7 @@ export function DemoNav({ presentationMode }: { presentationMode?: boolean }) {
                 isActive
                   ? "bg-[#3bff96]/15 text-[#c8ffe2] shadow-[0_0_12px_rgba(59,255,150,0.12)]"
                   : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
-                presentationMode && "px-3 py-2 text-sm"
+                presentationMode && "px-3 py-2 text-sm",
               )}
             >
               <Icon className="h-3.5 w-3.5" />

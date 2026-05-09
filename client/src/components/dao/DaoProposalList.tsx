@@ -12,12 +12,15 @@ export default function DaoProposalList({
 }) {
   return (
     <div className="stack-list">
-      {proposals.map(p => (
+      {proposals.map((p) => (
         <div
           key={p.id}
           className="item-card"
           style={{
-            outline: selectedId === p.id ? "1px solid rgba(59,255,150,0.45)" : undefined,
+            outline:
+              selectedId === p.id
+                ? "1px solid rgba(59,255,150,0.45)"
+                : undefined,
           }}
         >
           <div className="item-top">
@@ -33,7 +36,9 @@ export default function DaoProposalList({
           </div>
           <div className="muted-line">{p.proposalType.replace(/_/g, " ")}</div>
           <div className="item-meta">
-            <span className="mini-pill">quorum {p.quorumReached}/{p.quorumRequired} bps</span>
+            <span className="mini-pill">
+              quorum {p.quorumReached}/{p.quorumRequired} bps
+            </span>
             <span className="mini-pill">yes {p.voteYes}</span>
             <span className="mini-pill">no {p.voteNo}</span>
             <span className="mini-pill">veto {p.voteVeto}</span>

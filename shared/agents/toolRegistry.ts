@@ -35,7 +35,8 @@ export const AGENT_TOOL_REGISTRY: Record<string, ToolCapability> = {
     preferredOrder: 20,
     retryable: true,
     maxRetries: 2,
-    summary: "Read wallet session and cluster alignment from RPC-backed bridge.",
+    summary:
+      "Read wallet session and cluster alignment from RPC-backed bridge.",
   },
   "skill.resolve_registry": {
     name: "skill.resolve_registry",
@@ -69,7 +70,8 @@ export const AGENT_TOOL_REGISTRY: Record<string, ToolCapability> = {
     fallbackOf: "exec.simulate_operator_degraded",
     retryable: true,
     maxRetries: 2,
-    summary: "Execute operational lane with guarded retries when session allows.",
+    summary:
+      "Execute operational lane with guarded retries when session allows.",
   },
   "exec.simulate_operator_degraded": {
     name: "exec.simulate_operator_degraded",
@@ -80,7 +82,8 @@ export const AGENT_TOOL_REGISTRY: Record<string, ToolCapability> = {
     preferredOrder: 55,
     retryable: false,
     maxRetries: 0,
-    summary: "Degraded operator path: read-only summary without transaction tools.",
+    summary:
+      "Degraded operator path: read-only summary without transaction tools.",
   },
   "proof.anchor_plan": {
     name: "proof.anchor_plan",
@@ -120,7 +123,8 @@ export const AGENT_TOOL_REGISTRY: Record<string, ToolCapability> = {
 export function toolsInPreferredOrder(names: string[]): string[] {
   return [...names].sort(
     (a, b) =>
-      (AGENT_TOOL_REGISTRY[a]?.preferredOrder ?? 99) - (AGENT_TOOL_REGISTRY[b]?.preferredOrder ?? 99),
+      (AGENT_TOOL_REGISTRY[a]?.preferredOrder ?? 99) -
+      (AGENT_TOOL_REGISTRY[b]?.preferredOrder ?? 99),
   );
 }
 
@@ -130,7 +134,8 @@ export function mapToolFailureToRecovery(
 ): "retry" | "fallback_tool" | "degraded_continue" | "abort" {
   const cap = AGENT_TOOL_REGISTRY[toolName];
   if (cap?.fallbackOf) return "fallback_tool";
-  if (errCode === "policy_block" || errCode === "wallet_session_inactive") return "degraded_continue";
+  if (errCode === "policy_block" || errCode === "wallet_session_inactive")
+    return "degraded_continue";
   if (cap?.retryable && cap.maxRetries > 0) return "retry";
   return "abort";
 }

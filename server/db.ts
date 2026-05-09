@@ -110,7 +110,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -147,7 +151,9 @@ const DEFAULT_AUTONOMY_CONFIG: UserAutonomyConfig = {
   },
 };
 
-export async function getAutonomyConfigByUser(userId: number): Promise<UserAutonomyConfig> {
+export async function getAutonomyConfigByUser(
+  userId: number,
+): Promise<UserAutonomyConfig> {
   const db = await getDb();
   if (!db) return DEFAULT_AUTONOMY_CONFIG;
 
@@ -168,7 +174,7 @@ export async function getAutonomyConfigByUser(userId: number): Promise<UserAuton
 
 export async function upsertAutonomyConfig(
   userId: number,
-  config: Partial<UserAutonomyConfig>
+  config: Partial<UserAutonomyConfig>,
 ): Promise<UserAutonomyConfig> {
   const db = await getDb();
   if (!db) {
@@ -199,14 +205,17 @@ export async function upsertAutonomyConfig(
     preferences: asJson(next.preferences),
   };
 
-  await db.insert(autonomyConfigs).values(values).onDuplicateKeyUpdate({
-    set: {
-      mode: values.mode,
-      level: values.level,
-      preferences: values.preferences,
-      updatedAt: new Date(),
-    },
-  });
+  await db
+    .insert(autonomyConfigs)
+    .values(values)
+    .onDuplicateKeyUpdate({
+      set: {
+        mode: values.mode,
+        level: values.level,
+        preferences: values.preferences,
+        updatedAt: new Date(),
+      },
+    });
 
   return next;
 }
@@ -216,7 +225,7 @@ export async function createSolanaSession(
   userId: number,
   walletAddress: string,
   nonce: string,
-  expiresAt: Date
+  expiresAt: Date,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -242,12 +251,16 @@ export async function createAgent(
   userId: number,
   name: string,
   role: string,
-  description?: string
+  description?: string,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(agents).values({ userId, name, role, description });
-  await logActivity(userId, "agent_created", `Created agent "${name}" with role "${role}".`);
+  await logActivity(
+    userId,
+    "agent_created",
+    `Created agent "${name}" with role "${role}".`,
+  );
 }
 
 export async function getAgentsByUser(userId: number) {
@@ -260,7 +273,7 @@ export async function getAgentsByUser(userId: number) {
 export async function createClawSkill(
   userId: number,
   name: string,
-  description?: string
+  description?: string,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -287,7 +300,7 @@ export async function createReceipt(
     proofType?: "plan" | "decision" | "execution" | "reflection" | "memory";
     proofHash?: string;
     referenceId?: string;
-  }
+  },
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -309,7 +322,7 @@ export async function createReceipt(
     userId,
     "receipt_anchored",
     `Anchored ${receiptType} receipt${options?.referenceId ? ` for ${options.referenceId}` : ""}.`,
-    agentId
+    agentId,
   );
 
   return { transactionHash: syntheticTx };
@@ -327,7 +340,7 @@ export async function getReceiptsByUser(userId: number) {
 
 export async function createDecisionRecord(
   userId: number,
-  payload: Omit<AgentDecisionRecord, "createdAt">
+  payload: Omit<AgentDecisionRecord, "createdAt">,
 ) {
   const db = await getDb();
   if (!db) return;
@@ -359,7 +372,10 @@ export async function createDecisionRecord(
     "decision_recorded",
     `Decision ${payload.decisionType} recorded at ${payload.autonomyLevel}.`,
     payload.agentId ? Number(payload.agentId) : undefined,
-    asJson({ confidence: payload.confidence, policyStatus: payload.policyStatus })
+    asJson({
+      confidence: payload.confidence,
+      policyStatus: payload.policyStatus,
+    }),
   );
 }
 
@@ -374,7 +390,7 @@ export async function listDecisionRecordsByUser(userId: number, limit = 100) {
     .orderBy(desc(agentDecisionRecords.createdAt))
     .limit(limit);
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     id: row.decisionId,
     agentId: String(row.agentId ?? ""),
     skillId: row.skillId ?? undefined,
@@ -398,7 +414,7 @@ export async function listDecisionRecordsByUser(userId: number, limit = 100) {
 
 export async function createDecisionNarrativeRecord(
   userId: number,
-  narrative: Omit<DecisionNarrative, "createdAt">
+  narrative: Omit<DecisionNarrative, "createdAt">,
 ) {
   const db = await getDb();
   if (!db) return;
@@ -418,13 +434,21 @@ export async function createDecisionNarrativeRecord(
   });
 }
 
-export async function getDecisionNarrativeByDecisionId(userId: number, decisionId: string) {
+export async function getDecisionNarrativeByDecisionId(
+  userId: number,
+  decisionId: string,
+) {
   const db = await getDb();
   if (!db) return null;
   const result = await db
     .select()
     .from(decisionNarratives)
-    .where(and(eq(decisionNarratives.userId, userId), eq(decisionNarratives.decisionId, decisionId)))
+    .where(
+      and(
+        eq(decisionNarratives.userId, userId),
+        eq(decisionNarratives.decisionId, decisionId),
+      ),
+    )
     .limit(1);
   const row = result[0];
   if (!row) return null;
@@ -450,7 +474,7 @@ export async function createPolicyGateEventRecord(
     runId?: string;
     decisionId?: string;
     agentId?: number;
-  }
+  },
 ) {
   const db = await getDb();
   if (!db) return { gateId: payload.id ?? nanoid(16) };
@@ -486,7 +510,7 @@ export async function listPolicyGateEventsByUser(userId: number, limit = 50) {
 
 export async function createMemoryUsageRecord(
   userId: number,
-  payload: Omit<MemoryUsageRecord, "createdAt">
+  payload: Omit<MemoryUsageRecord, "createdAt">,
 ) {
   const db = await getDb();
   if (!db) return;
@@ -517,7 +541,7 @@ export async function listMemoryUsageByUser(userId: number, limit = 50) {
 
 export async function createReflectionRecord(
   userId: number,
-  payload: Omit<ReflectionRecord, "createdAt">
+  payload: Omit<ReflectionRecord, "createdAt">,
 ) {
   const db = await getDb();
   if (!db) return;
@@ -550,26 +574,29 @@ export async function listReflectionsByUser(userId: number, limit = 50) {
 
 export async function createOrUpdateRunSummary(
   userId: number,
-  payload: Omit<InsertAutonomyRunSummary, "userId">
+  payload: Omit<InsertAutonomyRunSummary, "userId">,
 ) {
   const db = await getDb();
   if (!db) return;
-  await db.insert(autonomyRunSummaries).values({ ...payload, userId }).onDuplicateKeyUpdate({
-    set: {
-      autonomyLevel: payload.autonomyLevel,
-      score: payload.score,
-      trend: payload.trend,
-      status: payload.status,
-      policyStatus: payload.policyStatus,
-      humanInterventionRate: payload.humanInterventionRate,
-      proofCompleteness: payload.proofCompleteness,
-      confidenceAvg: payload.confidenceAvg,
-      memoryInfluenceAvg: payload.memoryInfluenceAvg,
-      reflectionReuseRate: payload.reflectionReuseRate,
-      metadata: payload.metadata,
-      updatedAt: new Date(),
-    },
-  });
+  await db
+    .insert(autonomyRunSummaries)
+    .values({ ...payload, userId })
+    .onDuplicateKeyUpdate({
+      set: {
+        autonomyLevel: payload.autonomyLevel,
+        score: payload.score,
+        trend: payload.trend,
+        status: payload.status,
+        policyStatus: payload.policyStatus,
+        humanInterventionRate: payload.humanInterventionRate,
+        proofCompleteness: payload.proofCompleteness,
+        confidenceAvg: payload.confidenceAvg,
+        memoryInfluenceAvg: payload.memoryInfluenceAvg,
+        reflectionReuseRate: payload.reflectionReuseRate,
+        metadata: payload.metadata,
+        updatedAt: new Date(),
+      },
+    });
 }
 
 export async function listRunSummariesByUser(userId: number, limit = 30) {
@@ -584,61 +611,93 @@ export async function listRunSummariesByUser(userId: number, limit = 30) {
 }
 
 export async function getAutonomyMetrics(userId: number) {
-  const [decisions, reflections, memory, receipts, runs, policyEvents] = await Promise.all([
-    listDecisionRecordsByUser(userId, 500),
-    listReflectionsByUser(userId, 500),
-    listMemoryUsageByUser(userId, 500),
-    getReceiptsByUser(userId),
-    listRunSummariesByUser(userId, 200),
-    listPolicyGateEventsByUser(userId, 500),
-  ]);
+  const [decisions, reflections, memory, receipts, runs, policyEvents] =
+    await Promise.all([
+      listDecisionRecordsByUser(userId, 500),
+      listReflectionsByUser(userId, 500),
+      listMemoryUsageByUser(userId, 500),
+      getReceiptsByUser(userId),
+      listRunSummariesByUser(userId, 200),
+      listPolicyGateEventsByUser(userId, 500),
+    ]);
 
   const totalDecisions = decisions.length;
-  const manualOverrideCount = decisions.filter(x => x.humanOverride).length;
-  const blockedPolicies = policyEvents.filter(x => x.status === "blocked").length;
+  const manualOverrideCount = decisions.filter((x) => x.humanOverride).length;
+  const blockedPolicies = policyEvents.filter(
+    (x) => x.status === "blocked",
+  ).length;
   const retrySuccessRate =
     reflections.length === 0
       ? 0
       : Math.round(
-          (reflections.filter(x => x.improvedLaterRuns === 1).length / reflections.length) * 100
+          (reflections.filter((x) => x.improvedLaterRuns === 1).length /
+            reflections.length) *
+            100,
         );
   const memoryReuseRate =
-    memory.length === 0 ? 0 : Math.round((memory.filter(x => x.result !== "ignored").length / memory.length) * 100);
+    memory.length === 0
+      ? 0
+      : Math.round(
+          (memory.filter((x) => x.result !== "ignored").length /
+            memory.length) *
+            100,
+        );
   const reflectionReuseRate =
     reflections.length === 0
       ? 0
       : Math.round(
-          (reflections.filter(x => x.improvedLaterRuns === 1).length / reflections.length) * 100
+          (reflections.filter((x) => x.improvedLaterRuns === 1).length /
+            reflections.length) *
+            100,
         );
   const proofCompletionRate =
     receipts.length === 0
       ? 0
-      : Math.round((receipts.filter(x => x.transactionHash).length / receipts.length) * 100);
+      : Math.round(
+          (receipts.filter((x) => x.transactionHash).length / receipts.length) *
+            100,
+        );
   const successRate =
-    runs.length === 0 ? 0 : Math.round((runs.filter(x => x.status === "completed").length / runs.length) * 100);
+    runs.length === 0
+      ? 0
+      : Math.round(
+          (runs.filter((x) => x.status === "completed").length / runs.length) *
+            100,
+        );
 
   return {
     decisionCoverage: totalDecisions,
-    manualOverrideRate: totalDecisions === 0 ? 0 : Math.round((manualOverrideCount / totalDecisions) * 100),
+    manualOverrideRate:
+      totalDecisions === 0
+        ? 0
+        : Math.round((manualOverrideCount / totalDecisions) * 100),
     policyBlockRate:
-      policyEvents.length === 0 ? 0 : Math.round((blockedPolicies / policyEvents.length) * 100),
+      policyEvents.length === 0
+        ? 0
+        : Math.round((blockedPolicies / policyEvents.length) * 100),
     retrySuccessRate,
     memoryReuseRate,
     reflectionReuseRate,
     proofCompletionRate,
-    skillAutonomyScore: runs.length === 0 ? 0 : Math.round(runs.reduce((acc, r) => acc + r.score, 0) / runs.length),
+    skillAutonomyScore:
+      runs.length === 0
+        ? 0
+        : Math.round(runs.reduce((acc, r) => acc + r.score, 0) / runs.length),
     executionAutonomyScore:
       decisions.length === 0
         ? 0
-        : Math.round(decisions.reduce((acc, r) => acc + r.confidence, 0) / decisions.length),
+        : Math.round(
+            decisions.reduce((acc, r) => acc + r.confidence, 0) /
+              decisions.length,
+          ),
     reputationTrend:
       runs.length < 2
         ? "stable"
         : runs[0]!.score > runs[1]!.score
-        ? "rising"
-        : runs[0]!.score < runs[1]!.score
-        ? "falling"
-        : "stable",
+          ? "rising"
+          : runs[0]!.score < runs[1]!.score
+            ? "falling"
+            : "stable",
     currentAutonomyLevel: runs[0]?.autonomyLevel ?? "meaningful_agency",
     runCount: runs.length,
     receiptCount: receipts.length,
@@ -651,7 +710,7 @@ export async function logActivity(
   eventType: string,
   description: string,
   agentId?: number,
-  metadata?: string
+  metadata?: string,
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

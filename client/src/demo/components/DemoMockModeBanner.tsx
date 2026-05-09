@@ -7,8 +7,9 @@ export function DemoMockModeBanner() {
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 shrink-0 text-amber-200" />
         <span>
-          <span className="font-medium text-amber-50">Demo mode</span> — interactive mock data. Not live chain state; Solana
-          links open real explorers with demo signatures for presentation.
+          <span className="font-medium text-amber-50">Demo mode</span> —
+          interactive mock data. Not live chain state; Solana links open real
+          explorers with demo signatures for presentation.
         </span>
       </div>
       <Badge variant="outline" className="border-amber-400/50 text-amber-50">

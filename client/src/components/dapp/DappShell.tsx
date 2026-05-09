@@ -50,7 +50,7 @@ export function DappShell({
     <div
       className={cn(
         "relative flex min-h-screen flex-col bg-[#04060a] text-slate-100",
-        shellClassName
+        shellClassName,
       )}
       style={{
         backgroundImage: `
@@ -61,14 +61,20 @@ export function DappShell({
         `,
       }}
     >
-      <DappTopBar nav={topNav} rightSlot={topRightSlot} brand={brand} brandHref={brandHref} />
+      <DappTopBar
+        nav={topNav}
+        rightSlot={topRightSlot}
+        brand={brand}
+        brandHref={brandHref}
+      />
 
       {state.wrongCluster ? (
         <div className="border-b border-amber-400/30 bg-amber-500/5 px-4 py-2 text-[11px] text-amber-100">
           <p className="mx-auto max-w-[1600px]">
             <strong className="font-semibold">Cluster mismatch.</strong> Wallet
             cluster does not match this dApp. Switch your wallet to{" "}
-            <span className="font-mono">{state.cluster}</span> to unlock signing.
+            <span className="font-mono">{state.cluster}</span> to unlock
+            signing.
           </p>
         </div>
       ) : null}
@@ -76,7 +82,8 @@ export function DappShell({
       {state.error ? (
         <div className="border-b border-rose-400/30 bg-rose-500/5 px-4 py-2 text-[11px] text-rose-100">
           <p className="mx-auto max-w-[1600px]">
-            <strong className="font-semibold">Wallet error.</strong> {state.error}
+            <strong className="font-semibold">Wallet error.</strong>{" "}
+            {state.error}
           </p>
         </div>
       ) : null}
@@ -89,7 +96,7 @@ export function DappShell({
           <aside
             className={cn(
               "w-full shrink-0 lg:max-w-[380px]",
-              collapseRailOnMobile && "order-2 lg:order-none"
+              collapseRailOnMobile && "order-2 lg:order-none",
             )}
           >
             {sideRail}
@@ -99,7 +106,7 @@ export function DappShell({
           className={cn(
             "min-w-0 flex-1 space-y-6",
             collapseRailOnMobile && sideRail ? "order-1 lg:order-none" : "",
-            contentClassName
+            contentClassName,
           )}
         >
           {children}
@@ -108,7 +115,7 @@ export function DappShell({
           <aside
             className={cn(
               "w-full shrink-0 space-y-4 lg:max-w-[380px]",
-              collapseRailOnMobile && "order-2 lg:order-none"
+              collapseRailOnMobile && "order-2 lg:order-none",
             )}
           >
             {sideRail}

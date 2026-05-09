@@ -17,7 +17,10 @@ export function toSwarmApiError(error: unknown): SwarmApiError {
   return new SwarmApiError(normalizeError(error, { source: "client" }));
 }
 
-type ApiFail = { ok: false; error: AppError | string | Record<string, unknown> };
+type ApiFail = {
+  ok: false;
+  error: AppError | string | Record<string, unknown>;
+};
 
 export function throwIfApiFailed(body: unknown, res: Response): void {
   if (!body || typeof body !== "object") return;
@@ -28,13 +31,15 @@ export function throwIfApiFailed(body: unknown, res: Response): void {
     throw new SwarmApiError(raw);
   }
   if (typeof raw === "string") {
-    throw new SwarmApiError(normalizeError(raw, { source: "api", statusCode: res.status }));
+    throw new SwarmApiError(
+      normalizeError(raw, { source: "api", statusCode: res.status }),
+    );
   }
   throw new SwarmApiError(
     normalizeError(raw ?? "api_error", {
       source: "api",
       statusCode: res.status,
       fallback: { message: "Request rejected by server." },
-    })
+    }),
   );
 }

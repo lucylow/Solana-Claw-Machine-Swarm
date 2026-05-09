@@ -15,12 +15,25 @@ export function DemoEmptyState({
   presentationMode?: boolean;
 }) {
   return (
-    <DemoPanel presentationMode={presentationMode} className="flex flex-col items-center justify-center py-12 text-center">
+    <DemoPanel
+      presentationMode={presentationMode}
+      className="flex flex-col items-center justify-center py-12 text-center"
+    >
       <Inbox className="mb-3 h-10 w-10 text-slate-600" />
-      <h3 className={cn("font-semibold text-slate-200", presentationMode ? "text-lg" : "text-base")}>{title}</h3>
+      <h3
+        className={cn(
+          "font-semibold text-slate-200",
+          presentationMode ? "text-lg" : "text-base",
+        )}
+      >
+        {title}
+      </h3>
       <p className="mt-2 max-w-md text-sm text-slate-500">{message}</p>
       {action ? (
-        <Button className="mt-4 bg-[#3bff96] text-black hover:bg-[#6bffbc]" onClick={action.onClick}>
+        <Button
+          className="mt-4 bg-[#3bff96] text-black hover:bg-[#6bffbc]"
+          onClick={action.onClick}
+        >
           {action.label}
         </Button>
       ) : null}
@@ -28,7 +41,13 @@ export function DemoEmptyState({
   );
 }
 
-export function DemoLoadingState({ label, presentationMode }: { label: string; presentationMode?: boolean }) {
+export function DemoLoadingState({
+  label,
+  presentationMode,
+}: {
+  label: string;
+  presentationMode?: boolean;
+}) {
   return (
     <DemoPanel presentationMode={presentationMode} className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-slate-300">
@@ -66,7 +85,12 @@ export function DemoErrorState({
           <h3 className="font-semibold text-red-100">{title}</h3>
           <p className="mt-1 text-sm text-red-200/90">{message}</p>
           {onRetry ? (
-            <Button variant="outline" size="sm" className="mt-3 border-red-400/40 text-red-100" onClick={onRetry}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 border-red-400/40 text-red-100"
+              onClick={onRetry}
+            >
               Retry preview
             </Button>
           ) : null}
@@ -77,5 +101,7 @@ export function DemoErrorState({
 }
 
 export function DemoSkeletonCard() {
-  return <div className="h-28 animate-pulse rounded-xl border border-white/5 bg-slate-900/40" />;
+  return (
+    <div className="h-28 animate-pulse rounded-xl border border-white/5 bg-slate-900/40" />
+  );
 }

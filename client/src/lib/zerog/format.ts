@@ -10,7 +10,12 @@ export function formatRef(value?: string) {
 }
 
 export function toStatusTone(status: string) {
-  if (["verified", "confirmed", "completed", "stored", "available"].includes(status)) return "ok";
+  if (
+    ["verified", "confirmed", "completed", "stored", "available"].includes(
+      status,
+    )
+  )
+    return "ok";
   if (["degraded", "failed"].includes(status)) return "warn";
   if (["pending", "running", "queued", "idle"].includes(status)) return "muted";
   return "muted";

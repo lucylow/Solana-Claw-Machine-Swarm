@@ -39,7 +39,9 @@ type StoredSession = {
 
 function readSession(): StoredSession | null {
   try {
-    return JSON.parse(localStorage.getItem(CLAW_IDENTITY_SESSION_KEY) || "null");
+    return JSON.parse(
+      localStorage.getItem(CLAW_IDENTITY_SESSION_KEY) || "null",
+    );
   } catch {
     return null;
   }
@@ -73,16 +75,25 @@ export function useSolanaIdentity() {
   const [memories, setMemories] = useState<SolanaMemorySummary[]>([]);
   const [plannerRuns, setPlannerRuns] = useState<SolanaPlannerRunSummary[]>([]);
   const [deployments, setDeployments] = useState<SolanaDeploymentSummary[]>([]);
-  const [reputation, setReputation] = useState<SolanaReputationAccount | null>(null);
-  const [discoveryProfiles, setDiscoveryProfiles] = useState<SolanaDiscoveryProfile[]>([]);
-  const [discoverySkills, setDiscoverySkills] = useState<SolanaDiscoveryRow[]>([]);
+  const [reputation, setReputation] = useState<SolanaReputationAccount | null>(
+    null,
+  );
+  const [discoveryProfiles, setDiscoveryProfiles] = useState<
+    SolanaDiscoveryProfile[]
+  >([]);
+  const [discoverySkills, setDiscoverySkills] = useState<SolanaDiscoveryRow[]>(
+    [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<StoredSession | null>(() =>
-    typeof window !== "undefined" ? readSession() : null
+    typeof window !== "undefined" ? readSession() : null,
   );
   const [loading, setLoading] = useState(false);
 
-  const adapterWalletAddress = useMemo(() => wallet.publicKey?.toBase58() ?? null, [wallet.publicKey]);
+  const adapterWalletAddress = useMemo(
+    () => wallet.publicKey?.toBase58() ?? null,
+    [wallet.publicKey],
+  );
 
   const cachedWalletHint = useMemo(() => {
     if (adapterWalletAddress) return null;
@@ -96,7 +107,8 @@ export function useSolanaIdentity() {
       const target = address ?? wallet.publicKey?.toBase58();
       if (!target) return;
 
-      const addressString = typeof target === "string" ? target : target.toBase58();
+      const addressString =
+        typeof target === "string" ? target : target.toBase58();
 
       const [
         bundle,
@@ -110,11 +122,26 @@ export function useSolanaIdentity() {
         discoverySkillRes,
       ] = await Promise.all([
         loadIdentity(addressString),
-        loadReceipts(addressString).catch(() => ({ ok: true as const, data: [] })),
-        loadSkills(addressString).catch(() => ({ ok: true as const, data: [] })),
-        loadMemories(addressString).catch(() => ({ ok: true as const, data: [] })),
-        loadPlannerRuns(addressString).catch(() => ({ ok: true as const, data: [] })),
-        loadDeployments(addressString).catch(() => ({ ok: true as const, data: [] })),
+        loadReceipts(addressString).catch(() => ({
+          ok: true as const,
+          data: [],
+        })),
+        loadSkills(addressString).catch(() => ({
+          ok: true as const,
+          data: [],
+        })),
+        loadMemories(addressString).catch(() => ({
+          ok: true as const,
+          data: [],
+        })),
+        loadPlannerRuns(addressString).catch(() => ({
+          ok: true as const,
+          data: [],
+        })),
+        loadDeployments(addressString).catch(() => ({
+          ok: true as const,
+          data: [],
+        })),
         loadReputation(addressString).catch(() => ({
           ok: true as const,
           data: null as SolanaReputationAccount | null,
@@ -134,10 +161,12 @@ export function useSolanaIdentity() {
       setReputation(reputationRes.data || data.reputation || null);
       setDiscoveryProfiles(discoveryProfileRes.data || []);
       setDiscoverySkills(discoverySkillRes.data || []);
-      setStatus(data.profile?.status === "verified" ? "verified" : "unverified");
+      setStatus(
+        data.profile?.status === "verified" ? "verified" : "unverified",
+      );
       return data;
     },
-    [wallet.publicKey]
+    [wallet.publicKey],
   );
 
   useEffect(() => {
@@ -187,10 +216,10 @@ export function useSolanaIdentity() {
       setDeployments(bundle.deployments || []);
       setReputation(bundle.reputation || null);
       loadDiscoveryProfiles()
-        .then(res => setDiscoveryProfiles(res.data))
+        .then((res) => setDiscoveryProfiles(res.data))
         .catch(() => undefined);
       loadDiscoverySkills()
-        .then(res => setDiscoverySkills(res.data))
+        .then((res) => setDiscoverySkills(res.data))
         .catch(() => undefined);
       setStatus("verified");
 
@@ -205,7 +234,8 @@ export function useSolanaIdentity() {
 
       return bundle;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Wallet verification failed";
+      const message =
+        err instanceof Error ? err.message : "Wallet verification failed";
       setError(message);
       setStatus("error");
       throw err;

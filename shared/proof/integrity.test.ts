@@ -7,10 +7,11 @@ describe("inferProofIntegrity", () => {
     expect(isDemoSimulatedTxSignature("4wFx")).toBe(false);
     expect(
       inferProofIntegrity({
-        txSignature: "SIM_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        txSignature:
+          "SIM_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         zerogMode: "live",
         degradedFlags: false,
-      })
+      }),
     ).toBe("demo_only");
   });
 
@@ -19,7 +20,7 @@ describe("inferProofIntegrity", () => {
       inferProofIntegrity({
         zerogMode: "live",
         degradedFlags: true,
-      })
+      }),
     ).toBe("degraded");
   });
 

@@ -31,8 +31,9 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
             Connect Solana wallet. Sign challenge. Become the agent.
           </h1>
           <p className="mt-4 max-w-2xl text-sm md:text-base text-slate-300">
-            CLAW binds session identity directly to your Solana wallet, verifies ownership with a signed challenge, then immediately loads your
-            saved skills, memory, and Solana-anchored receipts.
+            CLAW binds session identity directly to your Solana wallet, verifies
+            ownership with a signed challenge, then immediately loads your saved
+            skills, memory, and Solana-anchored receipts.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -90,7 +91,9 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
         <div className="rounded-2xl border border-cyan-500/20 bg-black/40 p-5">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs uppercase tracking-wider text-cyan-400">Identity badge</div>
+              <div className="text-xs uppercase tracking-wider text-cyan-400">
+                Identity badge
+              </div>
               <h3 className="mt-1 text-lg font-semibold text-cyan-100">
                 {identity.profile?.displayName || "Solana wallet–linked agent"}
               </h3>
@@ -113,7 +116,9 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
               {identity.cachedWalletHint ? (
                 <div className="mt-1 text-[11px] text-amber-200">
                   Last known wallet (cached):{" "}
-                  <span className="font-mono text-amber-100">{identity.cachedWalletHint}</span>
+                  <span className="font-mono text-amber-100">
+                    {identity.cachedWalletHint}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -125,15 +130,21 @@ export function SolanaIdentityGate({ identity }: { identity: IdentityState }) {
             </div>
             <div>
               <div className="text-slate-400">Skills</div>
-              <div className="font-semibold text-cyan-100">{identity.skills.length}</div>
+              <div className="font-semibold text-cyan-100">
+                {identity.skills.length}
+              </div>
             </div>
             <div>
               <div className="text-slate-400">Memories</div>
-              <div className="font-semibold text-cyan-100">{identity.memories.length}</div>
+              <div className="font-semibold text-cyan-100">
+                {identity.memories.length}
+              </div>
             </div>
             <div>
               <div className="text-slate-400">Solana receipts</div>
-              <div className="font-semibold text-cyan-100">{identity.receipts.length}</div>
+              <div className="font-semibold text-cyan-100">
+                {identity.receipts.length}
+              </div>
             </div>
             <div>
               <div className="text-slate-400">State</div>

@@ -16,7 +16,9 @@ export function ZeroGStatusPanel({
   return (
     <section className="rounded-2xl border border-white/10 bg-[#070d12]/95 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.4)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-white">0G Modular Sidecar Control</h3>
+        <h3 className="text-sm font-semibold text-white">
+          0G Modular Sidecar Control
+        </h3>
         <button
           type="button"
           className="rounded-md border border-[#3bff96]/40 bg-[#3bff96]/10 px-3 py-1 text-xs text-[#cdffe6] hover:bg-[#3bff96]/20"

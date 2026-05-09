@@ -24,10 +24,23 @@ describe("plan receipt lifecycle", () => {
     const store = new PlanStore();
     await store.init();
     const storage = new PlanStorageService();
-    const anchor = new PlanAnchorService({ chainId: 101, programId: "test_program" });
+    const anchor = new PlanAnchorService({
+      chainId: 101,
+      programId: "test_program",
+    });
     const pushEvent = createEventWriter(store);
-    const receiptService = new PlanReceiptService(store, storage, anchor, pushEvent);
-    const resultService = new PlanResultService(store, storage, anchor, pushEvent);
+    const receiptService = new PlanReceiptService(
+      store,
+      storage,
+      anchor,
+      pushEvent,
+    );
+    const resultService = new PlanResultService(
+      store,
+      storage,
+      anchor,
+      pushEvent,
+    );
     const verifyService = new PlanVerificationService(store);
 
     const created = await receiptService.create({
@@ -57,7 +70,9 @@ describe("plan receipt lifecycle", () => {
     expect(created.planId).toBeTruthy();
     const allVersions = await store.listReceiptsByPlanId(created.planId);
     expect(allVersions.length).toBeGreaterThan(1);
-    expect(allVersions[0]?.version).toBeGreaterThan(allVersions[1]?.version ?? 0);
+    expect(allVersions[0]?.version).toBeGreaterThan(
+      allVersions[1]?.version ?? 0,
+    );
 
     const execution = await receiptService.execute({
       planId: created.planId,

@@ -1,4 +1,10 @@
-export type CircuitServiceKey = "solana_rpc" | "zerog_storage" | "zerog_da" | "openclaw" | "database" | "indexer";
+export type CircuitServiceKey =
+  | "solana_rpc"
+  | "zerog_storage"
+  | "zerog_da"
+  | "openclaw"
+  | "database"
+  | "indexer";
 
 interface CircuitState {
   failures: number;
@@ -20,7 +26,10 @@ function getState(key: CircuitServiceKey): CircuitState {
   return s;
 }
 
-export function isCircuitOpen(key: CircuitServiceKey, now = Date.now()): boolean {
+export function isCircuitOpen(
+  key: CircuitServiceKey,
+  now = Date.now(),
+): boolean {
   const s = getState(key);
   if (s.openUntil > now) return true;
   if (s.openUntil > 0 && s.openUntil <= now) {
@@ -37,7 +46,10 @@ export function recordCircuitSuccess(key: CircuitServiceKey) {
   s.openUntil = 0;
 }
 
-export function recordCircuitFailure(key: CircuitServiceKey, threshold = DEFAULT_THRESHOLD) {
+export function recordCircuitFailure(
+  key: CircuitServiceKey,
+  threshold = DEFAULT_THRESHOLD,
+) {
   const s = getState(key);
   s.failures += 1;
   if (s.failures >= threshold) {

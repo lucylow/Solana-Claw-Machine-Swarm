@@ -20,11 +20,11 @@ export default function DaoDelegationPanel({
     <div>
       <div className="dao-cc-panel-title">Delegation · Solana wallets</div>
       <p className="muted-line mb-2">
-        Delegating transfers your voting power snapshot to a representative. You cannot vote while an active delegation
-        is outbound.
+        Delegating transfers your voting power snapshot to a representative. You
+        cannot vote while an active delegation is outbound.
       </p>
       <div className="stack-list">
-        {data.delegations.map(d => (
+        {data.delegations.map((d) => (
           <div key={d.id} className="item-card">
             <div className="item-top">
               <span className="text-white text-sm">
@@ -33,8 +33,14 @@ export default function DaoDelegationPanel({
               <span className="chip">{d.status}</span>
             </div>
             <div className="muted-line">weight {d.weight}</div>
-            {d.proofReceiptId ? <div className="muted-line">receipt {d.proofReceiptId}</div> : null}
-            {d.pda ? <div className="muted-line">delegate PDA {d.pda.slice(0, 12)}…</div> : null}
+            {d.proofReceiptId ? (
+              <div className="muted-line">receipt {d.proofReceiptId}</div>
+            ) : null}
+            {d.pda ? (
+              <div className="muted-line">
+                delegate PDA {d.pda.slice(0, 12)}…
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -42,7 +48,7 @@ export default function DaoDelegationPanel({
         <div className="form-grid" style={{ marginTop: 12 }}>
           <input
             value={to}
-            onChange={e => setTo(e.target.value)}
+            onChange={(e) => setTo(e.target.value)}
             placeholder="Delegate to wallet address"
             className="span-2"
             style={{
@@ -56,7 +62,7 @@ export default function DaoDelegationPanel({
           />
           <input
             value={reason}
-            onChange={e => setReason(e.target.value)}
+            onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (optional)"
             className="span-2"
             style={{

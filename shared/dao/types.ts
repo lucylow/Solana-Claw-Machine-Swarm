@@ -99,7 +99,13 @@ export interface DaoProposal {
   executionTxSignature?: string;
   executionReceiptId?: string;
   proposalReceiptId?: string;
-  proofStatus: "unverified" | "pending" | "verified" | "degraded" | "cached_only" | "demo_only";
+  proofStatus:
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "degraded"
+    | "cached_only"
+    | "demo_only";
   onchain?: {
     pda?: string;
     account?: string;
@@ -164,8 +170,21 @@ export interface DaoExecutionReceipt {
   account?: string;
   title: string;
   summary: string;
-  status: "draft" | "submitted" | "confirmed" | "verified" | "failed" | "degraded" | "demo_only";
-  proofStatus: "unverified" | "pending" | "verified" | "degraded" | "cached_only" | "demo_only";
+  status:
+    | "draft"
+    | "submitted"
+    | "confirmed"
+    | "verified"
+    | "failed"
+    | "degraded"
+    | "demo_only";
+  proofStatus:
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "degraded"
+    | "cached_only"
+    | "demo_only";
   createdAt: string;
   explorerUrl?: string;
   storageRef?: string;
@@ -198,7 +217,13 @@ export interface DaoAgentRecommendation {
   createdAt: string;
   proofReceiptId?: string;
   storageRef?: string;
-  status: "draft" | "ready" | "approved" | "rejected" | "degraded" | "demo_only";
+  status:
+    | "draft"
+    | "ready"
+    | "approved"
+    | "rejected"
+    | "degraded"
+    | "demo_only";
   humanDisposition?: "accepted" | "modified" | "rejected" | "pending";
 }
 

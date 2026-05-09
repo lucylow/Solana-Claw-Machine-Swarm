@@ -1,6 +1,10 @@
 import { nanoid } from "nanoid";
 import type { AgentFrameworkRun } from "./framework";
-import { AGENT_TOOL_REGISTRY, mapToolFailureToRecovery, toolsInPreferredOrder } from "./toolRegistry";
+import {
+  AGENT_TOOL_REGISTRY,
+  mapToolFailureToRecovery,
+  toolsInPreferredOrder,
+} from "./toolRegistry";
 import type {
   AgentConfidenceLevel,
   AgentCriticEvaluation,
@@ -51,7 +55,9 @@ export function classifyGoalIntent(
   const assumptions: string[] = ["Bridge RPC reachable for session reads."];
   const policyHints: string[] = [];
   const memoryHints: string[] = [];
-  const proofHints: string[] = ["Anchor plan + execution proof when wallet session allows."];
+  const proofHints: string[] = [
+    "Anchor plan + execution proof when wallet session allows.",
+  ];
 
   let goalType: AgentIntentClassification["goalType"] = "orchestration";
   if (/govern|vote|dao|proposal/.test(g)) goalType = "governance";
@@ -64,10 +70,14 @@ export function classifyGoalIntent(
 
   if (!opts.sessionActive) {
     riskSignals.push("wallet_session_inactive");
-    policyHints.push("Transaction-class tools blocked or degraded until session active.");
+    policyHints.push(
+      "Transaction-class tools blocked or degraded until session active.",
+    );
   }
   if (opts.priorMemoryCount > 0) {
-    memoryHints.push(`${opts.priorMemoryCount} prior reflection(s) eligible for injection.`);
+    memoryHints.push(
+      `${opts.priorMemoryCount} prior reflection(s) eligible for injection.`,
+    );
     assumptions.push("Planner may shorten path when memory reuse applies.");
   }
 
@@ -116,27 +126,91 @@ export function buildDefaultProfiles(): AgentProfile[] {
   });
 
   return [
-    base("coordinator", "Coordinator", "Receives goal, sets run context, delegates or acts.", "policy_gated", 0.05),
-    base("planner", "Planner", "Decomposes goal, binds risk and policy.", "guided", 0.08),
-    base("researcher", "Researcher", "Pulls memory + chain context for the planner.", "assisted", 0.06),
-    base("operator", "Operator", "Runs tool calls and step transitions.", "policy_gated", 0.04),
-    base("critic", "Critic", "Validates completeness, policy, proof readiness.", "assisted", 0.12),
-    base("reflector", "Reflector", "Structured lessons from outcomes.", "guided", 0.07),
-    base("memory_writer", "Memory writer", "Durable memory artifacts for reuse.", "policy_gated", 0.05),
-    base("proof_anchor", "Proof anchor", "Compact Solana-linked receipts.", "meaningful_agency", 0.03),
-    base("reputation_updater", "Reputation updater", "Skill trust + autonomy signals.", "automation_only", 0.02),
-    base("recovery_manager", "Recovery manager", "Retries and degraded fallbacks.", "assisted", 0.09),
+    base(
+      "coordinator",
+      "Coordinator",
+      "Receives goal, sets run context, delegates or acts.",
+      "policy_gated",
+      0.05,
+    ),
+    base(
+      "planner",
+      "Planner",
+      "Decomposes goal, binds risk and policy.",
+      "guided",
+      0.08,
+    ),
+    base(
+      "researcher",
+      "Researcher",
+      "Pulls memory + chain context for the planner.",
+      "assisted",
+      0.06,
+    ),
+    base(
+      "operator",
+      "Operator",
+      "Runs tool calls and step transitions.",
+      "policy_gated",
+      0.04,
+    ),
+    base(
+      "critic",
+      "Critic",
+      "Validates completeness, policy, proof readiness.",
+      "assisted",
+      0.12,
+    ),
+    base(
+      "reflector",
+      "Reflector",
+      "Structured lessons from outcomes.",
+      "guided",
+      0.07,
+    ),
+    base(
+      "memory_writer",
+      "Memory writer",
+      "Durable memory artifacts for reuse.",
+      "policy_gated",
+      0.05,
+    ),
+    base(
+      "proof_anchor",
+      "Proof anchor",
+      "Compact Solana-linked receipts.",
+      "meaningful_agency",
+      0.03,
+    ),
+    base(
+      "reputation_updater",
+      "Reputation updater",
+      "Skill trust + autonomy signals.",
+      "automation_only",
+      0.02,
+    ),
+    base(
+      "recovery_manager",
+      "Recovery manager",
+      "Retries and degraded fallbacks.",
+      "assisted",
+      0.09,
+    ),
   ];
 }
 
-function makeToolCall(input: Omit<AgentToolCall, "id"> & { id?: string }): AgentToolCall {
+function makeToolCall(
+  input: Omit<AgentToolCall, "id"> & { id?: string },
+): AgentToolCall {
   return {
     id: input.id ?? `tool_${nanoid(10)}`,
     ...input,
   };
 }
 
-function makeStep(partial: Omit<AgentStep, "toolCalls"> & { toolCalls?: AgentToolCall[] }): AgentStep {
+function makeStep(
+  partial: Omit<AgentStep, "toolCalls"> & { toolCalls?: AgentToolCall[] },
+): AgentStep {
   return {
     toolCalls: partial.toolCalls ?? [],
     ...partial,
@@ -164,7 +238,9 @@ export function buildCriticEvaluation(input: {
     critiqueSummary: input.planSucceeded
       ? "Plan completed primary lane; proof and memory hooks are consistent with policy."
       : "Plan degraded early; critic recommends memory-first recovery on next turn.",
-    missingItems: input.proofLikely ? [] : ["live tx signature for proof receipt"],
+    missingItems: input.proofLikely
+      ? []
+      : ["live tx signature for proof receipt"],
     riskFlags: input.policyBlocked ? ["policy_block_active"] : [],
     recommendedNextStep: input.planSucceeded
       ? "Reuse injected memory on next run to raise planner confidence."
@@ -190,14 +266,20 @@ export interface BuildFrameworkInput {
   agentId: string;
   sessionActive: boolean;
   sessionVerified: boolean;
-  priorReflectionSummaries: Array<{ id: string; summary: string; tags?: string[] }>;
+  priorReflectionSummaries: Array<{
+    id: string;
+    summary: string;
+    tags?: string[];
+  }>;
 }
 
 /**
  * Deterministic, inspectable agent pipeline (no hidden single-shot LLM blob).
  * Server merges live Solana tx fields into proofRecords after bridge calls.
  */
-export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFrameworkRun {
+export function buildAgentFrameworkRun(
+  input: BuildFrameworkInput,
+): AgentFrameworkRun {
   const t0 = nowIso();
   const runId = input.runId;
   const priorN = input.priorReflectionSummaries.length;
@@ -206,7 +288,7 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     priorMemoryCount: priorN,
   });
 
-  const memoryIds = input.priorReflectionSummaries.map(p => p.id).slice(0, 5);
+  const memoryIds = input.priorReflectionSummaries.map((p) => p.id).slice(0, 5);
 
   const skillDecision: AgentDecisionRecord = {
     id: `dec_${nanoid(8)}`,
@@ -217,11 +299,22 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     createdAt: t0,
     decisionScope: "execution.skill_binding",
     optionsConsidered: [
-      { id: "skill_primary", label: input.skillName || input.skillId, score: 0.9, reason: "User-selected registry skill" },
-      { id: "skill_fallback", label: "Generic orchestration skill", score: 0.35, reason: "Fallback when registry thin" },
+      {
+        id: "skill_primary",
+        label: input.skillName || input.skillId,
+        score: 0.9,
+        reason: "User-selected registry skill",
+      },
+      {
+        id: "skill_fallback",
+        label: "Generic orchestration skill",
+        score: 0.35,
+        reason: "Fallback when registry thin",
+      },
     ],
     selectedOptionId: "skill_primary",
-    rationale: "Honor explicit skill selection from command center before delegation.",
+    rationale:
+      "Honor explicit skill selection from command center before delegation.",
     confidence: "high",
     policyStatus: "approved",
     memoryUsed: memoryIds.length ? memoryIds : undefined,
@@ -237,8 +330,16 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     createdAt: t0,
     decisionScope: "research.context_pack",
     optionsConsidered: [
-      { id: "inject_recent", label: "Inject top prior reflections", score: priorN ? 0.88 : 0.2 },
-      { id: "inject_none", label: "Cold start (no injection)", score: priorN ? 0.25 : 0.9 },
+      {
+        id: "inject_recent",
+        label: "Inject top prior reflections",
+        score: priorN ? 0.88 : 0.2,
+      },
+      {
+        id: "inject_none",
+        label: "Cold start (no injection)",
+        score: priorN ? 0.25 : 0.9,
+      },
     ],
     selectedOptionId: priorN ? "inject_recent" : "inject_none",
     rationale: priorN
@@ -251,7 +352,8 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
   };
 
   const riskLevel: AgentPlan["riskLevel"] =
-    !input.sessionActive || intent.riskSignals.includes("transaction_intent_detected")
+    !input.sessionActive ||
+    intent.riskSignals.includes("transaction_intent_detected")
       ? "high"
       : intent.goalType === "governance"
         ? "medium"
@@ -261,7 +363,10 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     !input.sessionActive && riskLevel !== "low" ? "needs_review" : "approved";
 
   const planConfidence = confidenceFromScore(
-    0.55 + (priorN ? 0.15 : 0) + (input.sessionActive ? 0.2 : 0) - (riskLevel === "high" ? 0.2 : 0),
+    0.55 +
+      (priorN ? 0.15 : 0) +
+      (input.sessionActive ? 0.2 : 0) -
+      (riskLevel === "high" ? 0.2 : 0),
   );
 
   const planId = `plan_${nanoid(10)}`;
@@ -271,7 +376,8 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
       runId,
       index: 0,
       title: "Acquire context",
-      description: "Researcher loads session, skill binding, and optional memory injection pack.",
+      description:
+        "Researcher loads session, skill binding, and optional memory injection pack.",
       ownerAgentId: RESEARCH,
       status: "succeeded",
       startedAt: t0,
@@ -302,12 +408,18 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
           toolName: "chain.read_session",
           toolType: "rpc",
           inputSummary: "session.probe",
-          outputSummary: input.sessionActive ? "session_active" : "session_inactive",
+          outputSummary: input.sessionActive
+            ? "session_active"
+            : "session_inactive",
           status: input.sessionActive ? "succeeded" : "failed",
           startedAt: t0,
           completedAt: t0,
-          errorCode: input.sessionActive ? undefined : "wallet_session_inactive",
-          errorMessage: input.sessionActive ? undefined : "Signer session inactive — transaction tools gated.",
+          errorCode: input.sessionActive
+            ? undefined
+            : "wallet_session_inactive",
+          errorMessage: input.sessionActive
+            ? undefined
+            : "Signer session inactive — transaction tools gated.",
           metadata: {},
         }),
         makeToolCall({
@@ -329,13 +441,16 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
       runId,
       index: 1,
       title: "Execute operational lane",
-      description: "Operator runs guarded execution; may retry or fall back when session is weak.",
+      description:
+        "Operator runs guarded execution; may retry or fall back when session is weak.",
       ownerAgentId: OPER,
       status: "succeeded",
       startedAt: t0,
       completedAt: t0,
       dependencies: [],
-      outputs: input.sessionActive ? ["operator_result_ok"] : ["operator_result_degraded_readonly"],
+      outputs: input.sessionActive
+        ? ["operator_result_ok"]
+        : ["operator_result_degraded_readonly"],
       retryCount: input.sessionActive ? 0 : 1,
       maxRetries: 2,
       metadata: {
@@ -361,12 +476,14 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     decisionType: "tool_selection",
     createdAt: t0,
     decisionScope: "operator.execution_path",
-    optionsConsidered: toolsInPreferredOrder([primaryTool, fallbackTool]).map(name => ({
-      id: name,
-      label: AGENT_TOOL_REGISTRY[name]?.summary ?? name,
-      score: name === chosenTool ? 0.9 : 0.4,
-      reason: AGENT_TOOL_REGISTRY[name]?.summary,
-    })),
+    optionsConsidered: toolsInPreferredOrder([primaryTool, fallbackTool]).map(
+      (name) => ({
+        id: name,
+        label: AGENT_TOOL_REGISTRY[name]?.summary ?? name,
+        score: name === chosenTool ? 0.9 : 0.4,
+        reason: AGENT_TOOL_REGISTRY[name]?.summary,
+      }),
+    ),
     selectedOptionId: chosenTool,
     rationale: usePrimary
       ? "Session active — use standard operator simulation with retry budget."
@@ -413,8 +530,16 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     createdAt: t0,
     decisionScope: "recovery.operator",
     optionsConsidered: [
-      { id: "retry", label: "Retry operator with backoff", score: usePrimary ? 0.2 : 0.15 },
-      { id: "fallback", label: "Use degraded operator tool", score: usePrimary ? 0.1 : 0.9 },
+      {
+        id: "retry",
+        label: "Retry operator with backoff",
+        score: usePrimary ? 0.2 : 0.15,
+      },
+      {
+        id: "fallback",
+        label: "Use degraded operator tool",
+        score: usePrimary ? 0.1 : 0.9,
+      },
       { id: "abort", label: "Abort run", score: 0.05 },
     ],
     selectedOptionId: usePrimary ? "retry" : "fallback",
@@ -475,11 +600,21 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     createdAt: t0,
     decisionScope: "planner.primary",
     optionsConsidered: [
-      { id: "plan_full", label: "Full multi-step with critic + proof", score: 0.92 },
-      { id: "plan_min", label: "Minimal single-step", score: 0.35, reason: "Only for low-risk read-only" },
+      {
+        id: "plan_full",
+        label: "Full multi-step with critic + proof",
+        score: 0.92,
+      },
+      {
+        id: "plan_min",
+        label: "Minimal single-step",
+        score: 0.35,
+        reason: "Only for low-risk read-only",
+      },
     ],
     selectedOptionId: "plan_full",
-    rationale: "Command-center runs require traceable steps, tools, and proof hooks.",
+    rationale:
+      "Command-center runs require traceable steps, tools, and proof hooks.",
     confidence: planConfidence,
     policyStatus: planPolicy === "needs_review" ? "needs_review" : "approved",
     memoryUsed: memoryIds.length ? memoryIds : undefined,
@@ -564,11 +699,12 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
   const proofRecords: AgentProofRecord[] = [];
 
   const runStatus: AgentRunStatus =
-    !input.sessionActive || intent.riskSignals.includes("transaction_intent_detected")
+    !input.sessionActive ||
+    intent.riskSignals.includes("transaction_intent_detected")
       ? "degraded"
       : "completed";
 
-  const allToolCalls = steps.flatMap(s => s.toolCalls);
+  const allToolCalls = steps.flatMap((s) => s.toolCalls);
 
   return {
     runId,
@@ -581,7 +717,13 @@ export function buildAgentFrameworkRun(input: BuildFrameworkInput): AgentFramewo
     profiles: buildDefaultProfiles(),
     plan,
     delegations,
-    decisions: [skillDecision, injectionDecision, planDecision, toolDecision, retryDecision],
+    decisions: [
+      skillDecision,
+      injectionDecision,
+      planDecision,
+      toolDecision,
+      retryDecision,
+    ],
     toolCalls: allToolCalls,
     critic,
     reflections,
@@ -610,10 +752,10 @@ export function patchFrameworkProofRecords(
   run: AgentFrameworkRun,
   patches: Array<Partial<AgentProofRecord> & { id: string }>,
 ): AgentFrameworkRun {
-  const map = new Map(patches.map(p => [p.id, p]));
+  const map = new Map(patches.map((p) => [p.id, p]));
   return {
     ...run,
-    proofRecords: run.proofRecords.map(pr => {
+    proofRecords: run.proofRecords.map((pr) => {
       const p = map.get(pr.id);
       return p ? { ...pr, ...p } : pr;
     }),

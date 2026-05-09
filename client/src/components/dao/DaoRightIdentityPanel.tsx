@@ -13,7 +13,9 @@ export default function DaoRightIdentityPanel({
       <div className="dao-cc-panel-title">Wallet identity</div>
       {walletAddress ? (
         <>
-          <div className="muted-line font-mono text-sm text-white/90">{walletAddress}</div>
+          <div className="muted-line font-mono text-sm text-white/90">
+            {walletAddress}
+          </div>
           {m ? (
             <>
               <div className="item-meta" style={{ marginTop: 8 }}>
@@ -23,22 +25,32 @@ export default function DaoRightIdentityPanel({
               </div>
               <div className="muted-line mt-2">Permissions</div>
               <div className="muted-line">
-                vote {m.permissions.canVote ? "yes" : "no"} · propose {m.permissions.canPropose ? "yes" : "no"} ·
-                execute {m.permissions.canExecute ? "yes" : "no"}
+                vote {m.permissions.canVote ? "yes" : "no"} · propose{" "}
+                {m.permissions.canPropose ? "yes" : "no"} · execute{" "}
+                {m.permissions.canExecute ? "yes" : "no"}
               </div>
             </>
           ) : (
-            <p className="muted-line mt-2">Wallet not registered as DAO member yet.</p>
+            <p className="muted-line mt-2">
+              Wallet not registered as DAO member yet.
+            </p>
           )}
-          <div className="muted-line mt-3">Effective voting power (delegation-aware)</div>
-          <div className="text-lg font-semibold text-[#b8ffe0]">{data.effectiveVoteWeight}</div>
+          <div className="muted-line mt-3">
+            Effective voting power (delegation-aware)
+          </div>
+          <div className="text-lg font-semibold text-[#b8ffe0]">
+            {data.effectiveVoteWeight}
+          </div>
         </>
       ) : (
-        <p className="muted-line">Connect wallet to bind session to a Solana identity.</p>
+        <p className="muted-line">
+          Connect wallet to bind session to a Solana identity.
+        </p>
       )}
       <div className="muted-line mt-4">Last receipts</div>
       <div className="muted-line text-xs">
-        {data.executionReceipts[0]?.id ?? "—"} · {data.executionReceipts[0]?.proofStatus ?? ""}
+        {data.executionReceipts[0]?.id ?? "—"} ·{" "}
+        {data.executionReceipts[0]?.proofStatus ?? ""}
       </div>
       <a
         className="muted-line text-[#87f7d0] underline text-sm mt-2 block"

@@ -17,13 +17,16 @@ A production-ready Solana-native platform for deploying, coordinating, and monet
 ### Core Components
 
 **Frontend (React 19 + Tailwind 4 + Cyberpunk Theme)**
+
 - Landing page with SWARM branding and wallet connection
 - Agent orchestration dashboard with real-time activity feed
 - On-chain receipt viewer with Solana explorer integration
 - CLAW skills registry with OpenClaw bridge UI
 - Documentation pages explaining SWARM architecture
+- Judge-facing `/submission` route mapping the product to the SWARM rubric
 
 **Backend (Express + tRPC + Drizzle ORM)**
+
 - Solana session management with nonce-based signing
 - Agent registry and lifecycle management
 - CLAW skills registry with OpenClaw metadata
@@ -31,6 +34,7 @@ A production-ready Solana-native platform for deploying, coordinating, and monet
 - Activity logging and real-time event streaming
 
 **Database (MySQL)**
+
 - `users`: Manus OAuth user profiles
 - `solanaSessions`: Wallet session management
 - `agents`: Agent registry with status and metadata
@@ -48,24 +52,28 @@ A production-ready Solana-native platform for deploying, coordinating, and monet
 ## Features
 
 ### Multi-Agent Orchestration
+
 - Real-time agent status monitoring
 - Task queue and distribution
 - Agent role-based assignment
 - Automatic failover and retry logic
 
 ### On-Chain Receipts
+
 - Immutable audit trail on Solana devnet
 - Receipt types: plan, execution, reflection, memory
 - Transaction hash tracking and explorer integration
 - Receipt verification and validation
 
 ### OpenClaw Bridge
+
 - Bidirectional skill import/export
 - Manifest generation and validation
 - Compatibility tracking
 - Ecosystem integration
 
 ### Cyberpunk Aesthetic
+
 - Dark background with cyan/purple neon accents
 - Futuristic technical UI
 - Consistent branding across all pages
@@ -74,6 +82,7 @@ A production-ready Solana-native platform for deploying, coordinating, and monet
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 22+
 - pnpm 10+
 - MySQL database
@@ -95,6 +104,7 @@ pnpm dev
 ### Environment Variables
 
 Required environment variables (auto-injected by Manus):
+
 - `DATABASE_URL`: MySQL connection string
 - `VITE_APP_ID`: Manus OAuth application ID
 - `OAUTH_SERVER_URL`: Manus OAuth backend URL
@@ -106,30 +116,35 @@ Required environment variables (auto-injected by Manus):
 ## Pages
 
 ### Landing Page (`/`)
+
 - SWARM branding and hero section
 - Feature highlights
 - Wallet connection CTA
 - Call-to-action for getting started
 
 ### Dashboard (`/dashboard`)
+
 - Agent statistics and status
 - Active agents list with role information
 - Real-time activity feed
 - Agent creation form
 
 ### On-Chain Receipts (`/receipts`)
+
 - Receipt viewer with type filtering
 - Receipt creation form (plan, execution, reflection, memory)
 - Solana explorer links
 - Receipt content display
 
 ### CLAW Skills Registry (`/skills`)
+
 - Skills list with compatibility status
 - Skill creation form
 - OpenClaw bridge status
 - Import/export functionality
 
 ### How It Works (`/how-it-works`)
+
 - SWARM architecture explanation
 - Solana integration details
 - OpenClaw bridge documentation
@@ -159,6 +174,10 @@ pnpm check
 pnpm build
 ```
 
+## Submission Route
+
+Open `/submission` before submitting to Frontier. It summarizes the judge path, SWARM rubric fit, readiness score, demo links, and remaining external assets such as the public GitHub URL and founder pitch video.
+
 ## Deployment
 
 The application is deployed on Manus with automatic scaling and SSL certificates.
@@ -172,6 +191,7 @@ The application is deployed on Manus with automatic scaling and SSL certificates
 ## Roadmap
 
 ### Phase 1: Core Platform (Complete)
+
 - ✅ Landing page and wallet integration
 - ✅ Agent orchestration dashboard
 - ✅ On-chain receipt management
@@ -179,16 +199,20 @@ The application is deployed on Manus with automatic scaling and SSL certificates
 - ✅ OpenClaw bridge UI
 
 ### Phase 2: Solana Integration
-- [ ] Anchor program for receipt anchoring
-- [ ] Solana devnet transaction submission
-- [ ] Receipt verification and validation
-- [ ] Phantom/Solflare wallet connection
+
+- ✅ Anchor programs for receipt anchoring, DAO coordination, and NFT records
+- ✅ Solana devnet transaction surfaces with explorer links and proof-state labels
+- ✅ Receipt verification and validation with degraded-state messaging
+- ✅ Phantom/Solflare/Backpack wallet adapter integration
 
 ### Phase 3: Advanced Features
-- [ ] Real-time agent coordination
-- [ ] Agent reputation scoring
-- [ ] Skill marketplace
-- [ ] Multi-signature transactions
+
+- ✅ Real-time-style command center for agent coordination and demo replay
+- ✅ Reputation-aware skill discovery and agent scoring surfaces
+- ✅ OpenClaw-compatible skill marketplace and manifest bridge
+- ✅ DAO proposal module for shared governance workflows
+- ✅ 0G sidecar route for storage, DA, replay, and proof graph artifacts
+- [ ] Production mainnet deployment and live partner traction links
 
 ## Contributing
 

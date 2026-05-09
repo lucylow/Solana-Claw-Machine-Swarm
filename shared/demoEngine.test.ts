@@ -49,7 +49,9 @@ describe("interactive demo engine", () => {
       presentationMode: false,
     });
     expect(snap.execution?.failureReason).toBeDefined();
-    expect(snap.derived.hasFailure || snap.derived.dataPosture === "degraded").toBe(true);
+    expect(
+      snap.derived.hasFailure || snap.derived.dataPosture === "degraded",
+    ).toBe(true);
   });
 
   it("labels demo-only proof posture on receipts", () => {
@@ -63,7 +65,9 @@ describe("interactive demo engine", () => {
       presentationMode: false,
     });
     expect(snap.proof?.metadata.demoMode).toBe(true);
-    expect(["demo_only", "pending", "cached_only"]).toContain(snap.proof?.proofStatus);
+    expect(["demo_only", "pending", "cached_only"]).toContain(
+      snap.proof?.proofStatus,
+    );
   });
 
   it("openclaw-bridge exposes bridge state on later steps", () => {
@@ -85,6 +89,8 @@ describe("interactive demo engine", () => {
       playbackStatus: "paused",
       presentationMode: false,
     });
-    expect(late.openclaw?.importedCount ?? 0).toBeGreaterThanOrEqual(early.openclaw?.importedCount ?? 0);
+    expect(late.openclaw?.importedCount ?? 0).toBeGreaterThanOrEqual(
+      early.openclaw?.importedCount ?? 0,
+    );
   });
 });

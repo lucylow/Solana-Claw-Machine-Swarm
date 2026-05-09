@@ -32,13 +32,15 @@ const custodySteps = [
   },
   {
     label: "Summary hash",
-    detail: "SHA-256 fingerprints prove content without putting prose on-chain.",
+    detail:
+      "SHA-256 fingerprints prove content without putting prose on-chain.",
     Icon: Hash,
     scope: "offchain" as const,
   },
   {
     label: "Onchain proof",
-    detail: "Memo + PDAs carry compact payload hashes, wallet, cluster, receipts.",
+    detail:
+      "Memo + PDAs carry compact payload hashes, wallet, cluster, receipts.",
     Icon: Link2,
     scope: "onchain" as const,
   },
@@ -53,7 +55,8 @@ const custodySteps = [
 export default function OnchainPage() {
   const wallet = useSolanaWalletContext();
   const state = useDappChainState();
-  const receipts = wallet.txHistory.length > 0 ? wallet.txHistory : [DEMO_CHAIN_RECEIPT];
+  const receipts =
+    wallet.txHistory.length > 0 ? wallet.txHistory : [DEMO_CHAIN_RECEIPT];
   const demoIds = wallet.txHistory.length === 0 ? [DEMO_CHAIN_RECEIPT.id] : [];
 
   const activity = buildDappActivityFromState({
@@ -63,9 +66,10 @@ export default function OnchainPage() {
     actionPrepared: Boolean(state.txSignature),
     txSignature: state.txSignature,
     txConfirmed:
-      state.txStatus === "confirmed" || receipts.some((r) => r.status === "confirmed"),
+      state.txStatus === "confirmed" ||
+      receipts.some((r) => r.status === "confirmed"),
     receiptAnchored: receipts.some(
-      (r) => r.status === "confirmed" || r.status === "verified"
+      (r) => r.status === "confirmed" || r.status === "verified",
     ),
     proofVerified: state.proofStatus === "verified",
     receipts,
@@ -90,9 +94,14 @@ export default function OnchainPage() {
       brand="Onchain proof rail"
       sideRail={sideRail}
       topRightSlot={
-        <Button asChild size="sm" variant="outline" className="rounded-full border-white/15 text-[11px] text-slate-200">
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="rounded-full border-white/15 text-[11px] text-slate-200"
+        >
           <Link href="/dashboard?section=overview">
-            Command center
+            dApp dashboard
             <ArrowRight className="ml-1 h-3 w-3" aria-hidden />
           </Link>
         </Button>
@@ -171,12 +180,19 @@ export default function OnchainPage() {
         </header>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <Diag label="Cluster" value={state.cluster} mono />
-          <Diag label="Cluster mismatch" value={state.wrongCluster ? "Yes" : "No"} />
+          <Diag
+            label="Cluster mismatch"
+            value={state.wrongCluster ? "Yes" : "No"}
+          />
           <Diag label="RPC URL" value={state.rpcUrl} mono />
           <Diag label="Explorer base" value={state.explorerBaseUrl} mono />
           <Diag
             label="Session"
-            value={state.sessionStatus === "verified" ? "Verified" : state.sessionStatus}
+            value={
+              state.sessionStatus === "verified"
+                ? "Verified"
+                : state.sessionStatus
+            }
             mono
           />
           <Diag label="Proof status" value={state.proofStatus} mono />
@@ -186,7 +202,15 @@ export default function OnchainPage() {
   );
 }
 
-function Diag({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function Diag({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2">
       <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">

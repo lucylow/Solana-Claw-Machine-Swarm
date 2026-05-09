@@ -18,7 +18,7 @@ export async function mountMemoryReceipts(
         chainId: number;
       }): Promise<{ txSig: string; receiptAccount: string }>;
     };
-  }
+  },
 ) {
   const service = await getMemoryReceiptService({ onchain: options?.onchain });
 

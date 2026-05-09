@@ -5,10 +5,12 @@ export function solanaProofToReceiptRecord(
   proof: SolanaProofReceipt,
   cluster: SolanaCluster,
   type: SolanaReceiptRecord["type"],
-  explorerBase?: string
+  explorerBase?: string,
 ): SolanaReceiptRecord {
   const explorerUrl =
-    explorerBase && proof.txSignature ? `${explorerBase.replace(/\/$/, "")}/tx/${proof.txSignature}` : undefined;
+    explorerBase && proof.txSignature
+      ? `${explorerBase.replace(/\/$/, "")}/tx/${proof.txSignature}`
+      : undefined;
   return {
     id: proof.id,
     type,

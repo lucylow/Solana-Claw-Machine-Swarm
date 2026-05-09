@@ -28,7 +28,7 @@ export function ProofStateBadge({
       className={cn(
         "inline-flex max-w-full items-center truncate rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
         tone,
-        className
+        className,
       )}
       title={label}
     >

@@ -14,9 +14,16 @@ function fail(res: Response, message: string, status = 400) {
 export function registerDaoRoutes(app: Express, daoService: DaoService) {
   app.get("/api/dao/command-center", (req, res) => {
     try {
-      const demo = String(req.query.demo || "") === "1" || String(req.query.demo || "") === "true";
-      const walletAddress = req.query.walletAddress ? String(req.query.walletAddress).trim() : undefined;
-      const payload = daoService.buildCommandCenterPayload({ walletAddress, demo });
+      const demo =
+        String(req.query.demo || "") === "1" ||
+        String(req.query.demo || "") === "true";
+      const walletAddress = req.query.walletAddress
+        ? String(req.query.walletAddress).trim()
+        : undefined;
+      const payload = daoService.buildCommandCenterPayload({
+        walletAddress,
+        demo,
+      });
       ok(res, payload);
     } catch (e: unknown) {
       fail(res, e instanceof Error ? e.message : "command_center_failed", 500);
@@ -44,7 +51,7 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
         String(wallet),
         String(delegate || wallet),
         Number(stakeLamports || 0),
-        Number(reputationPoints || 0)
+        Number(reputationPoints || 0),
       );
       res.json({ ok: true, data });
     } catch (e: unknown) {
@@ -66,7 +73,11 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
           reason: z.string().max(500).optional(),
         })
         .parse(req.body);
-      const data = await daoService.delegateVotePower(body.fromWallet, body.toWallet, body.reason);
+      const data = await daoService.delegateVotePower(
+        body.fromWallet,
+        body.toWallet,
+        body.reason,
+      );
       ok(res, data);
     } catch (e: unknown) {
       fail(res, e instanceof Error ? e.message : "delegation_failed");
@@ -84,7 +95,9 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
   });
 
   app.get("/api/dao/votes", (req, res) => {
-    const proposalId = req.query.proposalId ? Number(req.query.proposalId) : undefined;
+    const proposalId = req.query.proposalId
+      ? Number(req.query.proposalId)
+      : undefined;
     if (proposalId !== undefined && Number.isNaN(proposalId)) {
       return fail(res, "invalid_proposal_id");
     }
@@ -126,7 +139,9 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
 
   app.post("/api/dao/proposals/:proposalId/vote", async (req, res) => {
     try {
-      const choice = String(req.body.choice) as import("./daoTypes").DaoVoteChoice;
+      const choice = String(
+        req.body.choice,
+      ) as import("./daoTypes").DaoVoteChoice;
       if (!["yes", "no", "abstain", "veto"].includes(choice)) {
         return fail(res, "invalid_vote_choice");
       }
@@ -134,7 +149,7 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
         Number(req.params.proposalId),
         String(req.body.wallet),
         choice,
-        String(req.body.reason || "")
+        String(req.body.reason || ""),
       );
       res.json({ ok: true, data });
     } catch (e: unknown) {
@@ -145,7 +160,9 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
 
   app.post("/api/dao/proposals/:proposalId/finalize", async (req, res) => {
     try {
-      const data = await daoService.finalizeProposal(Number(req.params.proposalId));
+      const data = await daoService.finalizeProposal(
+        Number(req.params.proposalId),
+      );
       res.json({ ok: true, data });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "finalize_failed";
@@ -155,7 +172,9 @@ export function registerDaoRoutes(app: Express, daoService: DaoService) {
 
   app.post("/api/dao/proposals/:proposalId/execute", async (req, res) => {
     try {
-      const data = await daoService.executeProposal(Number(req.params.proposalId));
+      const data = await daoService.executeProposal(
+        Number(req.params.proposalId),
+      );
       res.json({ ok: true, data });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "execute_failed";

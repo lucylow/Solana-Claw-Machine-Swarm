@@ -17,11 +17,13 @@ export function inferProofIntegrity(input: {
   degradedFlags?: boolean;
 }): ProofIntegrityStatus {
   if (input.degradedFlags) return "degraded";
-  const storeBad = input.storageStatus === "failed" || input.storageStatus === "degraded";
+  const storeBad =
+    input.storageStatus === "failed" || input.storageStatus === "degraded";
   const daBad = input.daStatus === "failed" || input.daStatus === "degraded";
   if (storeBad || daBad) return "degraded";
 
-  if (!input.txSignature) return input.zerogMode === "mock" ? "demo_only" : "pending";
+  if (!input.txSignature)
+    return input.zerogMode === "mock" ? "demo_only" : "pending";
 
   if (isDemoSimulatedTxSignature(input.txSignature)) return "demo_only";
 

@@ -1,4 +1,9 @@
-export type NftKind = "badge" | "membership" | "achievement" | "receipt" | "collectible";
+export type NftKind =
+  | "badge"
+  | "membership"
+  | "achievement"
+  | "receipt"
+  | "collectible";
 
 export interface NftCollectionState {
   name: string;

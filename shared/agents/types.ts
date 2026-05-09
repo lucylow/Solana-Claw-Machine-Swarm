@@ -92,7 +92,12 @@ export interface AgentDecisionRecord {
   selectedOptionId: string;
   rationale: string;
   confidence: AgentConfidenceLevel;
-  policyStatus: "not_required" | "approved" | "blocked" | "overridden" | "needs_review";
+  policyStatus:
+    | "not_required"
+    | "approved"
+    | "blocked"
+    | "overridden"
+    | "needs_review";
   humanOverride?: boolean;
   memoryUsed?: string[];
   proofReceiptId?: string;
@@ -105,7 +110,16 @@ export interface AgentToolCall {
   stepId?: string;
   agentId: string;
   toolName: string;
-  toolType: "search" | "read" | "write" | "compute" | "transaction" | "rpc" | "memory" | "proof" | "other";
+  toolType:
+    | "search"
+    | "read"
+    | "write"
+    | "compute"
+    | "transaction"
+    | "rpc"
+    | "memory"
+    | "proof"
+    | "other";
   inputSummary: string;
   outputSummary?: string;
   status: "pending" | "running" | "succeeded" | "failed" | "skipped";
@@ -123,7 +137,13 @@ export interface AgentStep {
   title: string;
   description: string;
   ownerAgentId: string;
-  status: "pending" | "running" | "succeeded" | "failed" | "skipped" | "retrying";
+  status:
+    | "pending"
+    | "running"
+    | "succeeded"
+    | "failed"
+    | "skipped"
+    | "retrying";
   startedAt?: string;
   completedAt?: string;
   toolCalls: AgentToolCall[];
@@ -150,7 +170,12 @@ export interface AgentPlan {
   plannerAgentId: string;
   confidence: AgentConfidenceLevel;
   riskLevel: "low" | "medium" | "high" | "critical";
-  policyStatus: "not_required" | "approved" | "blocked" | "overridden" | "needs_review";
+  policyStatus:
+    | "not_required"
+    | "approved"
+    | "blocked"
+    | "overridden"
+    | "needs_review";
   metadata: Record<string, unknown>;
 }
 
@@ -165,7 +190,13 @@ export interface AgentReflection {
   summary: string;
   fullText?: string;
   createdAt: string;
-  status: "captured" | "stored" | "anchored" | "linked" | "verified" | "degraded";
+  status:
+    | "captured"
+    | "stored"
+    | "anchored"
+    | "linked"
+    | "verified"
+    | "degraded";
   memoryId?: string;
   proofReceiptId?: string;
   storageRef?: string;
@@ -179,7 +210,15 @@ export interface AgentMemoryRecord {
   sourceStepId?: string;
   sourceExecutionId?: string;
   sourceReflectionId?: string;
-  kind: "working" | "session" | "episodic" | "semantic" | "reflection" | "failure" | "plan" | "summary";
+  kind:
+    | "working"
+    | "session"
+    | "episodic"
+    | "semantic"
+    | "reflection"
+    | "failure"
+    | "plan"
+    | "summary";
   title: string;
   summary: string;
   content?: string;
@@ -197,13 +236,27 @@ export interface AgentProofRecord {
   id: string;
   runId: string;
   agentId: string;
-  proofType: "decision" | "plan" | "execution" | "reflection" | "memory" | "skill" | "reputation" | "recovery";
+  proofType:
+    | "decision"
+    | "plan"
+    | "execution"
+    | "reflection"
+    | "memory"
+    | "skill"
+    | "reputation"
+    | "recovery";
   walletAddress: string;
   cluster: "devnet" | "testnet" | "mainnet-beta" | "localnet";
   txSignature?: string;
   pda?: string;
   account?: string;
-  proofStatus: "unverified" | "pending" | "verified" | "degraded" | "cached_only" | "demo_only";
+  proofStatus:
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "degraded"
+    | "cached_only"
+    | "demo_only";
   summaryHash: string;
   createdAt: string;
   explorerUrl?: string;
@@ -250,7 +303,12 @@ export interface AgentRecoveryEvent {
   id: string;
   runId: string;
   stepId?: string;
-  kind: "retry" | "fallback_tool" | "degraded_continue" | "escalate_policy" | "abort";
+  kind:
+    | "retry"
+    | "fallback_tool"
+    | "degraded_continue"
+    | "escalate_policy"
+    | "abort";
   detail: string;
   at: string;
   metadata: Record<string, unknown>;

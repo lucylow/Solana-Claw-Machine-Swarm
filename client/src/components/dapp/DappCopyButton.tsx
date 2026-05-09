@@ -47,13 +47,16 @@ export function DappCopyButton({
           ? "rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-slate-300 hover:border-[#14f195]/40 hover:bg-[#14f195]/10 hover:text-[#d6ffe9]"
           : "rounded text-slate-400 hover:text-[#d6ffe9]",
         copied && "border-[#14f195]/45 bg-[#14f195]/10 text-[#d6ffe9]",
-        className
+        className,
       )}
     >
       {copied ? (
         <Check className="h-3 w-3 text-[#3bff96]" aria-hidden />
       ) : (
-        <Copy className="h-3 w-3 opacity-70 group-hover:opacity-100" aria-hidden />
+        <Copy
+          className="h-3 w-3 opacity-70 group-hover:opacity-100"
+          aria-hidden
+        />
       )}
       <span className="truncate">{label ?? value}</span>
     </button>

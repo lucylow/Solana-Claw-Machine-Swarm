@@ -19,7 +19,8 @@ import {
 
 function rankScore(proposal: DaoProposalRecord) {
   const veto = proposal.vetoVotes ?? 0;
-  const total = proposal.yesVotes + proposal.noVotes + proposal.abstainVotes + veto;
+  const total =
+    proposal.yesVotes + proposal.noVotes + proposal.abstainVotes + veto;
   const participation =
     total > 0 ? Math.floor((proposal.totalVotes / (total + 1)) * 10000) : 0;
   const denom = proposal.yesVotes + proposal.noVotes + veto;
@@ -31,8 +32,8 @@ function rankScore(proposal: DaoProposalRecord) {
       proposal.quorumBps / 2 +
         proposal.approvalThresholdBps / 2 +
         participation / 2 +
-        approval / 2
-    )
+        approval / 2,
+    ),
   );
 }
 
@@ -90,7 +91,7 @@ export class DaoService {
       totalMembers: members.length,
       totalProposals: proposals.length,
       totalVotes: proposals.reduce((acc, p) => acc + p.voterCount, 0),
-      totalExecuted: proposals.filter(p => p.status === "executed").length,
+      totalExecuted: proposals.filter((p) => p.status === "executed").length,
       totalTreasurySpend: cfg.totalTreasurySpend ?? 0,
     };
   }
@@ -99,10 +100,13 @@ export class DaoService {
     const member = this.store.getMember(wallet);
     if (!member || !member.active) return 0;
     const delegations = this.store.listDelegations();
-    if (delegations.some(d => d.fromWallet === wallet && d.status === "active")) return 0;
+    if (
+      delegations.some((d) => d.fromWallet === wallet && d.status === "active")
+    )
+      return 0;
     const base = member.votingPower;
     const delegatedIn = delegations
-      .filter(d => d.toWallet === wallet && d.status === "active")
+      .filter((d) => d.toWallet === wallet && d.status === "active")
       .reduce((acc, d) => acc + d.weight, 0);
     return base + delegatedIn;
   }
@@ -137,11 +141,12 @@ export class DaoService {
     wallet: string,
     delegate: string,
     stakeLamports: number,
-    reputationPoints: number
+    reputationPoints: number,
   ) {
     const cfg = this.store.getConfig();
     if (!cfg) throw new Error("dao_not_bootstrapped");
-    if (stakeLamports < cfg.minStakeLamports) throw new Error("stake_below_min");
+    if (stakeLamports < cfg.minStakeLamports)
+      throw new Error("stake_below_min");
 
     const now = Date.now();
     const member: DaoMemberRecord = {
@@ -172,7 +177,11 @@ export class DaoService {
     return this.store.upsertMember(next);
   }
 
-  async delegateVotePower(fromWallet: string, toWallet: string, reason?: string) {
+  async delegateVotePower(
+    fromWallet: string,
+    toWallet: string,
+    reason?: string,
+  ) {
     const from = this.store.getMember(fromWallet);
     const to = this.store.getMember(toWallet);
     if (!from || !to) throw new Error("member_not_found");
@@ -189,7 +198,9 @@ export class DaoService {
       status: "active",
       proofReceiptId: `rcpt_del_${nanoid()}`,
     });
-    return this.store.listDelegations().find(d => d.fromWallet === fromWallet && d.status === "active");
+    return this.store
+      .listDelegations()
+      .find((d) => d.fromWallet === fromWallet && d.status === "active");
   }
 
   async revokeDelegate(fromWallet: string) {
@@ -249,14 +260,21 @@ export class DaoService {
     return proposal;
   }
 
-  async castVote(proposalId: number, wallet: string, choice: DaoVoteChoice, reason: string) {
+  async castVote(
+    proposalId: number,
+    wallet: string,
+    choice: DaoVoteChoice,
+    reason: string,
+  ) {
     const proposal = this.store.getProposal(proposalId);
     const member = this.store.getMember(wallet);
     if (!proposal) throw new Error("proposal_not_found");
     if (!member) throw new Error("member_not_found");
     if (proposal.status !== "active") throw new Error("proposal_not_active");
 
-    const prior = this.store.listVoteLedger(proposalId).some(v => v.voterWallet === wallet);
+    const prior = this.store
+      .listVoteLedger(proposalId)
+      .some((v) => v.voterWallet === wallet);
     if (prior) throw new Error("already_voted");
 
     const weight = this.effectiveVotingPower(wallet);
@@ -303,15 +321,19 @@ export class DaoService {
     const cfg = this.store.getConfig();
     if (!cfg) throw new Error("dao_not_bootstrapped");
 
-    const members = this.store.listMembers().filter(m => m.active).length;
+    const members = this.store.listMembers().filter((m) => m.active).length;
     const participationBps =
       members > 0 ? Math.floor((proposal.voterCount / members) * 10000) : 0;
     const veto = proposal.vetoVotes ?? 0;
     const approvalDenom = proposal.yesVotes + proposal.noVotes + veto;
     const approvalBps =
-      approvalDenom > 0 ? Math.floor((proposal.yesVotes / approvalDenom) * 10000) : 0;
+      approvalDenom > 0
+        ? Math.floor((proposal.yesVotes / approvalDenom) * 10000)
+        : 0;
 
-    const passed = participationBps >= cfg.quorumBps && approvalBps >= cfg.proposalThresholdBps;
+    const passed =
+      participationBps >= cfg.quorumBps &&
+      approvalBps >= cfg.proposalThresholdBps;
     const next = {
       ...proposal,
       status: passed ? ("succeeded" as const) : ("defeated" as const),
@@ -342,7 +364,9 @@ export class DaoService {
         lesson: `Quorum ${participationBps} bps vs required ${cfg.quorumBps} bps; approval ${approvalBps} bps vs ${cfg.proposalThresholdBps} bps.`,
         outcome: "rejected",
         createdAt: Date.now(),
-        linkedReceiptIds: next.proposalReceiptId ? [next.proposalReceiptId] : [],
+        linkedReceiptIds: next.proposalReceiptId
+          ? [next.proposalReceiptId]
+          : [],
         storageRef: `mem://dao/governance/${next.proposalId}`,
       });
     }
@@ -391,7 +415,11 @@ export class DaoService {
     await this.store.upsertProposal(next);
 
     const cfg = this.store.getConfig();
-    if (cfg && proposal.kind === "treasury_spend" && proposal.amountLamports > 0) {
+    if (
+      cfg &&
+      proposal.kind === "treasury_spend" &&
+      proposal.amountLamports > 0
+    ) {
       await this.store.patchConfig({
         totalTreasurySpend: cfg.totalTreasurySpend + proposal.amountLamports,
       });
@@ -405,7 +433,9 @@ export class DaoService {
         "Successful execution — anchor execution receipt and refresh treasury snapshot for the next cycle.",
       outcome: "executed",
       createdAt: Date.now(),
-      linkedReceiptIds: [receiptId, proposal.proposalReceiptId].filter(Boolean) as string[],
+      linkedReceiptIds: [receiptId, proposal.proposalReceiptId].filter(
+        Boolean,
+      ) as string[],
       storageRef: `mem://dao/governance/ok/${next.proposalId}`,
     });
 

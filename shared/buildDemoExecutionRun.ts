@@ -25,11 +25,16 @@ function clusterParam(c: ExecutionRun["walletCluster"]): string {
   return c === "mainnet-beta" ? "mainnet-beta" : c;
 }
 
-export function explorerTxUrl(signature: string, cluster: ExecutionRun["walletCluster"]): string {
+export function explorerTxUrl(
+  signature: string,
+  cluster: ExecutionRun["walletCluster"],
+): string {
   return `${DEMO_SOLANA_EXPLORER_TX_BASE}/${encodeURIComponent(signature)}?cluster=${encodeURIComponent(clusterParam(cluster))}`;
 }
 
-export function walletCluster(wallet: DemoWalletFixture): ExecutionRun["walletCluster"] {
+export function walletCluster(
+  wallet: DemoWalletFixture,
+): ExecutionRun["walletCluster"] {
   switch (wallet.cluster) {
     case "devnet":
     case "testnet":
@@ -40,13 +45,17 @@ export function walletCluster(wallet: DemoWalletFixture): ExecutionRun["walletCl
   }
 }
 
-function mapOutcomeToFixture(outcome: DemoRunOutcome): "success" | "failure" | "recovery" {
+function mapOutcomeToFixture(
+  outcome: DemoRunOutcome,
+): "success" | "failure" | "recovery" {
   if (outcome === "recovery") return "recovery";
   if (outcome === "failure") return "failure";
   return "success";
 }
 
-function mapFixtureStepStatus(status: DemoExecutionStepFixture["status"]): ExecutionStepStatus {
+function mapFixtureStepStatus(
+  status: DemoExecutionStepFixture["status"],
+): ExecutionStepStatus {
   if (status === "done") return "succeeded";
   if (status === "failed") return "failed";
   if (status === "active") return "running";
@@ -56,7 +65,7 @@ function mapFixtureStepStatus(status: DemoExecutionStepFixture["status"]): Execu
 export function fixturesToExecutionSteps(
   fixtures: DemoExecutionStepFixture[],
   reflectionMemoryKey: string | undefined,
-  receiptsForSteps: Record<string, string[]>
+  receiptsForSteps: Record<string, string[]>,
 ): ExecutionStep[] {
   return fixtures.map((f, i) => {
     const prevId = fixtures[i - 1]?.id;
@@ -73,7 +82,9 @@ export function fixturesToExecutionSteps(
     } else if (f.order === 2) {
       agentId = "agent-memory-read";
       agentName = "Memory lane";
-      memoryRefs = reflectionMemoryKey ? [`read:${reflectionMemoryKey}`] : undefined;
+      memoryRefs = reflectionMemoryKey
+        ? [`read:${reflectionMemoryKey}`]
+        : undefined;
     } else if (f.order === 3) {
       agentId = "agent-operator";
       agentName = "Operator";
@@ -91,20 +102,29 @@ export function fixturesToExecutionSteps(
               {
                 id: `tc_kb_${f.id}`,
                 toolName: "kb_retrieval",
-                inputSummary: "policy corpus + severity templates (budget 18s simulated)",
+                inputSummary:
+                  "policy corpus + severity templates (budget 18s simulated)",
                 outputSummary:
                   st === "failed"
                     ? "Partial JSON · deadline exceeded before closing envelope."
                     : "Structured citations pack passed schema gate preview.",
-                status: st === "failed" ? ("failed" as const) : ("succeeded" as const),
+                status:
+                  st === "failed"
+                    ? ("failed" as const)
+                    : ("succeeded" as const),
               },
               {
                 id: `tc_schema_${f.id}`,
                 toolName: "schema_gate",
                 inputSummary: "operator envelope · rollback ptr",
                 outputSummary:
-                  st === "failed" ? "Reject: malformed trailing segment." : "Accept · digest pinned to plan hash",
-                status: st === "failed" ? ("failed" as const) : ("succeeded" as const),
+                  st === "failed"
+                    ? "Reject: malformed trailing segment."
+                    : "Accept · digest pinned to plan hash",
+                status:
+                  st === "failed"
+                    ? ("failed" as const)
+                    : ("succeeded" as const),
               },
             ];
     } else if (f.order === 4) {
@@ -123,7 +143,9 @@ export function fixturesToExecutionSteps(
       status: st,
       startedAt: st === "pending" ? undefined : baseAt,
       completedAt:
-        st === "succeeded" || st === "failed" ? `2026-05-07T09:${12 + i}:33.000Z` : undefined,
+        st === "succeeded" || st === "failed"
+          ? `2026-05-07T09:${12 + i}:33.000Z`
+          : undefined,
       toolCalls,
       agentId,
       agentName,
@@ -136,7 +158,7 @@ export function fixturesToExecutionSteps(
 export function demoReflectionToStory(
   refl: DemoReflectionFixture,
   executionId: string,
-  skillId: string
+  skillId: string,
 ): StoryReflectionRecord {
   return {
     id: refl.id,
@@ -155,7 +177,12 @@ export function demoReflectionToStory(
     memoryId: refl.linkedMemoryId,
     storageRef: "ipfs://bafyCLAWreflection9182",
     proofRef: refl.linkedReceiptId,
-    status: refl.proofStatus === "verified" ? "verified" : refl.proofStatus === "failed" ? "degraded" : "stored",
+    status:
+      refl.proofStatus === "verified"
+        ? "verified"
+        : refl.proofStatus === "failed"
+          ? "degraded"
+          : "stored",
   };
 }
 
@@ -165,7 +192,7 @@ export function demoMemoryToTraceable(
   refl: DemoReflectionFixture,
   skillId: string,
   memoryStoreTxSig: string | undefined,
-  wc: ExecutionRun["walletCluster"]
+  wc: ExecutionRun["walletCluster"],
 ): TraceableMemoryRecord {
   return {
     id: mem.id,
@@ -185,14 +212,21 @@ export function demoMemoryToTraceable(
     linkedNextTurnId: mem.linkedNextTurnId,
     retrievedCount: 1,
     lastRetrievedAt: "2026-05-07T09:21:05.120Z",
-    explorerUrlHint: memoryStoreTxSig ? explorerTxUrl(memoryStoreTxSig, wc) : undefined,
+    explorerUrlHint: memoryStoreTxSig
+      ? explorerTxUrl(memoryStoreTxSig, wc)
+      : undefined,
     createdAt: mem.timestampIso,
     updatedAt: mem.timestampIso,
   };
 }
 
-export function demoReceiptFixtureToCommand(r: DemoReceiptFixture, wc: ExecutionRun["walletCluster"]): CommandReceiptRecord {
-  const typeMap: Partial<Record<DemoReceiptFixture["kind"], CommandReceiptRecord["type"]>> = {
+export function demoReceiptFixtureToCommand(
+  r: DemoReceiptFixture,
+  wc: ExecutionRun["walletCluster"],
+): CommandReceiptRecord {
+  const typeMap: Partial<
+    Record<DemoReceiptFixture["kind"], CommandReceiptRecord["type"]>
+  > = {
     skill_publish: "skill",
     plan_generate: "plan",
     execution_complete: "execution",
@@ -212,7 +246,11 @@ export function demoReceiptFixtureToCommand(r: DemoReceiptFixture, wc: Execution
     title: r.subject,
     summary: `${r.kind.replace(/_/g, " ")} · demo label · ${r.status}`,
     status:
-      r.status === "verified" ? "verified" : r.status === "pending" ? "pending" : "confirmed",
+      r.status === "verified"
+        ? "verified"
+        : r.status === "pending"
+          ? "pending"
+          : "confirmed",
     txSignature: r.txSignature,
     accountAddress: r.accountOrProofRef,
     storageRef: r.storageReference,
@@ -247,7 +285,9 @@ function terminalStage(outcome: DemoRunOutcome): ExecutionStage {
   return "completed";
 }
 
-export function buildDemoExecutionArtifacts(input: BuildDemoExecutionArtifactsInput): {
+export function buildDemoExecutionArtifacts(
+  input: BuildDemoExecutionArtifactsInput,
+): {
   executionRun: ExecutionRun;
   reflection: StoryReflectionRecord | null;
   traceableMemory: TraceableMemoryRecord | null;
@@ -256,24 +296,34 @@ export function buildDemoExecutionArtifacts(input: BuildDemoExecutionArtifactsIn
   const wc = walletCluster(input.wallet);
   const fixtureOutcome = mapOutcomeToFixture(input.outcome);
   const reflectionFixture = buildReflection(fixtureOutcome);
-  const memoryFixture = reflectionFixture ? buildMemory(reflectionFixture) : null;
+  const memoryFixture = reflectionFixture
+    ? buildMemory(reflectionFixture)
+    : null;
   const reflectionMemoryKey = memoryFixture?.id ?? undefined;
 
   const executionId = `exec_${input.plan.id}`;
-  const proofReceipt = input.receipts.find(r => r.kind === "proof_anchor");
+  const proofReceipt = input.receipts.find((r) => r.kind === "proof_anchor");
 
-  const memStore = input.receipts.find(r => r.kind === "memory_store");
+  const memStore = input.receipts.find((r) => r.kind === "memory_store");
 
   const receiptsForSteps: Record<string, string[]> = {
-    "ex-1": [input.receipts.find(r => r.kind === "plan_generate")?.id ?? ""].filter(Boolean),
+    "ex-1": [
+      input.receipts.find((r) => r.kind === "plan_generate")?.id ?? "",
+    ].filter(Boolean),
     "ex-2": [],
-    "ex-3": [input.receipts.find(r => r.kind === "execution_complete")?.id ?? ""].filter(Boolean),
+    "ex-3": [
+      input.receipts.find((r) => r.kind === "execution_complete")?.id ?? "",
+    ].filter(Boolean),
     "ex-4": proofReceipt ? [proofReceipt.id] : [],
   };
 
-  const steps = fixturesToExecutionSteps(input.stepFixtures, reflectionMemoryKey, receiptsForSteps);
+  const steps = fixturesToExecutionSteps(
+    input.stepFixtures,
+    reflectionMemoryKey,
+    receiptsForSteps,
+  );
 
-  const failedStep = input.stepFixtures.find(s => s.status === "failed");
+  const failedStep = input.stepFixtures.find((s) => s.status === "failed");
   const failureReason =
     fixtureOutcome !== "success" && failedStep
       ? failedStep.detail
@@ -283,20 +333,38 @@ export function buildDemoExecutionArtifacts(input: BuildDemoExecutionArtifactsIn
 
   let activeAgentRole: ExecutionRun["activeAgentRole"];
   const flip = [...input.stepFixtures].reverse();
-  const lastSpecial = flip.find(s => s.status === "active" || s.status === "failed" || s.status === "done");
+  const lastSpecial = flip.find(
+    (s) =>
+      s.status === "active" || s.status === "failed" || s.status === "done",
+  );
   if (lastSpecial?.order === 3) activeAgentRole = "operator · tool lane";
   else if (lastSpecial?.order === 4) activeAgentRole = "coordinator · seal";
   else if (lastSpecial?.order === 2) activeAgentRole = "memory lane";
-  else activeAgentRole = planningRoleHint(terminalStage(input.outcome), fixtureOutcome);
+  else
+    activeAgentRole = planningRoleHint(
+      terminalStage(input.outcome),
+      fixtureOutcome,
+    );
 
-  const reflStory = reflectionFixture ? demoReflectionToStory(reflectionFixture, executionId, input.skill.id) : null;
+  const reflStory = reflectionFixture
+    ? demoReflectionToStory(reflectionFixture, executionId, input.skill.id)
+    : null;
 
   const traceable =
     memoryFixture && reflectionFixture
-      ? demoMemoryToTraceable(memoryFixture, executionId, reflectionFixture, input.skill.id, memStore?.txSignature, wc)
+      ? demoMemoryToTraceable(
+          memoryFixture,
+          executionId,
+          reflectionFixture,
+          input.skill.id,
+          memStore?.txSignature,
+          wc,
+        )
       : null;
 
-  const activeStepPreferred = [...input.stepFixtures].reverse().find(s => s.status === "failed" || s.status === "active");
+  const activeStepPreferred = [...input.stepFixtures]
+    .reverse()
+    .find((s) => s.status === "failed" || s.status === "active");
 
   const run: ExecutionRun = {
     id: executionId,
@@ -316,7 +384,7 @@ export function buildDemoExecutionArtifacts(input: BuildDemoExecutionArtifactsIn
     failureReason,
     reflectionId: reflStory?.id,
     memoryId: traceable?.id,
-    receiptId: input.receipts.find(r => r.kind === "execution_complete")?.id,
+    receiptId: input.receipts.find((r) => r.kind === "execution_complete")?.id,
     proofId: proofReceipt?.id,
     createdAt: "2026-05-07T09:09:58.100Z",
     updatedAt: "2026-05-07T09:23:51.772Z",
@@ -326,9 +394,11 @@ export function buildDemoExecutionArtifacts(input: BuildDemoExecutionArtifactsIn
       mappedOutcome: input.outcome,
       fixtureOutcome,
       autonomyHint:
-        fixtureOutcome === "recovery" ? "next_turn_reused_memory" : fixtureOutcome === "success"
-          ? "clean_path_no_reflection_memory"
-          : undefined,
+        fixtureOutcome === "recovery"
+          ? "next_turn_reused_memory"
+          : fixtureOutcome === "success"
+            ? "clean_path_no_reflection_memory"
+            : undefined,
       unknownFields: [],
     },
   };
@@ -337,11 +407,16 @@ export function buildDemoExecutionArtifacts(input: BuildDemoExecutionArtifactsIn
     executionRun: run,
     reflection: reflStory,
     traceableMemory: traceable,
-    commandReceipts: input.receipts.map(r => demoReceiptFixtureToCommand(r, wc)),
+    commandReceipts: input.receipts.map((r) =>
+      demoReceiptFixtureToCommand(r, wc),
+    ),
   };
 }
 
-function planningRoleHint(stage: ExecutionStage, fox: "success" | "failure" | "recovery"): string {
+function planningRoleHint(
+  stage: ExecutionStage,
+  fox: "success" | "failure" | "recovery",
+): string {
   void stage;
   if (fox === "success") return "planner + operator (happy path)";
   return "planner → operator → critic";

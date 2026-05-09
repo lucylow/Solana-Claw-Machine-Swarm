@@ -14,7 +14,9 @@ describe("solana explorer helpers", () => {
   });
 
   it("buildExplorerTxUrl mirrors tx helper", () => {
-    expect(buildExplorerTxUrl("sig123", "testnet")).toContain("cluster=testnet");
+    expect(buildExplorerTxUrl("sig123", "testnet")).toContain(
+      "cluster=testnet",
+    );
   });
 
   it("builds address explorer urls with cluster override", () => {

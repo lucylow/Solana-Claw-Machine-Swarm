@@ -14,13 +14,22 @@ export default function DaoPage() {
       <header className="sticky top-0 z-30 border-b border-white/10 bg-black/70 backdrop-blur">
         <div className="container flex flex-wrap items-center justify-between gap-3 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-[#b8ffe0]" onClick={() => setLocation("/")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[#b8ffe0]"
+              onClick={() => setLocation("/")}
+            >
               <ArrowLeft className="mr-1 h-4 w-4" />
               Home
             </Button>
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">CLAW MACHINE</p>
-              <h1 className="text-lg font-semibold">Governance command center</h1>
+              <p className="text-xs uppercase tracking-[0.18em] text-[#87f7d0]">
+                CLAW MACHINE
+              </p>
+              <h1 className="text-lg font-semibold">
+                Governance command center
+              </h1>
             </div>
           </div>
           <WalletMultiButton />

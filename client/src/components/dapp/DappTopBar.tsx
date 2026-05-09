@@ -73,7 +73,7 @@ export function DappTopBar({
     <header
       className={cn(
         "sticky top-0 z-40 border-b border-white/[0.06] bg-[#040508]/85 pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl supports-[backdrop-filter]:bg-[#040508]/60",
-        className
+        className,
       )}
     >
       <a
@@ -104,7 +104,11 @@ export function DappTopBar({
         <div className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden />
 
         <div className="hidden items-center gap-2 sm:flex">
-          <DappNetworkBadge cluster={state.cluster} wrong={state.wrongCluster} size="sm" />
+          <DappNetworkBadge
+            cluster={state.cluster}
+            wrong={state.wrongCluster}
+            size="sm"
+          />
           <RpcHealthPill state={state} />
           {state.txStatus !== "idle" ? (
             <DappTransactionStatus status={state.txStatus} size="sm" />
@@ -123,7 +127,11 @@ export function DappTopBar({
 
       {/* Compact secondary row visible on small screens — keeps cluster + tx visible. */}
       <div className="flex items-center gap-2 overflow-x-auto border-t border-white/[0.04] bg-black/30 px-4 py-1.5 sm:hidden">
-        <DappNetworkBadge cluster={state.cluster} wrong={state.wrongCluster} size="sm" />
+        <DappNetworkBadge
+          cluster={state.cluster}
+          wrong={state.wrongCluster}
+          size="sm"
+        />
         <RpcHealthPill state={state} />
         <DappTransactionStatus status={state.txStatus} size="sm" />
         {state.balanceSol ? (

@@ -81,7 +81,7 @@ const skillStatusSchema = z.enum([
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -97,8 +97,12 @@ export const appRouter = router({
       .input(
         z.object({
           walletAddress: z.string().min(32),
-          expiresIn: z.number().min(60).max(3600 * 24).default(3600),
-        })
+          expiresIn: z
+            .number()
+            .min(60)
+            .max(3600 * 24)
+            .default(3600),
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const nonce = Math.random().toString(36).substring(2, 15);
@@ -110,7 +114,7 @@ export const appRouter = router({
             userId,
             input.walletAddress,
             nonce,
-            expiresAt
+            expiresAt,
           );
           return { nonce, expiresAt };
         } catch (err) {
@@ -126,7 +130,7 @@ export const appRouter = router({
       .input(
         z.object({
           walletAddress: z.string().min(32),
-        })
+        }),
       )
       .query(async ({ input }) => {
         try {
@@ -154,10 +158,15 @@ export const appRouter = router({
           name: z.string().min(2).max(255),
           role: z.string().min(2).max(128),
           description: z.string().max(4000).optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
-        await createAgent(ctx.user.id, input.name, input.role, input.description);
+        await createAgent(
+          ctx.user.id,
+          input.name,
+          input.role,
+          input.description,
+        );
         return { ok: true };
       }),
   }),
@@ -186,7 +195,7 @@ export const appRouter = router({
             limit: z.number().min(1).max(200).optional(),
             offset: z.number().min(0).optional(),
           })
-          .optional()
+          .optional(),
       )
       .query(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -205,7 +214,7 @@ export const appRouter = router({
           storageRef: z.string().optional(),
           notes: z.string().max(2000).optional(),
           payload: z.record(z.string(), z.unknown()).optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -216,7 +225,7 @@ export const appRouter = router({
         z.object({
           name: z.string().min(2).max(255),
           description: z.string().max(4000).optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -235,13 +244,16 @@ export const appRouter = router({
           tags: z.array(z.string().min(1).max(64)).optional(),
           changelog: z.string().max(4000).optional(),
           payload: z.record(z.string(), z.unknown()).optional(),
-          version: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
+          version: z
+            .string()
+            .regex(/^\d+\.\d+\.\d+$/)
+            .optional(),
           versionBump: z.enum(["major", "minor", "patch"]).optional(),
           canonicalUri: z.string().url().optional(),
           metadataUri: z.string().url().optional(),
           storageRef: z.string().optional(),
           notes: z.string().max(2000).optional(),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -251,7 +263,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .query(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -261,7 +273,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .query(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -271,7 +283,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .query(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -283,7 +295,7 @@ export const appRouter = router({
           skillId: z.string().min(4),
           success: z.boolean(),
           resolvedAt: z.string().optional(),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -293,7 +305,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .query(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -303,7 +315,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -313,7 +325,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -323,7 +335,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -333,7 +345,7 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.string().min(4),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const service = new SkillRegistryService(ctx.user.id);
@@ -370,7 +382,7 @@ export const appRouter = router({
             .optional(),
           proofHash: z.string().optional(),
           referenceId: z.string().optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         return createReceipt(
@@ -385,7 +397,7 @@ export const appRouter = router({
             proofType: input.proofType,
             proofHash: input.proofHash,
             referenceId: input.referenceId,
-          }
+          },
         );
       }),
   }),
@@ -402,13 +414,17 @@ export const appRouter = router({
     configure: protectedProcedure
       .input(
         z.object({
-          mode: z.enum(["automation", "meaningful_agency", "full_autonomy"]).optional(),
+          mode: z
+            .enum(["automation", "meaningful_agency", "full_autonomy"])
+            .optional(),
           level: autonomyLevelSchema.optional(),
           preferences: z.record(z.string(), z.unknown()).optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
-        const modeLevel = input.mode ? resolveAutonomyLevelForMode(input.mode) : undefined;
+        const modeLevel = input.mode
+          ? resolveAutonomyLevelForMode(input.mode)
+          : undefined;
         const next = await upsertAutonomyConfig(ctx.user.id, {
           mode: input.mode,
           level: input.level ?? modeLevel,
@@ -426,7 +442,7 @@ export const appRouter = router({
           confidence: z.number().min(0).max(100),
           riskLevel: z.enum(["low", "medium", "high", "critical"]),
           valueAtRisk: z.number().min(0).optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const config = await getAutonomyConfigByUser(ctx.user.id);
@@ -451,7 +467,7 @@ export const appRouter = router({
         z.object({
           gateId: z.string().min(4),
           note: z.string().optional(),
-        })
+        }),
       )
       .mutation(async ({ input }) => {
         return {
@@ -486,16 +502,18 @@ export const appRouter = router({
                 id: z.string().min(1),
                 label: z.string().min(1),
                 reason: z.string().optional(),
-              })
+              }),
             )
             .min(1),
           selectedOptionId: z.string().min(1),
           rationale: z.string().min(4),
           confidence: z.number().min(0).max(100),
-          riskLevel: z.enum(["low", "medium", "high", "critical"]).default("low"),
+          riskLevel: z
+            .enum(["low", "medium", "high", "critical"])
+            .default("low"),
           memoryUsed: z.array(z.string()).optional(),
           metadata: z.record(z.string(), z.unknown()).optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const policy = evaluatePolicyGate({
@@ -514,7 +532,11 @@ export const appRouter = router({
           rationale: input.rationale,
           confidence: input.confidence,
           policyStatus:
-            policy.status === "auto_allowed" ? "approved" : policy.allowed ? "approved" : "needs_review",
+            policy.status === "auto_allowed"
+              ? "approved"
+              : policy.allowed
+                ? "approved"
+                : "needs_review",
           memoryUsed: input.memoryUsed,
           metadata: {
             ...(input.metadata ?? {}),
@@ -534,7 +556,9 @@ export const appRouter = router({
           ...policy,
           decisionId: decision.id,
           runId: input.runId,
-          agentId: Number.isFinite(Number(input.agentId)) ? Number(input.agentId) : undefined,
+          agentId: Number.isFinite(Number(input.agentId))
+            ? Number(input.agentId)
+            : undefined,
         });
 
         const narrative = createDecisionNarrative(
@@ -545,7 +569,7 @@ export const appRouter = router({
           policy.reason,
           input.memoryUsed?.length
             ? `Memory influenced decision with ${input.memoryUsed.length} references.`
-            : "No memory references were required."
+            : "No memory references were required.",
         );
         await createDecisionNarrativeRecord(ctx.user.id, narrative);
 
@@ -559,7 +583,9 @@ export const appRouter = router({
             rationaleHash: `hash_${nanoid(24)}`,
             confidence: decision.confidence,
           }),
-          Number.isFinite(Number(input.agentId)) ? Number(input.agentId) : undefined,
+          Number.isFinite(Number(input.agentId))
+            ? Number(input.agentId)
+            : undefined,
           undefined,
           {
             autonomyLevel: decision.autonomyLevel,
@@ -567,7 +593,7 @@ export const appRouter = router({
             proofType: "decision",
             proofHash: `proof_${nanoid(24)}`,
             referenceId: decision.id,
-          }
+          },
         );
 
         const memoryUsage =
@@ -610,7 +636,7 @@ export const appRouter = router({
           improvedLaterRuns: z.boolean().default(false),
           confidenceAvg: z.number().min(0).max(100).default(70),
           memoryInfluenceAvg: z.number().min(0).max(100).default(50),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const reflection = createReflectionDraft(input);
@@ -623,7 +649,9 @@ export const appRouter = router({
             rootCause: reflection.rootCause,
             nextAction: reflection.nextAction,
           }),
-          Number.isFinite(Number(input.agentId)) ? Number(input.agentId) : undefined,
+          Number.isFinite(Number(input.agentId))
+            ? Number(input.agentId)
+            : undefined,
           undefined,
           {
             autonomyLevel: input.autonomyLevel,
@@ -631,7 +659,7 @@ export const appRouter = router({
             proofType: "reflection",
             proofHash: `proof_${nanoid(24)}`,
             referenceId: reflection.id,
-          }
+          },
         );
 
         // Mirror every reflection into the memory chain-of-receipts service.
@@ -662,12 +690,20 @@ export const appRouter = router({
             tags: ["autonomy", "reflection", input.autonomyLevel],
           });
           memoryReflectionId = created.reflection.id;
-          await memoryService.anchorReflection(created.reflection.id, proofWallet);
+          await memoryService.anchorReflection(
+            created.reflection.id,
+            proofWallet,
+          );
         } catch (error) {
-          console.warn("[MemoryReceiptService] reflection mirror failed:", error);
+          console.warn(
+            "[MemoryReceiptService] reflection mirror failed:",
+            error,
+          );
         }
 
-        let zeroG: Awaited<ReturnType<typeof orchestrateReflectionSidecar>> | null = null;
+        let zeroG: Awaited<
+          ReturnType<typeof orchestrateReflectionSidecar>
+        > | null = null;
         if (memoryReflectionId) {
           try {
             zeroG = await orchestrateReflectionSidecar({
@@ -697,9 +733,15 @@ export const appRouter = router({
           agentId: z.number().optional(),
           autonomyLevel: autonomyLevelSchema,
           policyStatus: policyStatusSchema.default("approved"),
-          proofType: z.enum(["plan", "decision", "execution", "reflection", "memory"]),
+          proofType: z.enum([
+            "plan",
+            "decision",
+            "execution",
+            "reflection",
+            "memory",
+          ]),
           referenceId: z.string().optional(),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         return createReceipt(
@@ -714,7 +756,7 @@ export const appRouter = router({
             proofType: input.proofType,
             proofHash: `proof_${nanoid(24)}`,
             referenceId: input.referenceId,
-          }
+          },
         );
       }),
     history: protectedProcedure
@@ -724,19 +766,23 @@ export const appRouter = router({
             limit: z.number().min(5).max(200).default(50),
             decisionId: z.string().optional(),
           })
-          .optional()
+          .optional(),
       )
       .query(async ({ input, ctx }) => {
         const limit = input?.limit ?? 50;
-        const [decisions, policies, runs, reflections, receipts] = await Promise.all([
-          listDecisionRecordsByUser(ctx.user.id, limit),
-          listPolicyGateEventsByUser(ctx.user.id, limit),
-          listRunSummariesByUser(ctx.user.id, limit),
-          listReflectionsByUser(ctx.user.id, limit),
-          getReceiptsByUser(ctx.user.id),
-        ]);
+        const [decisions, policies, runs, reflections, receipts] =
+          await Promise.all([
+            listDecisionRecordsByUser(ctx.user.id, limit),
+            listPolicyGateEventsByUser(ctx.user.id, limit),
+            listRunSummariesByUser(ctx.user.id, limit),
+            listReflectionsByUser(ctx.user.id, limit),
+            getReceiptsByUser(ctx.user.id),
+          ]);
         const narrative = input?.decisionId
-          ? await getDecisionNarrativeByDecisionId(ctx.user.id, input.decisionId)
+          ? await getDecisionNarrativeByDecisionId(
+              ctx.user.id,
+              input.decisionId,
+            )
           : null;
         return {
           decisions,
@@ -772,15 +818,21 @@ export const appRouter = router({
         level: profile.level,
         mode: profile.mode,
         policyState:
-          profile.level === "fully_autonomous" ? "minimal_guardrails" : "policy_enforced",
+          profile.level === "fully_autonomous"
+            ? "minimal_guardrails"
+            : "policy_enforced",
         proofState:
           metrics.proofCompletionRate > 85
             ? "complete"
             : metrics.proofCompletionRate > 45
-            ? "partial"
-            : "degraded",
+              ? "partial"
+              : "degraded",
         memoryLinkage:
-          metrics.memoryReuseRate > 60 ? "adaptive" : metrics.memoryReuseRate > 30 ? "limited" : "cold_start",
+          metrics.memoryReuseRate > 60
+            ? "adaptive"
+            : metrics.memoryReuseRate > 30
+              ? "limited"
+              : "cold_start",
       };
     }),
     demoRun: protectedProcedure
@@ -788,7 +840,7 @@ export const appRouter = router({
         z.object({
           agentId: z.string().default("1"),
           goal: z.string().default("Demonstrate progressive autonomy."),
-        })
+        }),
       )
       .mutation(async ({ input, ctx }) => {
         const config = await getAutonomyConfigByUser(ctx.user.id);
@@ -798,7 +850,9 @@ export const appRouter = router({
 
         await createOrUpdateRunSummary(ctx.user.id, {
           runId,
-          agentId: Number.isFinite(Number(input.agentId)) ? Number(input.agentId) : null,
+          agentId: Number.isFinite(Number(input.agentId))
+            ? Number(input.agentId)
+            : null,
           autonomyLevel: nextLevel,
           score,
           trend: "rising",
@@ -832,8 +886,8 @@ export const appRouter = router({
             nextLevel === "fully_autonomous" || nextLevel === "near_autonomous"
               ? "full_autonomy"
               : nextLevel === "automation_only" || nextLevel === "assisted"
-              ? "automation"
-              : "meaningful_agency",
+                ? "automation"
+                : "meaningful_agency",
         });
 
         return {

@@ -28,7 +28,10 @@ function fail(res: Response, error: unknown, status = 400, req?: Request) {
     route: req?.path,
     requestId: requestId(req ?? ({} as Request)),
   });
-  const outStatus = appError.statusCode && appError.statusCode >= 400 ? appError.statusCode : status;
+  const outStatus =
+    appError.statusCode && appError.statusCode >= 400
+      ? appError.statusCode
+      : status;
   logStructuredError(appError, {
     route: req?.path,
     requestId: req ? requestId(req) : undefined,
@@ -67,7 +70,8 @@ function discoveryToSkillIdentity(row: {
   updatedAt: number;
 }): SkillIdentity {
   const total = row.successCount + row.failureCount;
-  const successRate = total > 0 ? Number(((row.successCount / total) * 100).toFixed(2)) : 0;
+  const successRate =
+    total > 0 ? Number(((row.successCount / total) * 100).toFixed(2)) : 0;
   return {
     id: row.skillAddress || row.slug,
     name: row.name,
@@ -109,7 +113,9 @@ const memoryPostBody = z.object({
   agentId: z.string().min(1),
   wallet: z.string().min(32).optional(),
   sourceTurnId: z.string().min(1),
-  kind: z.enum(["success", "failure", "retry", "correction", "lesson"]).default("lesson"),
+  kind: z
+    .enum(["success", "failure", "retry", "correction", "lesson"])
+    .default("lesson"),
   title: z.string().min(2),
   summary: z.string().min(2),
   fullText: z.string().min(4),
@@ -127,7 +133,7 @@ export async function registerSwarmApiRoutes(
     memoryService: MemoryReceiptService;
     identityService?: SolanaIdentityService;
     planReceiptService?: PlanReceiptService;
-  }
+  },
 ) {
   const mirror = new SwarmMirrorStore();
   await mirror.init();
@@ -168,7 +174,9 @@ export async function registerSwarmApiRoutes(
         canPublish: session.isActive && session.isVerified,
         canAnchor: session.isActive,
         canRun: true,
-        staleReason: session.isActive ? undefined : "session_inactive_or_unsigned",
+        staleReason: session.isActive
+          ? undefined
+          : "session_inactive_or_unsigned",
         network: {
           rpcUrl: network.rpcUrl,
           slot: network.slot,
@@ -204,22 +212,27 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/skills", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const rows = await deps.identityService.listDiscoverySkills({
         query: req.query.q ? String(req.query.q) : undefined,
         category: req.query.category ? String(req.query.category) : undefined,
         tag: req.query.tag ? String(req.query.tag) : undefined,
-        minTrustBps: req.query.minTrustBps ? Number(req.query.minTrustBps) : undefined,
+        minTrustBps: req.query.minTrustBps
+          ? Number(req.query.minTrustBps)
+          : undefined,
         minUsage: req.query.minUsage ? Number(req.query.minUsage) : undefined,
       });
       let mapped = rows.map(discoveryToSkillIdentity);
       if (req.query.minReputation) {
         const min = Number(req.query.minReputation);
-        mapped = mapped.filter(s => s.reputationScore >= min);
+        mapped = mapped.filter((s) => s.reputationScore >= min);
       }
       const sort = req.query.sort as string | undefined;
-      if (sort === "success_rate") mapped.sort((a, b) => b.successRate - a.successRate);
-      else if (sort === "most_used") mapped.sort((a, b) => b.usageCount - a.usageCount);
+      if (sort === "success_rate")
+        mapped.sort((a, b) => b.successRate - a.successRate);
+      else if (sort === "most_used")
+        mapped.sort((a, b) => b.usageCount - a.usageCount);
       else mapped.sort((a, b) => b.reputationScore - a.reputationScore);
 
       ok(res, { skills: mapped, total: mapped.length });
@@ -242,14 +255,17 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/skills/:id", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const id = String(req.params.id);
       if (id === "session") {
         notFound(res, "Skill not found.", "skill_not_found");
         return;
       }
       const rows = await deps.identityService.listDiscoverySkills();
-      const row = rows.find(r => r.skillAddress === id || r.slug === id || r.name === id);
+      const row = rows.find(
+        (r) => r.skillAddress === id || r.slug === id || r.name === id,
+      );
       if (!row) {
         notFound(res, "Skill not found.", "skill_not_found");
         return;
@@ -267,7 +283,11 @@ export async function registerSwarmApiRoutes(
       const skillId = String(req.params.id);
       await mirror.setSelectedSkill(wallet, skillId);
       console.log(`[${requestId(req)}] skill_selected`, wallet, skillId);
-      ok(res, { walletAddress: wallet, skillId, selectedAt: new Date().toISOString() });
+      ok(res, {
+        walletAddress: wallet,
+        skillId,
+        selectedAt: new Date().toISOString(),
+      });
     } catch (error) {
       fail(res, error, 400, req);
     }
@@ -302,7 +322,10 @@ export async function registerSwarmApiRoutes(
         nextAction: body.nextAction,
         tags: ["manual", "reflect"],
       });
-      const receipt = await deps.memoryService.anchorReflection(created.reflection.id, wallet);
+      const receipt = await deps.memoryService.anchorReflection(
+        created.reflection.id,
+        wallet,
+      );
       ok(res, { executionId, reflection: created.reflection, receipt });
     } catch (error) {
       fail(res, error, 400, req);
@@ -335,7 +358,7 @@ export async function registerSwarmApiRoutes(
         `[${requestId(req)}] execute_complete`,
         result.execution.id,
         result.execution.status,
-        result.errors.join(";")
+        result.errors.join(";"),
       );
 
       sendAppOk(res, result, {
@@ -358,7 +381,9 @@ export async function registerSwarmApiRoutes(
         throw new Error("walletAddress_required_for_demo");
       }
       wallet = normalizeWalletAddress(wallet);
-      const skills = deps.identityService ? await deps.identityService.listDiscoverySkills() : [];
+      const skills = deps.identityService
+        ? await deps.identityService.listDiscoverySkills()
+        : [];
       const first = skills[0];
       const skillId = first?.skillAddress || first?.slug || "skill_demo";
       const skillName = first?.name || "SWARM discovery skill";
@@ -381,7 +406,9 @@ export async function registerSwarmApiRoutes(
   app.get("/api/memory", async (req, res) => {
     try {
       const agentId = req.query.agentId ? String(req.query.agentId) : undefined;
-      const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const wallet = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const limit = req.query.limit ? Number(req.query.limit) : 50;
       const data = await deps.memoryService.listReflections({
         agentId,
@@ -396,7 +423,9 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/memory/:id", async (req, res) => {
     try {
-      const data = await deps.memoryService.getReflection(String(req.params.id));
+      const data = await deps.memoryService.getReflection(
+        String(req.params.id),
+      );
       ok(res, data);
     } catch (error) {
       fail(res, error, 404, req);
@@ -421,7 +450,10 @@ export async function registerSwarmApiRoutes(
       });
       let receipt = null;
       if (body.autoAnchor && body.wallet) {
-        receipt = await deps.memoryService.anchorReflection(created.reflection.id, body.wallet);
+        receipt = await deps.memoryService.anchorReflection(
+          created.reflection.id,
+          body.wallet,
+        );
       }
       ok(res, { reflection: created.reflection, receipt });
     } catch (error) {
@@ -431,7 +463,9 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/receipts", async (req, res) => {
     try {
-      const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const wallet = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const mirrorReceipts = mirror.listReceipts({ wallet, limit: 100 });
       const chainAccounts = await deps.bridge.listMirrorAccounts({ wallet });
       ok(res, {
@@ -451,7 +485,9 @@ export async function registerSwarmApiRoutes(
         ok(res, fromBridge);
         return;
       }
-      const fromMirror = mirror.listReceipts({ limit: 2000 }).find(r => r.id === id);
+      const fromMirror = mirror
+        .listReceipts({ limit: 2000 })
+        .find((r) => r.id === id);
       if (fromMirror) {
         ok(res, fromMirror);
         return;
@@ -467,7 +503,18 @@ export async function registerSwarmApiRoutes(
       const body = z
         .object({
           walletAddress: z.string().min(32),
-          type: z.enum(["skill.publish", "skill.update", "plan", "execution", "reflection", "memory", "proof", "dao", "queue", "wallet"]),
+          type: z.enum([
+            "skill.publish",
+            "skill.update",
+            "plan",
+            "execution",
+            "reflection",
+            "memory",
+            "proof",
+            "dao",
+            "queue",
+            "wallet",
+          ]),
           subjectId: z.string().min(1),
           subjectType: z.string().min(1),
           summaryHash: z.string().min(32),
@@ -497,7 +544,9 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/proofs", async (req, res) => {
     try {
-      const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const wallet = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const accounts = await deps.bridge.listMirrorAccounts({
         wallet,
         kind: "proof_receipt",
@@ -523,7 +572,8 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/reputation", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const profiles = await deps.identityService.listDiscoveryProfiles();
       ok(res, { profiles });
     } catch (error) {
@@ -533,10 +583,13 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/reputation/:skillId", async (req, res) => {
     try {
-      if (!deps.identityService) throw new Error("identity_service_unavailable");
+      if (!deps.identityService)
+        throw new Error("identity_service_unavailable");
       const skillId = String(req.params.skillId);
       const rows = await deps.identityService.listDiscoverySkills();
-      const row = rows.find(r => r.skillAddress === skillId || r.slug === skillId);
+      const row = rows.find(
+        (r) => r.skillAddress === skillId || r.slug === skillId,
+      );
       if (!row) {
         notFound(res, "Skill not found.", "skill_not_found");
         return;
@@ -558,7 +611,9 @@ export async function registerSwarmApiRoutes(
 
   app.get("/api/history", async (req, res) => {
     try {
-      const wallet = req.query.wallet ? normalizeWalletAddress(String(req.query.wallet)) : undefined;
+      const wallet = req.query.wallet
+        ? normalizeWalletAddress(String(req.query.wallet))
+        : undefined;
       const limit = req.query.limit ? Number(req.query.limit) : 40;
       const [executions, bridgeHistory] = await Promise.all([
         Promise.resolve(mirror.listExecutions({ wallet, limit })),

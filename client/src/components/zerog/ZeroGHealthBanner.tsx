@@ -1,7 +1,11 @@
 import { cn } from "@/lib/utils";
 import type { ZeroGHealthResponse } from "@/lib/zerog/types";
 
-export function ZeroGHealthBanner({ health }: { health: ZeroGHealthResponse | null }) {
+export function ZeroGHealthBanner({
+  health,
+}: {
+  health: ZeroGHealthResponse | null;
+}) {
   if (!health) {
     return (
       <div className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-slate-400">
@@ -26,11 +30,15 @@ export function ZeroGHealthBanner({ health }: { health: ZeroGHealthResponse | nu
       <div className="mt-2 grid gap-1 text-[11px] md:grid-cols-4">
         <span>
           storage: {health.storage.ok ? "healthy" : "degraded"}
-          {health.storage.remoteReachable === false ? " · remote unreachable" : ""}
+          {health.storage.remoteReachable === false
+            ? " · remote unreachable"
+            : ""}
         </span>
         <span>
           compute: {health.compute.ok ? "healthy" : "degraded"}
-          {health.compute.remoteReachable === false ? " · remote unreachable" : ""}
+          {health.compute.remoteReachable === false
+            ? " · remote unreachable"
+            : ""}
         </span>
         <span>
           da: {health.da.ok ? "healthy" : "degraded"}
@@ -40,7 +48,8 @@ export function ZeroGHealthBanner({ health }: { health: ZeroGHealthResponse | nu
       </div>
       {health.remoteProbesSkipped ? (
         <p className="mt-2 text-[10px] text-slate-400">
-          Remote HTTP probes skipped (demo/disabled). Adapter health reflects orchestration readiness, not live 0G service guarantees.
+          Remote HTTP probes skipped (demo/disabled). Adapter health reflects
+          orchestration readiness, not live 0G service guarantees.
         </p>
       ) : null}
     </div>

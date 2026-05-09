@@ -22,7 +22,8 @@ export class SwarmMirrorStore {
   private writeChain: Promise<void> = Promise.resolve();
 
   constructor(filePath?: string) {
-    this.filePath = filePath || path.join(process.cwd(), "data", "swarm-mirror.json");
+    this.filePath =
+      filePath || path.join(process.cwd(), "data", "swarm-mirror.json");
   }
 
   async init() {
@@ -47,7 +48,7 @@ export class SwarmMirrorStore {
 
   private persist() {
     this.writeChain = this.writeChain.then(() =>
-      writeFile(this.filePath, JSON.stringify(this.data, null, 2), "utf8")
+      writeFile(this.filePath, JSON.stringify(this.data, null, 2), "utf8"),
     );
     return this.writeChain;
   }
@@ -65,7 +66,7 @@ export class SwarmMirrorStore {
   }
 
   async upsertExecution(record: ExecutionRecord) {
-    const idx = this.data.executions.findIndex(e => e.id === record.id);
+    const idx = this.data.executions.findIndex((e) => e.id === record.id);
     if (idx >= 0) this.data.executions[idx] = record;
     else this.data.executions.unshift(record);
     this.data.executions = this.data.executions.slice(0, 500);
@@ -73,12 +74,12 @@ export class SwarmMirrorStore {
   }
 
   getExecution(id: string) {
-    return this.data.executions.find(e => e.id === id) ?? null;
+    return this.data.executions.find((e) => e.id === id) ?? null;
   }
 
   listExecutions(filter?: { wallet?: string; limit?: number }) {
     let rows = [...this.data.executions];
-    if (filter?.wallet) rows = rows.filter(e => e.wallet === filter.wallet);
+    if (filter?.wallet) rows = rows.filter((e) => e.wallet === filter.wallet);
     const limit = filter?.limit ?? 50;
     return rows.slice(0, limit);
   }
@@ -91,7 +92,7 @@ export class SwarmMirrorStore {
 
   listReceipts(filter?: { wallet?: string; limit?: number }) {
     let rows = [...this.data.receipts];
-    if (filter?.wallet) rows = rows.filter(r => r.wallet === filter.wallet);
+    if (filter?.wallet) rows = rows.filter((r) => r.wallet === filter.wallet);
     return rows.slice(0, filter?.limit ?? 100);
   }
 }

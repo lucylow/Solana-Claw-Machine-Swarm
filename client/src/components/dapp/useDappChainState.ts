@@ -13,7 +13,7 @@ function deriveTxStatus(
   status: WalletConnectionStatus,
   hasSignature: boolean,
   hasError: boolean,
-  wrongCluster: boolean
+  wrongCluster: boolean,
 ): TransactionStatus {
   if (hasError) return "failed";
   if (wrongCluster) return "degraded";
@@ -63,7 +63,9 @@ function deriveProofStatus(args: {
  * Solana wallet context. Components consume this so transaction,
  * proof, and session lifecycle are visible without ad hoc props.
  */
-export function useDappChainState(opts?: { demoMode?: boolean }): DappChainState {
+export function useDappChainState(opts?: {
+  demoMode?: boolean;
+}): DappChainState {
   const ctx = useSolanaWalletContext();
   const snap = ctx.walletState;
   const demoMode = Boolean(opts?.demoMode || snap.diagnostics?.demoMode);
@@ -82,7 +84,7 @@ export function useDappChainState(opts?: { demoMode?: boolean }): DappChainState
       snap.connectionStatus,
       hasSignature,
       Boolean(ctx.error),
-      wrongCluster
+      wrongCluster,
     );
 
     const proofStatus = deriveProofStatus({
@@ -94,7 +96,8 @@ export function useDappChainState(opts?: { demoMode?: boolean }): DappChainState
       rpcReachable: snap.rpcReachable,
     });
 
-    const txSignature = snap.lastTxSignature ?? ctx.latestSignature ?? undefined;
+    const txSignature =
+      snap.lastTxSignature ?? ctx.latestSignature ?? undefined;
 
     return {
       connected: snap.connected,
@@ -115,7 +118,9 @@ export function useDappChainState(opts?: { demoMode?: boolean }): DappChainState
       txSignature,
       accountAddress: snap.txHistory?.[0]?.account ?? undefined,
       pda: snap.txHistory?.[0]?.account ?? undefined,
-      explorerUrl: txSignature ? txExplorerUrl(txSignature, snap.cluster) : undefined,
+      explorerUrl: txSignature
+        ? txExplorerUrl(txSignature, snap.cluster)
+        : undefined,
       proofStatus,
       busy,
       error: ctx.error ?? undefined,

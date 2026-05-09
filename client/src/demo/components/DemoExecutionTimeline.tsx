@@ -13,8 +13,14 @@ export function DemoExecutionTimeline({
   glow?: boolean;
 }) {
   return (
-    <DemoPanel glow={glow} presentationMode={presentationMode} className="space-y-3">
-      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Execution rail</p>
+    <DemoPanel
+      glow={glow}
+      presentationMode={presentationMode}
+      className="space-y-3"
+    >
+      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+        Execution rail
+      </p>
       <div className="space-y-0">
         {steps.map((s, idx) => {
           const icon =
@@ -33,22 +39,29 @@ export function DemoExecutionTimeline({
                 <div
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-full border",
-                    s.status === "done" && "border-[#3bff96]/50 bg-[#3bff96]/10",
+                    s.status === "done" &&
+                      "border-[#3bff96]/50 bg-[#3bff96]/10",
                     s.status === "failed" && "border-red-500/50 bg-red-500/10",
-                    s.status === "active" && "border-[#38d7d0]/50 bg-[#38d7d0]/10 shadow-[0_0_12px_rgba(56,215,208,0.2)]",
-                    s.status === "pending" && "border-slate-700 bg-slate-900/80"
+                    s.status === "active" &&
+                      "border-[#38d7d0]/50 bg-[#38d7d0]/10 shadow-[0_0_12px_rgba(56,215,208,0.2)]",
+                    s.status === "pending" &&
+                      "border-slate-700 bg-slate-900/80",
                   )}
                 >
                   {icon}
                 </div>
-                {idx < steps.length - 1 ? <div className="my-1 w-px flex-1 bg-gradient-to-b from-white/20 to-transparent min-h-[20px]" /> : null}
+                {idx < steps.length - 1 ? (
+                  <div className="my-1 w-px flex-1 bg-gradient-to-b from-white/20 to-transparent min-h-[20px]" />
+                ) : null}
               </div>
               <div className="flex-1 pb-6">
                 <p className="text-sm font-medium text-white">
                   Step {s.order}: {s.title}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">{s.detail}</p>
-                <p className="mt-1 text-[11px] text-slate-600">{s.durationMs}ms wall · {s.status}</p>
+                <p className="mt-1 text-[11px] text-slate-600">
+                  {s.durationMs}ms wall · {s.status}
+                </p>
               </div>
             </div>
           );

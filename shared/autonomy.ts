@@ -167,19 +167,22 @@ export const AUTONOMY_MODE_PRESETS: AutonomyModePreset[] = [
     mode: "automation",
     label: "Automation only",
     defaultLevel: "automation_only",
-    description: "Predictable workflows with explicit human approvals for most actions.",
+    description:
+      "Predictable workflows with explicit human approvals for most actions.",
   },
   {
     mode: "meaningful_agency",
     label: "Meaningful agency",
     defaultLevel: "meaningful_agency",
-    description: "Agent selects skills and plans while policy gates and risk thresholds remain active.",
+    description:
+      "Agent selects skills and plans while policy gates and risk thresholds remain active.",
   },
   {
     mode: "full_autonomy",
     label: "Full autonomy",
     defaultLevel: "fully_autonomous",
-    description: "Agent manages end-to-end execution and requests approvals only for high-risk steps.",
+    description:
+      "Agent manages end-to-end execution and requests approvals only for high-risk steps.",
   },
 ];
 
@@ -197,7 +200,8 @@ export const AUTONOMY_PROFILES: Record<AutonomyLevel, AutonomyProfile> = {
     requiresPolicyCheck: true,
     requiresWalletSignature: true,
     decisionScope: "Execution-only automation of user-selected actions",
-    explanation: "Agent executes deterministic steps and waits for manual steering.",
+    explanation:
+      "Agent executes deterministic steps and waits for manual steering.",
     badgeVariant: "outline",
     backendEnforcement: "manual",
   },
@@ -231,7 +235,8 @@ export const AUTONOMY_PROFILES: Record<AutonomyLevel, AutonomyProfile> = {
     requiresPolicyCheck: true,
     requiresWalletSignature: false,
     decisionScope: "Skill and plan decisions under user supervision",
-    explanation: "Agent proposes and revises decisions while user remains in loop.",
+    explanation:
+      "Agent proposes and revises decisions while user remains in loop.",
     badgeVariant: "secondary",
     backendEnforcement: "guarded",
   },
@@ -264,8 +269,10 @@ export const AUTONOMY_PROFILES: Record<AutonomyLevel, AutonomyProfile> = {
     requiresHumanApproval: false,
     requiresPolicyCheck: true,
     requiresWalletSignature: false,
-    decisionScope: "Independent planning and execution with selective approvals",
-    explanation: "Agent self-directs most work and escalates risk-sensitive actions.",
+    decisionScope:
+      "Independent planning and execution with selective approvals",
+    explanation:
+      "Agent self-directs most work and escalates risk-sensitive actions.",
     badgeVariant: "default",
     backendEnforcement: "guarded",
   },
@@ -282,7 +289,8 @@ export const AUTONOMY_PROFILES: Record<AutonomyLevel, AutonomyProfile> = {
     requiresPolicyCheck: true,
     requiresWalletSignature: false,
     decisionScope: "End-to-end operation with rare review checkpoints",
-    explanation: "Agent handles almost all decisions and self-heals through reflection.",
+    explanation:
+      "Agent handles almost all decisions and self-heals through reflection.",
     badgeVariant: "default",
     backendEnforcement: "autonomous",
   },
@@ -299,7 +307,8 @@ export const AUTONOMY_PROFILES: Record<AutonomyLevel, AutonomyProfile> = {
     requiresPolicyCheck: false,
     requiresWalletSignature: false,
     decisionScope: "Agent-owned orchestration with continuous proof output",
-    explanation: "Agent manages the complete workflow and emits auditable receipts.",
+    explanation:
+      "Agent manages the complete workflow and emits auditable receipts.",
     badgeVariant: "default",
     backendEnforcement: "autonomous",
   },

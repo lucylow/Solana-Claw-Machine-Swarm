@@ -36,43 +36,48 @@ export function ErrorSurfaceProvider({ children }: { children: ReactNode }) {
 
   const pushError = useCallback((e: AppError) => {
     const err = { ...e, id: e.id || newErrorId() };
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       active: err,
       history: [err, ...prev.history].slice(0, MAX_HISTORY),
       lastFailureAt: new Date().toISOString(),
-      isDegraded: prev.isDegraded || err.severity === "warning" || err.code === "DEGRADED_MODE",
+      isDegraded:
+        prev.isDegraded ||
+        err.severity === "warning" ||
+        err.code === "DEGRADED_MODE",
     }));
   }, []);
 
   const dismissActive = useCallback(() => {
-    setState(prev => ({ ...prev, active: null }));
+    setState((prev) => ({ ...prev, active: null }));
   }, []);
 
   const clearHistory = useCallback(() => {
-    setState(prev => ({ ...prev, history: [] }));
+    setState((prev) => ({ ...prev, history: [] }));
   }, []);
 
   const queueRetry = useCallback((id: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      pendingRetryIds: prev.pendingRetryIds.includes(id) ? prev.pendingRetryIds : [...prev.pendingRetryIds, id],
+      pendingRetryIds: prev.pendingRetryIds.includes(id)
+        ? prev.pendingRetryIds
+        : [...prev.pendingRetryIds, id],
     }));
   }, []);
 
   const dequeueRetry = useCallback((id: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      pendingRetryIds: prev.pendingRetryIds.filter(x => x !== id),
+      pendingRetryIds: prev.pendingRetryIds.filter((x) => x !== id),
     }));
   }, []);
 
   const markDegraded = useCallback((v: boolean) => {
-    setState(prev => ({ ...prev, isDegraded: v }));
+    setState((prev) => ({ ...prev, isDegraded: v }));
   }, []);
 
   const markSuccess = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       lastSuccessAt: new Date().toISOString(),
     }));
@@ -89,10 +94,23 @@ export function ErrorSurfaceProvider({ children }: { children: ReactNode }) {
       markDegraded,
       markSuccess,
     }),
-    [state, pushError, dismissActive, clearHistory, queueRetry, dequeueRetry, markDegraded, markSuccess]
+    [
+      state,
+      pushError,
+      dismissActive,
+      clearHistory,
+      queueRetry,
+      dequeueRetry,
+      markDegraded,
+      markSuccess,
+    ],
   );
 
-  return <ErrorSurfaceContext.Provider value={value}>{children}</ErrorSurfaceContext.Provider>;
+  return (
+    <ErrorSurfaceContext.Provider value={value}>
+      {children}
+    </ErrorSurfaceContext.Provider>
+  );
 }
 
 export function useErrorSurface(): Ctx | null {

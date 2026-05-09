@@ -10,17 +10,45 @@ import {
   explorerTxUrl,
   walletCluster,
 } from "./buildDemoExecutionRun";
-import { applyStoryPlayback, getUnifiedStoryBeats } from "./demoUnifiedStoryPlayback";
+import {
+  applyStoryPlayback,
+  getUnifiedStoryBeats,
+} from "./demoUnifiedStoryPlayback";
 import type { DemoPlaybackFrame } from "./demoEngineTypes";
-import type { DemoSnapshot, DemoStoryStage, DemoEvent, DemoStoryStepView } from "./demoEngineTypes";
-import type { DemoRunOutcome, DemoScenarioId, DemoSkillFixture, DemoWalletFixture } from "./demoTypes";
-import type { MemoryRecord, ReflectionRecord, SkillIdentity } from "./domainModel";
+import type {
+  DemoSnapshot,
+  DemoStoryStage,
+  DemoEvent,
+  DemoStoryStepView,
+} from "./demoEngineTypes";
+import type {
+  DemoRunOutcome,
+  DemoScenarioId,
+  DemoSkillFixture,
+  DemoWalletFixture,
+} from "./demoTypes";
+import type {
+  MemoryRecord,
+  ReflectionRecord,
+  SkillIdentity,
+} from "./domainModel";
 import type { SolanaWalletState, SolanaCluster } from "./solana/types";
 import type { StructuredReceipt, ProofStatus } from "./structuredReceipt";
 import type { OpenClawBridgeStatus } from "./openclaw/types";
 import type { ZeroGIntegrationStatus } from "./zerog";
-import type { ExecutionRun, StoryReflectionRecord, TraceableMemoryRecord, UnifiedStoryBeat } from "./executionStory";
-import { buildExecutionSteps, buildPlan, buildReceipts, DEMO_WALLET, getSkillById } from "./demoFixtures";
+import type {
+  ExecutionRun,
+  StoryReflectionRecord,
+  TraceableMemoryRecord,
+  UnifiedStoryBeat,
+} from "./executionStory";
+import {
+  buildExecutionSteps,
+  buildPlan,
+  buildReceipts,
+  DEMO_WALLET,
+  getSkillById,
+} from "./demoFixtures";
 
 const DEMO_EXPLORER_BASE: Record<SolanaCluster, string> = {
   devnet: "https://explorer.solana.com",
@@ -29,7 +57,9 @@ const DEMO_EXPLORER_BASE: Record<SolanaCluster, string> = {
   localnet: "https://explorer.solana.com",
 };
 
-export function demoSkillFixtureToSkillIdentity(s: DemoSkillFixture): SkillIdentity {
+export function demoSkillFixtureToSkillIdentity(
+  s: DemoSkillFixture,
+): SkillIdentity {
   return {
     id: s.id,
     name: s.name,
@@ -51,7 +81,7 @@ export function demoSkillFixtureToSkillIdentity(s: DemoSkillFixture): SkillIdent
 }
 
 function receiptKindToStructuredType(
-  kind: import("./demoTypes").DemoReceiptFixture["kind"]
+  kind: import("./demoTypes").DemoReceiptFixture["kind"],
 ): StructuredReceipt["receiptType"] {
   const m: Record<typeof kind, StructuredReceipt["receiptType"]> = {
     skill_publish: "skill_publish",
@@ -65,7 +95,9 @@ function receiptKindToStructuredType(
   return m[kind];
 }
 
-function fixtureProofStatus(status: import("./demoTypes").DemoReceiptFixture["status"]): ProofStatus {
+function fixtureProofStatus(
+  status: import("./demoTypes").DemoReceiptFixture["status"],
+): ProofStatus {
   if (status === "verified") return "demo_only";
   if (status === "pending") return "pending";
   return "cached_only";
@@ -74,7 +106,7 @@ function fixtureProofStatus(status: import("./demoTypes").DemoReceiptFixture["st
 /** Deterministic StructuredReceipt from demo fixture — same semantics as live receipts, explicitly demo-labeled in metadata. */
 export function demoReceiptFixtureToStructured(
   r: import("./demoTypes").DemoReceiptFixture,
-  cluster: StructuredReceipt["cluster"]
+  cluster: StructuredReceipt["cluster"],
 ): StructuredReceipt {
   const proofStatus = fixtureProofStatus(r.status);
   const rt = receiptKindToStructuredType(r.kind);
@@ -88,7 +120,12 @@ export function demoReceiptFixtureToStructured(
     cluster,
     title: r.subject.slice(0, 200),
     summary: `${r.kind.replace(/_/g, " ")} · preview receipt · ${r.status} · demo mode`,
-    status: r.status === "verified" ? "verified" : r.status === "pending" ? "submitted" : "confirmed",
+    status:
+      r.status === "verified"
+        ? "verified"
+        : r.status === "pending"
+          ? "submitted"
+          : "confirmed",
     proofStatus,
     createdAt: r.createdIso,
     updatedAt: r.createdIso,
@@ -120,7 +157,10 @@ export function demoReceiptFixtureToStructured(
           ? "Anchored compact proof — open explorer to reconcile hashes (demo fixture)."
           : `Receipt outlines ${r.subjectType} lineage for verifier replay.`,
       supportedBy: [r.txSignature, r.summaryHash, r.accountOrProofRef],
-      unsupported: proofStatus === "pending" ? ["Live RPC confirmation not asserted in demo"] : undefined,
+      unsupported:
+        proofStatus === "pending"
+          ? ["Live RPC confirmation not asserted in demo"]
+          : undefined,
     },
     metadata: {
       demoMode: true,
@@ -130,7 +170,9 @@ export function demoReceiptFixtureToStructured(
   };
 }
 
-export function storyReflectionToDomainReflection(r: StoryReflectionRecord): ReflectionRecord {
+export function storyReflectionToDomainReflection(
+  r: StoryReflectionRecord,
+): ReflectionRecord {
   const st = r.status;
   const status: ReflectionRecord["status"] =
     st === "verified" ? "verified" : st === "degraded" ? "degraded" : "stored";
@@ -155,7 +197,9 @@ export function storyReflectionToDomainReflection(r: StoryReflectionRecord): Ref
   };
 }
 
-export function traceableMemoryToDomainMemory(t: TraceableMemoryRecord): MemoryRecord {
+export function traceableMemoryToDomainMemory(
+  t: TraceableMemoryRecord,
+): MemoryRecord {
   return {
     id: t.id,
     agentId: "agent-memory-demo",
@@ -186,7 +230,7 @@ function sessionVerifiedForBeat(beat: UnifiedStoryBeat | undefined): boolean {
 export function buildDemoSolanaWalletState(
   wallet: DemoWalletFixture,
   beat: UnifiedStoryBeat | undefined,
-  lastTxSignature?: string
+  lastTxSignature?: string,
 ): SolanaWalletState {
   const wc = walletCluster(wallet) as SolanaCluster;
   const connected = Boolean(beat?.patch.walletConnectedDemo);
@@ -205,16 +249,23 @@ export function buildDemoSolanaWalletState(
     cluster: wc,
     rpcUrl: `https://api.${wc}.solana.com`,
     explorerBaseUrl: explorerBase,
-    balanceLamports: connected ? String(Math.floor(wallet.balanceSol * 1e9)) : null,
+    balanceLamports: connected
+      ? String(Math.floor(wallet.balanceSol * 1e9))
+      : null,
     balanceSol: connected ? wallet.balanceSol.toFixed(4) : null,
     isBalanceLoading: false,
     isSessionLoading: connected && !sessionVerified,
     isSessionVerified: sessionVerified,
-    sessionStatus: connected ? (sessionVerified ? "verified" : "pending") : "none",
+    sessionStatus: connected
+      ? sessionVerified
+        ? "verified"
+        : "pending"
+      : "none",
     sessionNonce: connected ? "nonce_demo_9f3c2a1b8e7d6c5a" : undefined,
     sessionToken: sessionVerified ? "sess_preview_cached_only" : undefined,
     lastTxSignature: connected ? lastTxSignature : undefined,
-    lastSignatureAt: connected && lastTxSignature ? "2026-05-07T09:22:01.000Z" : undefined,
+    lastSignatureAt:
+      connected && lastTxSignature ? "2026-05-07T09:22:01.000Z" : undefined,
     lastSessionAt: sessionVerified ? "2026-05-07T09:10:04.000Z" : undefined,
     rpcReachable: true,
     rpcSlot: connected ? "342891772" : null,
@@ -238,7 +289,7 @@ export function buildDemoSolanaWalletState(
 
 function mergeZeroG(
   base: ZeroGIntegrationStatus,
-  patch?: Partial<ZeroGIntegrationStatus>
+  patch?: Partial<ZeroGIntegrationStatus>,
 ): ZeroGIntegrationStatus {
   if (!patch) return base;
   return {
@@ -250,7 +301,7 @@ function mergeZeroG(
 
 function mergeOpenClaw(
   base: OpenClawBridgeStatus,
-  patch?: Partial<OpenClawBridgeStatus>
+  patch?: Partial<OpenClawBridgeStatus>,
 ): OpenClawBridgeStatus {
   return patch ? { ...base, ...patch } : base;
 }
@@ -300,9 +351,10 @@ function mapHighlightToStage(h: UnifiedStoryBeat["highlight"]): DemoStoryStage {
 function deriveDataPosture(
   run: ExecutionRun,
   proof: StructuredReceipt | undefined,
-  beat: UnifiedStoryBeat | undefined
+  beat: UnifiedStoryBeat | undefined,
 ): DemoSnapshot["derived"]["dataPosture"] {
-  if (run.currentStage === "degraded" || run.currentStage === "failed") return "degraded";
+  if (run.currentStage === "degraded" || run.currentStage === "failed")
+    return "degraded";
   if (proof?.proofStatus === "pending") return "pending";
   if (proof?.proofStatus === "demo_only") return "demo_only";
   if (proof?.proofStatus === "cached_only") return "cached_only";
@@ -317,11 +369,13 @@ function buildTimelineInput(
   reflection: ReflectionRecord | undefined,
   memory: MemoryRecord | undefined,
   receiptTx: string | undefined,
-  receiptAnchored: boolean
+  receiptAnchored: boolean,
 ): BuildCommandTimelineInput {
-  const activeIdx = run.steps.findIndex(s => s.id === run.activeStepId);
+  const activeIdx = run.steps.findIndex((s) => s.id === run.activeStepId);
   const loopStep = activeIdx >= 0 ? activeIdx : 0;
-  const hasRefl = Boolean(reflection && isStructuredReflectionControl(reflection));
+  const hasRefl = Boolean(
+    reflection && isStructuredReflectionControl(reflection),
+  );
   const hasMem = Boolean(memory);
   return normalizeBuildCommandTimelineInput({
     walletConnected: wallet.connected,
@@ -336,10 +390,14 @@ function buildTimelineInput(
     hasReflection: Boolean(reflection),
     structuredReflection: hasRefl,
     hasMemory: hasMem,
-    planReceiptId: run.metadata && typeof run.metadata.planReceiptId === "string" ? run.metadata.planReceiptId : undefined,
+    planReceiptId:
+      run.metadata && typeof run.metadata.planReceiptId === "string"
+        ? run.metadata.planReceiptId
+        : undefined,
     receiptTxPreview: receiptTx?.slice(0, 10),
     zerogStored: hasMem,
-    zerogDaCommitted: run.currentStage === "verified" || run.currentStage === "completed",
+    zerogDaCommitted:
+      run.currentStage === "verified" || run.currentStage === "completed",
     receiptAnchored: receiptAnchored && Boolean(run.proofId || run.receiptId),
     degraded: run.currentStage === "degraded" || run.currentStage === "failed",
   });
@@ -349,7 +407,7 @@ function buildStoryStepViews(
   frames: DemoPlaybackFrame[],
   beats: UnifiedStoryBeat[],
   currentIndex: number,
-  playbackStatus: import("./demoEngineTypes").DemoPlaybackStatus
+  playbackStatus: import("./demoEngineTypes").DemoPlaybackStatus,
 ): DemoStoryStepView[] {
   return frames.map((f, i) => {
     const beat = beats[f.beatIndex] ?? beats[0];
@@ -364,7 +422,8 @@ function buildStoryStepViews(
             ? "completed"
             : "active";
     }
-    if (beat?.patch.currentStage === "failed") status = i === currentIndex ? "failed" : status;
+    if (beat?.patch.currentStage === "failed")
+      status = i === currentIndex ? "failed" : status;
     return {
       id: `demo-step-${i}-${f.beatIndex}`,
       index: i,
@@ -389,7 +448,8 @@ function buildEventLog(params: {
   skill?: SkillIdentity;
   proof?: StructuredReceipt;
 }): DemoEvent[] {
-  const { scenarioId, frames, beats, currentIndex, run, wallet, skill, proof } = params;
+  const { scenarioId, frames, beats, currentIndex, run, wallet, skill, proof } =
+    params;
   const events: DemoEvent[] = [];
   const base = Date.parse("2026-05-07T09:08:00.000Z");
   for (let i = 0; i <= Math.min(currentIndex, frames.length - 1); i++) {
@@ -397,8 +457,16 @@ function buildEventLog(params: {
     const beat = beats[f.beatIndex] ?? beats[0]!;
     const stage = mapHighlightToStage(beat.highlight);
     let status: DemoEvent["status"] = "info";
-    if (beat.patch.currentStage === "failed" || beat.patch.currentStage === "degraded") status = "warning";
-    if (beat.patch.currentStage === "verified" || beat.patch.currentStage === "completed") status = "success";
+    if (
+      beat.patch.currentStage === "failed" ||
+      beat.patch.currentStage === "degraded"
+    )
+      status = "warning";
+    if (
+      beat.patch.currentStage === "verified" ||
+      beat.patch.currentStage === "completed"
+    )
+      status = "success";
     if (i === currentIndex && status === "info") status = "live";
     events.push({
       id: `evt-${scenarioId}-${i}`,
@@ -410,7 +478,10 @@ function buildEventLog(params: {
       relatedIds: {
         walletId: wallet.publicKey ?? undefined,
         skillId: skill?.id,
-        planId: typeof run.metadata.planId === "string" ? run.metadata.planId : undefined,
+        planId:
+          typeof run.metadata.planId === "string"
+            ? run.metadata.planId
+            : undefined,
         executionId: run.id,
         reflectionId: run.reflectionId,
         memoryId: run.memoryId,
@@ -435,15 +506,35 @@ export interface BuildDemoSnapshotParams {
   frames: DemoPlaybackFrame[];
 }
 
-export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot {
-  const { scenarioId, playbackOutcome, forceError, selectedSkillId, playbackStepIndex, playbackStatus, frames } =
-    params;
+export function buildDemoSnapshot(
+  params: BuildDemoSnapshotParams,
+): DemoSnapshot {
+  const {
+    scenarioId,
+    playbackOutcome,
+    forceError,
+    selectedSkillId,
+    playbackStepIndex,
+    playbackStatus,
+    frames,
+  } = params;
 
-  const effectiveOutcome: DemoRunOutcome = forceError ? "failure" : playbackOutcome;
-  const skillFx = getSkillById(selectedSkillId) ?? getSkillById("skill-support-triage")!;
-  const plan = buildPlan(skillFx, effectiveOutcome === "failure" ? "failure" : effectiveOutcome);
-  const stepsFx = buildExecutionSteps(effectiveOutcome === "failure" ? "failure" : effectiveOutcome);
-  const receiptsFx = buildReceipts(skillFx, effectiveOutcome === "failure" ? "failure" : effectiveOutcome);
+  const effectiveOutcome: DemoRunOutcome = forceError
+    ? "failure"
+    : playbackOutcome;
+  const skillFx =
+    getSkillById(selectedSkillId) ?? getSkillById("skill-support-triage")!;
+  const plan = buildPlan(
+    skillFx,
+    effectiveOutcome === "failure" ? "failure" : effectiveOutcome,
+  );
+  const stepsFx = buildExecutionSteps(
+    effectiveOutcome === "failure" ? "failure" : effectiveOutcome,
+  );
+  const receiptsFx = buildReceipts(
+    skillFx,
+    effectiveOutcome === "failure" ? "failure" : effectiveOutcome,
+  );
   const artifact = buildDemoExecutionArtifacts({
     wallet: DEMO_WALLET,
     skill: skillFx,
@@ -455,16 +546,21 @@ export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot
 
   const beats = getUnifiedStoryBeats(effectiveOutcome);
   const stepCount = frames.length;
-  const idx = Math.max(0, Math.min(playbackStepIndex, Math.max(stepCount - 1, 0)));
+  const idx = Math.max(
+    0,
+    Math.min(playbackStepIndex, Math.max(stepCount - 1, 0)),
+  );
   const frame = frames[idx] ?? { beatIndex: 0, delayMs: 800 };
   const beat = beats[frame.beatIndex] ?? beats[0]!;
 
   const displayedRun = applyStoryPlayback(artifact.executionRun, beat);
   const skill = demoSkillFixtureToSkillIdentity(skillFx);
 
-  const anchorFixture = receiptsFx.find(r => r.kind === "proof_anchor");
+  const anchorFixture = receiptsFx.find((r) => r.kind === "proof_anchor");
   const cluster = walletCluster(DEMO_WALLET) as StructuredReceipt["cluster"];
-  let primaryReceipt = anchorFixture ? demoReceiptFixtureToStructured(anchorFixture, cluster) : undefined;
+  let primaryReceipt = anchorFixture
+    ? demoReceiptFixtureToStructured(anchorFixture, cluster)
+    : undefined;
   if (primaryReceipt && frame.primaryReceiptProofPatch) {
     primaryReceipt = {
       ...primaryReceipt,
@@ -478,8 +574,12 @@ export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot
   const lastTx = receiptsFx[receiptsFx.length - 1]?.txSignature;
   const wallet = buildDemoSolanaWalletState(DEMO_WALLET, beat, lastTx);
 
-  const reflectionDomain = artifact.reflection ? storyReflectionToDomainReflection(artifact.reflection) : undefined;
-  const memoryDomain = artifact.traceableMemory ? traceableMemoryToDomainMemory(artifact.traceableMemory) : undefined;
+  const reflectionDomain = artifact.reflection
+    ? storyReflectionToDomainReflection(artifact.reflection)
+    : undefined;
+  const memoryDomain = artifact.traceableMemory
+    ? traceableMemoryToDomainMemory(artifact.traceableMemory)
+    : undefined;
 
   const reflection = displayedRun.reflectionId ? reflectionDomain : undefined;
   const memory = displayedRun.memoryId ? memoryDomain : undefined;
@@ -497,7 +597,7 @@ export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot
         importedCount: 6,
         exportedCount: 2,
       },
-      frame.openclaw
+      frame.openclaw,
     );
   } else {
     openclaw = mergeOpenClaw(openclaw, frame.openclaw);
@@ -511,7 +611,7 @@ export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot
     reflection,
     memory,
     primaryReceipt?.evidence.txSignature,
-    receiptAnchored
+    receiptAnchored,
   );
   const tl = buildCommandTimelineSafe(timelineInput);
   const timeline = commandEventsToUXTimeline(tl.events);
@@ -521,23 +621,41 @@ export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot
 
   const repDelta =
     effectiveOutcome === "recovery"
-      ? { score: skill.reputationScore + 1, label: "Recovery anchored — trust signal up (demo)" }
+      ? {
+          score: skill.reputationScore + 1,
+          label: "Recovery anchored — trust signal up (demo)",
+        }
       : effectiveOutcome === "failure"
-        ? { score: Math.max(0, skill.reputationScore - 2), label: "Degraded run — reputation held pending (demo)" }
-        : { score: skill.reputationScore, label: "Clean run — usage-weighted rank stable (demo)" };
+        ? {
+            score: Math.max(0, skill.reputationScore - 2),
+            label: "Degraded run — reputation held pending (demo)",
+          }
+        : {
+            score: skill.reputationScore,
+            label: "Clean run — usage-weighted rank stable (demo)",
+          };
 
   const autonomy =
     effectiveOutcome === "recovery"
-      ? { score: 78, label: "Meaningful agency · retry authorized after reflection (demo)" }
+      ? {
+          score: 78,
+          label: "Meaningful agency · retry authorized after reflection (demo)",
+        }
       : effectiveOutcome === "failure"
         ? { score: 52, label: "Policy gated — human review suggested (demo)" }
-        : { score: 71, label: "Assisted autonomy · planner + operator with receipts (demo)" };
+        : {
+            score: 71,
+            label:
+              "Assisted autonomy · planner + operator with receipts (demo)",
+          };
 
   const derived: DemoSnapshot["derived"] = {
     isWalletVerified: wallet.isSessionVerified,
     isProofVerified: proof?.proofStatus === "verified",
     isMemoryLinked: Boolean(memory?.sourceReflectionId),
-    hasFailure: displayedRun.currentStage === "failed" || Boolean(displayedRun.failureReason),
+    hasFailure:
+      displayedRun.currentStage === "failed" ||
+      Boolean(displayedRun.failureReason),
     hasRecovery: effectiveOutcome === "recovery",
     autonomyLabel: autonomy.label,
     reputationLabel: repDelta.label,
@@ -556,7 +674,8 @@ export function buildDemoSnapshot(params: BuildDemoSnapshotParams): DemoSnapshot
     proof,
   });
 
-  const progressPercent = stepCount <= 1 ? 100 : Math.round((idx / (stepCount - 1)) * 100);
+  const progressPercent =
+    stepCount <= 1 ? 100 : Math.round((idx / (stepCount - 1)) * 100);
 
   return {
     scenarioId,

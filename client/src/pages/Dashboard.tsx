@@ -20,12 +20,18 @@ export default function Dashboard() {
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10">
-                <Cpu className="h-5 w-5 animate-spin text-cyan-300" aria-hidden />
+                <Cpu
+                  className="h-5 w-5 animate-spin text-cyan-300"
+                  aria-hidden
+                />
               </div>
               <div>
-                <p className="font-medium text-slate-100">Syncing Solana command center</p>
+                <p className="font-medium text-slate-100">
+                  Opening Solana dApp dashboard
+                </p>
                 <p className="mt-1 text-sm text-slate-400">
-                  Loading session, skills, run index, and Solana receipt summaries for your wallet.
+                  Loading session, skills, demo state, and Solana receipt
+                  summaries for your wallet.
                 </p>
               </div>
             </div>
@@ -38,5 +44,7 @@ export default function Dashboard() {
     );
   }
 
-  return <SwarmCommandCenter walletAddress={wallet.walletAddress || undefined} />;
+  return (
+    <SwarmCommandCenter walletAddress={wallet.walletAddress || undefined} />
+  );
 }

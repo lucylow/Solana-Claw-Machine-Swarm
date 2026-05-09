@@ -3,6 +3,7 @@
 This package provides a Solana-native on-chain registry and reputation layer for CLAW MACHINE.
 
 Accounts:
+
 - config
 - profile
 - skill
@@ -14,11 +15,13 @@ Accounts:
 - discovery row
 
 Why this shape:
+
 - Solana programs are stateless, so mutable state is account-driven.
 - PDA addressing keeps account derivation deterministic and indexer-friendly.
 - Anchor account constraints remove boilerplate and improve safety.
 
 ### Demo flow
+
 1. Initialize config.
 2. Connect wallet.
 3. Create profile.

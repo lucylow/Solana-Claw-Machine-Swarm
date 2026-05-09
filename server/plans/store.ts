@@ -1,6 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
-import type { PlanExecutionReceipt, PlanReceipt, PlanResultReceipt } from "@shared/planReceipts";
+import type {
+  PlanExecutionReceipt,
+  PlanReceipt,
+  PlanResultReceipt,
+} from "@shared/planReceipts";
 import type { PlanLifecycleEvent } from "./types";
 
 type State = {
@@ -50,7 +54,11 @@ export class PlanStore {
   private async persist() {
     if (!this.filePath) return;
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(this.state, null, 2), "utf8");
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(this.state, null, 2),
+      "utf8",
+    );
   }
 
   async saveReceipt(receipt: PlanReceipt) {
@@ -61,13 +69,15 @@ export class PlanStore {
   }
 
   async listReceipts() {
-    return Object.values(this.state.receipts).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return Object.values(this.state.receipts).sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
   }
 
   async listLatestReceipts() {
     const ids = Object.values(this.state.latestReceiptByPlanId);
     return ids
-      .map(id => this.state.receipts[id])
+      .map((id) => this.state.receipts[id])
       .filter((value): value is PlanReceipt => Boolean(value))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
@@ -83,7 +93,7 @@ export class PlanStore {
 
   async listReceiptsByPlanId(planId: string) {
     return Object.values(this.state.receipts)
-      .filter(receipt => receipt.planId === planId)
+      .filter((receipt) => receipt.planId === planId)
       .sort((a, b) => b.version - a.version);
   }
 
@@ -128,7 +138,7 @@ export class PlanStore {
 
   async listTimelineForPlan(planId: string) {
     return this.state.timeline
-      .filter(event => event.planId === planId)
+      .filter((event) => event.planId === planId)
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 }

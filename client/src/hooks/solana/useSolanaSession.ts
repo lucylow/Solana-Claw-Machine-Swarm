@@ -9,13 +9,20 @@ export function useSolanaSession() {
       sessionProfile: wallet.sessionProfile,
       sessionToken: wallet.sessionToken,
       hasSession: Boolean(wallet.sessionProfile && wallet.sessionToken),
-      sessionExpiresLabel: formatSessionExpiry(wallet.sessionProfile?.expiresAt),
+      sessionExpiresLabel: formatSessionExpiry(
+        wallet.sessionProfile?.expiresAt,
+      ),
       permissions: wallet.sessionProfile?.permissions,
       isVerified:
         wallet.walletState.isSessionVerified ||
         wallet.state === "session_verified" ||
         wallet.state === "ready",
     }),
-    [wallet.sessionProfile, wallet.sessionToken, wallet.state, wallet.walletState.isSessionVerified]
+    [
+      wallet.sessionProfile,
+      wallet.sessionToken,
+      wallet.state,
+      wallet.walletState.isSessionVerified,
+    ],
   );
 }

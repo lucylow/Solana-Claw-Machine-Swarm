@@ -1,6 +1,10 @@
 import { hashValue, ZeroGOrchestratorStore } from "./artifacts";
 import { getZeroGConfig } from "./config";
-import type { ZeroGComputeAdapter, ZeroGComputeJob, ZeroGHealthStatus } from "./types";
+import type {
+  ZeroGComputeAdapter,
+  ZeroGComputeJob,
+  ZeroGHealthStatus,
+} from "./types";
 
 function now() {
   return new Date().toISOString();
@@ -12,10 +16,15 @@ function toComputeRef(id: string) {
 
 function computeOutput(job: ZeroGComputeJob) {
   if (job.taskType === "summarize_reflection") {
-    const text = typeof job.input === "string" ? job.input : JSON.stringify(job.input);
+    const text =
+      typeof job.input === "string" ? job.input : JSON.stringify(job.input);
     return {
       summary: text.slice(0, 220),
-      bullets: ["Root cause captured", "Corrective advice extracted", "Anchoring-ready summary generated"],
+      bullets: [
+        "Root cause captured",
+        "Corrective advice extracted",
+        "Anchoring-ready summary generated",
+      ],
     };
   }
 
@@ -81,7 +90,12 @@ export class ZeroGComputeService implements ZeroGComputeAdapter {
   async waitForJob(jobId: string): Promise<ZeroGComputeJob> {
     const job = this.store.getJobById(jobId);
     if (!job) throw new Error("compute_job_not_found");
-    if (job.status === "completed" || job.status === "failed" || job.status === "degraded") return job;
+    if (
+      job.status === "completed" ||
+      job.status === "failed" ||
+      job.status === "degraded"
+    )
+      return job;
     return {
       ...job,
       status: "completed",

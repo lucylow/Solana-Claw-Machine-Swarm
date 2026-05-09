@@ -30,7 +30,7 @@ export function DappEmptyState({
           : tone === "demo"
             ? "border-violet-400/25 bg-violet-500/[0.05]"
             : "border-white/10 bg-black/30",
-        className
+        className,
       )}
       role="status"
     >
@@ -41,7 +41,7 @@ export function DappEmptyState({
             ? "border-[#14f195]/30 bg-[#14f195]/10 text-[#9cf6d8]"
             : tone === "demo"
               ? "border-violet-400/30 bg-violet-500/10 text-violet-200"
-              : "border-white/10 bg-black/40 text-slate-400"
+              : "border-white/10 bg-black/40 text-slate-400",
         )}
       >
         <Icon className="h-4 w-4" aria-hidden />

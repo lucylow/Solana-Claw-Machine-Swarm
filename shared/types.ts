@@ -108,7 +108,10 @@ export {
   storyReflectionToDomainReflection,
   traceableMemoryToDomainMemory,
 } from "./demoSnapshotBuild";
-export { reflectionRecordToDemoFixture, memoryRecordToDemoFixture } from "./demoUiAdapter";
+export {
+  reflectionRecordToDemoFixture,
+  memoryRecordToDemoFixture,
+} from "./demoUiAdapter";
 
 /** Solana-native multi-agent framework (plan, tools, delegations, critic, proofs). */
 export type { AgentFrameworkRun } from "./agents/framework";
